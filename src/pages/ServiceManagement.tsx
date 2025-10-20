@@ -1,0 +1,224 @@
+import React, { useState, useEffect } from 'react';
+import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { Link } from 'react-router-dom';
+import { useServices } from '../hooks/useServices';
+import type { Service } from '../types/service';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+
+const ServiceManagement = () => {
+  const [formData, setFormData] = useState({ name: '', price: '', duration: '', category: '' });
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isToggling, setIsToggling] = useState<string | null>(null);
+  // Fetch existing services
+  const { services, isLoading: servicesLoading, error: servicesError } = useServices();
+
+  useEffect(() => {
+    if (editingService) {
+      setFormData({
+        name: editingService.name,
+        price: String(editingService.price),
+        duration: String(editingService.duration),
+        category: editingService.category,
+      });
+    } else {
+      resetForm();
+    }
+  }, [editingService]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    setSuccess(null);
+
+    if (!formData.name || !formData.price || !formData.duration || !formData.category) {
+      setFormError('所有欄位皆為必填');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (editingService) {
+        // Update existing service
+        const serviceRef = doc(db, 'services', editingService.id);
+        await updateDoc(serviceRef, {
+          name: formData.name,
+          price: Number(formData.price),
+          duration: Number(formData.duration),
+          category: formData.category,
+        });
+        setSuccess(`服務項目 "${formData.name}" 已成功更新！`);
+        setEditingService(null);
+      } else {
+        // Add new service
+        await addDoc(collection(db, 'services'), {
+          name: formData.name,
+          price: Number(formData.price),
+          duration: Number(formData.duration),
+          category: formData.category,
+          available: true, // New services are available by default
+          createdAt: serverTimestamp(),
+        });
+        setSuccess(`服務項目 "${formData.name}" 已成功新增！`);
+      }
+      resetForm();
+    } catch (err) {
+      console.error("Error adding service: ", err);
+      setFormError('新增服務失敗，請稍後再試。');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleEditClick = (service: Service) => {
+    setEditingService(service);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingService(null);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setFormData({ name: '', price: '', duration: '', category: '' });
+    setFormError(null);
+  };
+
+  const handleToggleAvailability = async (service: Service) => {
+    setIsToggling(service.id);
+    const serviceRef = doc(db, 'services', service.id);
+    try {
+      await updateDoc(serviceRef, { available: !service.available });
+    } catch (err) {
+      console.error("Error toggling availability: ", err);
+      alert('更新狀態失敗！');
+    } finally {
+      setIsToggling(null);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+            服務項目管理
+          </h1>
+          <Link to="/admin" className="text-sm font-medium text-indigo-600 hover:underline">
+            &larr; 返回預約列表
+          </Link>
+        </div>
+      </header>
+      <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white p-8 rounded-lg shadow-md">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">
+              {editingService ? '編輯服務項目' : '新增服務項目'}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="serviceName" className="block text-sm font-medium text-gray-700">服務名稱</label>
+                <input type="text" id="name" value={formData.name} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+              </div>
+              <div>
+                <label htmlFor="price" className="block text-sm font-medium text-gray-700">價格 (NT$)</label>
+                <input type="number" id="price" value={formData.price} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+              </div>
+              <div>
+                <label htmlFor="duration" className="block text-sm font-medium text-gray-700">所需時間 (分鐘)</label>
+                <input type="number" id="duration" value={formData.duration} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+              </div>
+              <div>
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700">分類</label>
+                <input type="text" id="category" value={formData.category} onChange={handleInputChange} placeholder="例如：手部保養, 足部光療" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+              </div>
+
+              {formError && <p className="text-sm text-red-600">{formError}</p>}
+              {success && <p className="text-sm text-green-600 bg-green-50 p-3 rounded-md">{success}</p>}
+
+              <div className="pt-2 flex gap-4">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-3 font-semibold text-white bg-pink-500 rounded-md hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSubmitting ? '處理中...' : (editingService ? '確認更新' : '確認新增')}
+                </button>
+                {editingService && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="w-full px-4 py-3 font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                  >
+                    取消編輯
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">現有服務列表</h2>
+            <div className="bg-white shadow-md rounded-lg overflow-x-auto">
+              {servicesLoading && <div className="p-8 text-center"><LoadingSpinner /></div>}
+              {servicesError && <p className="p-8 text-center text-red-500">讀取服務列表失敗。</p>}
+              {!servicesLoading && !servicesError && (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">服務名稱</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">價格</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">時長(分)</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分類</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {services.map((service) => (
+                      <tr key={service.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${service.price}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.duration}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.category}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => handleToggleAvailability(service)}
+                            disabled={isToggling === service.id}
+                            className={`px-3 py-1 text-xs font-semibold rounded-full ${service.available ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} disabled:opacity-50`}
+                          >
+                            {isToggling === service.id ? '...' : (service.available ? '上架中' : '已下架')}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => handleEditClick(service)}
+                            className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-300 disabled:cursor-not-allowed"
+                            disabled={!!editingService}
+                          >
+                            編輯
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default ServiceManagement;

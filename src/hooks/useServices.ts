@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import type { Service } from '../types/service';
 
 export const useServices = () => {
@@ -9,28 +9,30 @@ export const useServices = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const servicesCollection = collection(db, 'services');
-        // Query for available services, ordered by category then name
-        const q = query(servicesCollection, where('available', '==', true), orderBy('category'), orderBy('name'));
-        const querySnapshot = await getDocs(q);
+    const servicesCollection = collection(db, 'services');
+    // Order by creation time so new services appear at the top.
+    const q = query(servicesCollection, orderBy('createdAt', 'desc'));
 
-        const servicesData = querySnapshot.docs.map(doc => ({
+    // onSnapshot sets up a real-time listener.
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const servicesData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         } as Service));
-
         setServices(servicesData);
-      } catch (err) {
+        setIsLoading(false);
+      },
+      (err) => {
         console.error("Error fetching services: ", err);
         setError('Failed to load services. Please try again later.');
-      } finally {
         setIsLoading(false);
       }
-    };
+    );
 
-    fetchServices();
+    // Cleanup the listener when the component unmounts.
+    return () => unsubscribe();
   }, []);
 
   return { services, isLoading, error };

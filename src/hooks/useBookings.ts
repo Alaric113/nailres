@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy, Timestamp, onSnapshot } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
+import type { BookingDocument } from '../types/booking';
 import type { Service } from '../types/service';
 
 // Create a new type that combines booking data with service details
@@ -12,16 +13,14 @@ export interface BookingWithService extends Omit<BookingDocument, 'dateTime' | '
   service: Service | null; // Include the full service object
 }
 
-import type { BookingDocument } from '../types/booking';
-
 export const useBookings = () => {
   const [bookings, setBookings] = useState<BookingWithService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const user = useAuthStore((state) => state.user);
+  const currentUser = useAuthStore((state) => state.currentUser);
 
   useEffect(() => {
-    if (!user) {
+    if (!currentUser) {
       setBookings([]); // Clear bookings on logout
       setIsLoading(false);
       return;
@@ -38,7 +37,7 @@ export const useBookings = () => {
     };
 
     const bookingsRef = collection(db, 'bookings');
-    const q = query(bookingsRef, where('userId', '==', user.uid), orderBy('dateTime', 'desc'));
+    const q = query(bookingsRef, where('userId', '==', currentUser.uid), orderBy('dateTime', 'desc'));
 
     // Set up the real-time listener
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
@@ -67,7 +66,7 @@ export const useBookings = () => {
 
     // Cleanup the listener when the component unmounts or the user changes
     return () => unsubscribe();
-  }, [user]);
+  }, [currentUser]);
 
   return { bookings, isLoading, error };
 };

@@ -1,15 +1,25 @@
 import { Link } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 
 const Home = () => {
+  const user = useAuthStore((state) => state.user);
+
   return (
     <div className="min-h-screen bg-pink-50 text-gray-800">
       {/* Hero Section */}
       <section className="text-center py-20 px-4 bg-white shadow-md">
-        <h1 className="text-5xl font-bold text-pink-600 mb-4">NailRes 美甲之約</h1>
+        <h1 className="text-5xl font-bold text-pink-600 mb-4">TreeRing 美學工作室</h1>
         <p className="text-xl text-gray-600 mb-8">專為您的美麗而生，輕鬆預約您的專屬美甲時光。</p>
-        <div className="flex gap-4 justify-center">
-          <Link to="/booking" className="px-8 py-3 bg-pink-500 text-white font-semibold rounded-full shadow-lg hover:bg-pink-600 transition-all transform hover:scale-105">立即預約</Link>
-          <Link to="/login" className="px-8 py-3 bg-gray-700 text-white font-semibold rounded-full shadow-lg hover:bg-gray-800 transition-all transform hover:scale-105">會員登入</Link>
+        <div className="flex justify-center">
+          {user ? (
+            <Link to="/dashboard" className="px-8 py-3 bg-pink-500 text-white font-semibold rounded-full shadow-lg hover:bg-pink-600 transition-all transform hover:scale-105">
+              前往儀表板
+            </Link>
+          ) : (
+            <Link to="/login" className="px-8 py-3 bg-pink-500 text-white font-semibold rounded-full shadow-lg hover:bg-pink-600 transition-all transform hover:scale-105">
+              登入立即預約
+            </Link>
+          )}
         </div>
       </section>
 
