@@ -181,9 +181,7 @@
     - **問題描述:** 瀏覽器控制台顯示 `GET https://firestore.googleapis.com/... 400 (Bad Request)` 以及 `WebChannelConnection RPC 'Listen' stream ... transport errored` 錯誤。
     - **根本原因:** 經分析，此問題是因為專案在 Google Cloud Console 中尚未啟用 **Firestore API**。
     - **解決方案:**
-        - **[完成]** 前往 Google Cloud API 庫。
-        - **[完成]** 確認選擇了正確的專案 (`nail-62ea4`)。
-        - **[完成]** 點擊「啟用」按鈕以啟用 `firestore.googleapis.com` API。
+        - **[完成]** 前往 Google Cloud API 庫，為專案啟用 `firestore.googleapis.com` API。
 
 1.  **[技術債] 解決 Tailwind CSS 本地設定問題:**
     - **目標:** 移除對 CDN 的依賴，使專案能獨立運作。
