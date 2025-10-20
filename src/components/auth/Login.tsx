@@ -100,24 +100,24 @@ const Login = () => {
     }
   };
 
-  const handleLineSignIn = () => {
-    const lineChannelId = import.meta.env.VITE_LINE_CHANNEL_ID;
-    if (!lineChannelId) {
-      setError('LINE 登入設定不完整，請聯繫管理員。');
-      console.error('VITE_LINE_CHANNEL_ID is not defined in .env.local');
-      return;
-    }
+  // const handleLineSignIn = () => {
+  //   const lineChannelId = import.meta.env.VITE_LINE_CHANNEL_ID;
+  //   if (!lineChannelId) {
+  //     setError('LINE 登入設定不完整，請聯繫管理員。');
+  //     console.error('VITE_LINE_CHANNEL_ID is not defined in .env.local');
+  //     return;
+  //   }
 
-    const state = Math.random().toString(36).substring(2);
-    const nonce = Math.random().toString(36).substring(2);
-    sessionStorage.setItem('line_oauth_state', state); // Store state for verification
-    sessionStorage.setItem('line_oauth_nonce', nonce); // Store nonce for verification
+  //   const state = Math.random().toString(36).substring(2);
+  //   const nonce = Math.random().toString(36).substring(2);
+  //   sessionStorage.setItem('line_oauth_state', state); // Store state for verification
+  //   sessionStorage.setItem('line_oauth_nonce', nonce); // Store nonce for verification
 
-    // 注意：這裡我們將回呼 URL 指向一個新的路由
-    const redirectUri = `${window.location.origin}/auth/line/callback`;
-    const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${lineChannelId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=profile%20openid%20email&nonce=${nonce}`;
-    window.location.href = lineAuthUrl;
-  };
+  //   // 注意：這裡我們將回呼 URL 指向一個新的路由
+  //   const redirectUri = `${window.location.origin}/auth/line/callback`;
+  //   const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${lineChannelId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=profile%20openid%20email&nonce=${nonce}`;
+  //   window.location.href = lineAuthUrl;
+  // };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
 const Home = () => {
-  const user = useAuthStore((state) => state.user);
+  const currentUser = useAuthStore((state) => state.currentUser);
 
   return (
     <div className="min-h-screen bg-pink-50 text-gray-800">
@@ -11,7 +11,7 @@ const Home = () => {
         <h1 className="text-5xl font-bold text-pink-600 mb-4">TreeRing 美學工作室</h1>
         <p className="text-xl text-gray-600 mb-8">專為您的美麗而生，輕鬆預約您的專屬美甲時光。</p>
         <div className="flex justify-center">
-          {user ? (
+          {currentUser ? (
             <Link to="/dashboard" className="px-8 py-3 bg-pink-500 text-white font-semibold rounded-full shadow-lg hover:bg-pink-600 transition-all transform hover:scale-105">
               前往儀表板
             </Link>

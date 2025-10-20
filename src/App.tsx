@@ -20,7 +20,7 @@ import AdminRoute from './components/AdminRoute';
 function App() {
   // This hook will run on app startup and handle auth state synchronization.
   useAuth(); // 確保 useAuth 在這裡被呼叫
-  const { user, userProfile, authIsLoading } = useAuthStore();
+  const { currentUser, userProfile, authIsLoading } = useAuthStore();
 
   // While the initial auth state is being determined, show a global loading indicator.
   if (authIsLoading) {
@@ -36,8 +36,8 @@ function App() {
         <Route path="/" element={<Home />} />
 
         {/* Redirect logged-in users from login/register to their dashboard */}
-        <Route path="/login" element={!user ? <Login /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />} />
-        <Route path="/register" element={!user ? <Register /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />} />
+        <Route path="/login" element={!currentUser ? <Login /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />} />
+        <Route path="/register" element={!currentUser ? <Register /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />} />
 
         {/* Protected Routes for regular users */}
         <Route element={<ProtectedRoute />}>
