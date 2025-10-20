@@ -1,4 +1,4 @@
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp, FieldValue } from 'firebase/firestore';
 
 export interface UserProfile {
   displayName: string | null;
@@ -10,6 +10,6 @@ export interface UserDocument {
   email: string;
   profile: UserProfile;
   role: 'user' | 'admin';
-  createdAt: Timestamp;
-  lastLogin: Timestamp;
+  createdAt: Timestamp | FieldValue;
+  lastLogin: Timestamp | FieldValue;
 }

@@ -1,6 +1,4 @@
 import type { Timestamp } from 'firebase/firestore';
-import type { Service } from './service';
-import type { UserProfile } from './user';
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
 export type PaymentStatus = 'unpaid' | 'paid' | 'refunded';
