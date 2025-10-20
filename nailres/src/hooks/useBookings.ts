@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, Timestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuthStore } from '../store/authStore';
 import type { Service } from '../types/service';
@@ -22,42 +22,51 @@ export const useBookings = () => {
 
   useEffect(() => {
     if (!user) {
+      setBookings([]); // Clear bookings on logout
       setIsLoading(false);
       return;
     }
 
-    const fetchBookings = async () => {
-      setIsLoading(true);
-      try {
-        // This part can be optimized later by fetching all services once
-        const servicesSnapshot = await getDocs(collection(db, 'services'));
-        const servicesMap = new Map(servicesSnapshot.docs.map(doc => [doc.id, doc.data() as Service]));
-
-        const bookingsRef = collection(db, 'bookings');
-        const q = query(bookingsRef, where('userId', '==', user.uid), orderBy('dateTime', 'desc'));
-        const querySnapshot = await getDocs(q);
-
-        const bookingsData = querySnapshot.docs.map(doc => {
-          const data = doc.data() as BookingDocument;
-          return {
-            id: doc.id,
-            ...data,
-            dateTime: (data.dateTime as Timestamp).toDate(),
-            createdAt: (data.createdAt as Timestamp).toDate(),
-            service: servicesMap.get(data.serviceId) || null,
-          };
-        });
-
-        setBookings(bookingsData);
-      } catch (err) {
-        console.error("Error fetching bookings: ", err);
-        setError('Failed to load booking history.');
-      } finally {
-        setIsLoading(false);
-      }
+    // Pre-fetch all services to map their details to bookings.
+    // This is more efficient than fetching a service for each booking.
+    const servicesMap = new Map<string, Service>();
+    const fetchServices = async () => {
+      const servicesSnapshot = await getDocs(collection(db, 'services'));
+      servicesSnapshot.forEach(doc => {
+        servicesMap.set(doc.id, { id: doc.id, ...doc.data() } as Service);
+      });
     };
 
-    fetchBookings();
+    const bookingsRef = collection(db, 'bookings');
+    const q = query(bookingsRef, where('userId', '==', user.uid), orderBy('dateTime', 'desc'));
+
+    // Set up the real-time listener
+    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+      if (servicesMap.size === 0) {
+        await fetchServices();
+      }
+
+      const bookingsData = querySnapshot.docs.map(doc => {
+        const data = doc.data() as BookingDocument;
+        return {
+          id: doc.id,
+          ...data,
+          dateTime: (data.dateTime as Timestamp).toDate(),
+          createdAt: (data.createdAt as Timestamp).toDate(),
+          service: servicesMap.get(data.serviceId) || null,
+        };
+      });
+
+      setBookings(bookingsData);
+      setIsLoading(false);
+    }, (err) => {
+      console.error("Error listening to bookings: ", err);
+      setError('Failed to load booking history.');
+      setIsLoading(false);
+    });
+
+    // Cleanup the listener when the component unmounts or the user changes
+    return () => unsubscribe();
   }, [user]);
 
   return { bookings, isLoading, error };

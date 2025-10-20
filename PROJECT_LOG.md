@@ -167,15 +167,18 @@ collections/
 - **[完成]** 在日誌中補充了系統架構圖，以增強交接清晰度。
 - **[完成]** 實作了 `BookingForm.tsx` 的預約提交流程，可將新預約寫入 Firestore。
 - **[完成]** 優化了 `useAvailableSlots.ts`，使其能根據現有預約的實際服務時長進行精確的時段計算。
+- **[完成]** 優化了 `useBookings.ts` Hook，使用 `onSnapshot` 實現了預約歷史頁面的即時更新。
 
 ## 6. 下一步行動 (Action Items for Next Engineer)
 
 歡迎加入！以下是您可以立即開始的任務：
 
-1.  **建立預約歷史頁面:**
-    - 建立 `BookingHistoryPage.tsx` 頁面，用於顯示當前登入使用者的所有預約記錄。
-    - 建立一個 `useBookings.ts` Hook，負責從 Firestore 讀取 `userId` 為當前使用者的預約列表。
-    - 在 `App.tsx` 中新增 `/history` 路由，並在 `Dashboard.tsx` 中加入一個連結到該頁面的按鈕。
+1.  **建構管理員後台基礎:**
+    - **目標:** 建立一個只有管理員才能訪問的後台頁面。
+    - **任務:**
+        - **擴充狀態管理:** 修改 `useAuth` 和 `authStore`，使其在使用者登入後，能從 Firestore 的 `/users/{uid}` 文件中讀取 `role` 欄位，並存儲到全域狀態中。
+        - **建立管理員路由:** 在 `App.tsx` 中新增一個 `/admin` 的受保護路由，該路由只允許 `role` 為 `admin` 的使用者訪問。
+        - **建立儀表板骨架:** 建立一個基本的 `AdminDashboard.tsx` 頁面作為後台的進入點。
 
 ## 7. 待討論事項
 
