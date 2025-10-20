@@ -1,0 +1,11 @@
+# Netlify build configuration
+[build]
+  command = "npm run build" # 執行 build 的指令
+  publish = "dist"          # build 後的產出目錄
+
+# Redirect rule for Single Page Applications (SPA)
+# 這會將所有找不到的路徑都導向 index.html，讓 React Router 接管
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
