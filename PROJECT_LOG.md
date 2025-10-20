@@ -122,7 +122,7 @@
 - **[完成]** 優化了 `useAvailableSlots.ts`，使其能根據現有預約的實際服務時長進行精確的時段計算。
 - **[完成]** 優化了 `useBookings.ts` Hook，使用 `onSnapshot` 實現了預約歷史頁面的即時更新。
 - **[完成]** 完善了 `BookingHistoryPage.tsx` 的取消預約功能，並修正了部分 UI 文字使其與應用程式整體風格一致。
-- **[完成]** 確立使用 Netlify 進行專案部署，並新增 `netlify.toml` 設定檔以支援 SPA 路由。
+- **[完成]** 確立使用 Netlify 進行專案部署，並新增 `netlify.toml` 設定檔以支援 SPA 路由，同時設定 `SECRETS_SCAN_OMIT_KEYS` 以通過安全掃描。
 
 ## 6. 下一步行動 (Action Items for Next Engineer)
 ## 6. 下一步行動 (Action Items for Next Engineer)
