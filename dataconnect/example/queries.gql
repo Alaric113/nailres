@@ -1,0 +1,57 @@
+mutation CreateNewPost($imageUrl: String!, $caption: String, $location: String, $productTags: [String]) @auth(level: USER) {
+  post_insert(data: {
+    imageUrl: $imageUrl,
+    caption: $caption,
+    location: $location,
+    productTags: $productTags,
+    authorId_expr: "auth.uid"
+  })
+}
+
+query GetPostsByAuthor @auth(level: USER) {
+  posts(where: {authorId: {eq_expr: "auth.uid"}}) {
+    id
+    imageUrl
+    caption
+    location
+    productTags
+    createdAt
+  }
+}
+
+mutation LikePost($postId: UUID!) @auth(level: USER) {
+  like_insert(data: {
+    postId: $postId,
+    userId_expr: "auth.uid"
+  })
+}
+
+query GetPosts @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public.") {
+  posts {
+    id
+    imageUrl
+    caption
+    location
+    productTags
+    createdAt
+    author {
+      id
+      username
+      displayName
+      profilePictureUrl
+    }
+    likes {
+      userId
+    }
+    comments {
+      id
+      text
+      author {
+        id
+        username
+        displayName
+        profilePictureUrl
+      }
+    }
+  }
+}

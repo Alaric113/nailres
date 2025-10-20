@@ -1,0 +1,46 @@
+mutation CreateDemoData @transaction @auth(level: PUBLIC, insecureReason: "This operation is used to seed the database with demo data") {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      username: "demouser1",
+      email: "demouser1@example.com",
+      createdAt: "2024-01-01T00:00:00Z"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      username: "demouser2",
+      email: "demouser2@example.com",
+      createdAt: "2024-01-01T00:00:00Z"
+    }
+  ])
+  post_insertMany(data: [
+    {
+      id: "650e8400-e29b-41d4-a716-446655440000",
+      authorId: "550e8400-e29b-41d4-a716-446655440000",
+      imageUrl: "https://example.com/image1.jpg",
+      createdAt: "2024-01-02T00:00:00Z"
+    },
+    {
+      id: "650e8400-e29b-41d4-a716-446655440001",
+      authorId: "550e8400-e29b-41d4-a716-446655440001",
+      imageUrl: "https://example.com/image2.jpg",
+      createdAt: "2024-01-02T00:00:00Z"
+    }
+  ])
+  comment_insertMany(data: [
+    {
+      id: "750e8400-e29b-41d4-a716-446655440000",
+      authorId: "550e8400-e29b-41d4-a716-446655440000",
+      postId: "650e8400-e29b-41d4-a716-446655440000",
+      text: "Example comment from demouser1",
+      createdAt: "2024-01-03T00:00:00Z"
+    },
+    {
+      id: "750e8400-e29b-41d4-a716-446655440001",
+      authorId: "550e8400-e29b-41d4-a716-446655440001",
+      postId: "650e8400-e29b-41d4-a716-446655440001",
+      text: "Example comment from demouser2",
+      createdAt: "2024-01-03T00:00:00Z"
+    }
+  ])
+}
