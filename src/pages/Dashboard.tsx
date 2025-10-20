@@ -1,13 +1,11 @@
-import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useBookings } from '../hooks/useBookings';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
-
 const Dashboard = () => {
-  const { user, userProfile } = useAuthStore();
+  const { currentUser: user, userProfile } = useAuthStore();
   const { bookings, isLoading, error } = useBookings();
   const navigate = useNavigate();
 
