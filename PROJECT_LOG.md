@@ -6,54 +6,6 @@
 
 ## 1. 專案概述
 
-collections/
-├── users/                         # 用戶資料
-│   ├── uid: {
-│   │   email: string,
-│   │   profile: object,
-│   │   createdAt: timestamp,
-│   │   lastLogin: timestamp
-│   └── }
-├── bookings/                      # 預約記錄
-│   ├── bookingId: {
-│   │   userId: string,
-│   │   serviceId: string,
-│   │   dateTime: timestamp,
-│   │   status: string,
-│   │   amount: number,
-│   │   paymentStatus: string
-│   └── }
-├── services/                      # 服務項目
-│   ├── serviceId: {
-│   │   name: string,
-│   │   price: number,
-│   │   duration: number,
-│   │   category: string,
-│   │   available: boolean
-│   └── }
-├── members/                       # 會員資料
-│   ├── userId: {
-│   │   points: number,
-│   │   level: string,
-│   │   totalSpent: number,
-│   │   joinDate: timestamp
-│   └── }
-├── payments/                      # 支付記錄
-│   └── paymentId: {
-│       bookingId: string,
-│       amount: number,
-│       method: string,
-│       status: string,
-│       createdAt: timestamp
-│   }
-└── schedules/                     # 排程管理
-    └── date: {
-        availableSlots: array,
-        bookedSlots: array,
-        staffSchedule: object
-    }
-
-
 本文件是「美甲店預約管理系統」的核心開發日誌與協作指南。它的目的不僅是記錄進度，更是確保所有參與者（包括人類與 AI）遵循一致的開發流程與標準。
 
 專案目標是建立一個現代化、高效率且安全的美甲店預約管理平台。全程採用 AI 輔助開發模式，以加速開發流程並提升程式碼品質。
