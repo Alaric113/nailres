@@ -4,7 +4,7 @@ import { Calendar, dateFnsLocalizer, Views, type View } from 'react-big-calendar
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { addMinutes } from 'date-fns';
-import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
+import { useAllBookings } from '../hooks/useAllBookings';
 import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
