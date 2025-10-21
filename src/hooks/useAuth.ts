@@ -15,7 +15,10 @@ export const useAuth = () => {
   const { setAuthState } = useAuthStore.getState();
 
   // A local state to manage the redirect check, preventing the main app from rendering prematurely.
-  const [isCheckingRedirect, setIsCheckingRedirect] = useState(true);
+  // We only need to check for redirect if the flag is set in localStorage.
+  const [isCheckingRedirect, setIsCheckingRedirect] = useState(
+    localStorage.getItem('firebaseAuthRedirect') === 'true'
+  );
 
   useEffect(() => {
     let unsubscribe = () => {};
@@ -55,9 +58,6 @@ export const useAuth = () => {
       }
     };
 
-    // Check if we are returning from a redirect operation.
-    const authRedirectInProgress = localStorage.getItem('firebaseAuthRedirect') === 'true';
-
     // First, process any redirect result. This is crucial.
     getRedirectResult(auth)
       .then((result) => {
@@ -66,10 +66,7 @@ export const useAuth = () => {
           // correctly create their profile if it's their first time.
           console.log('Handled redirect result for user:', result.user.uid);
         }
-
-        if (authRedirectInProgress) {
-          localStorage.removeItem('firebaseAuthRedirect');
-        }
+        // The flag will be removed in the finally block to ensure it's always cleared.
       })
       .catch((error) => {
         console.error('Error from getRedirectResult:', error);
@@ -77,6 +74,7 @@ export const useAuth = () => {
       .finally(() => {
         // AFTER processing the redirect, set up the normal auth state listener.
         setIsCheckingRedirect(false); // Allow the app to proceed
+        localStorage.removeItem('firebaseAuthRedirect'); // Clean up the flag
         unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
           if (firebaseUser) {
             handleUser(firebaseUser);
