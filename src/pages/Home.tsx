@@ -42,9 +42,9 @@ const services = [
 
 const Home = () => {
   return (
-    <div className="bg-gray-50 text-gray-800">
+    <div className="bg-gray-50 text-gray-800 h-screen overflow-y-scroll snap-y snap-mandatory">
       {/* Hero Section */}
-      <header className="relative h-screen min-h-[600px] flex items-center justify-center text-center text-white overflow-hidden pt-[72px]">
+      <header className="relative h-screen min-h-[600px] flex items-center justify-center text-center text-white overflow-hidden pt-[72px] snap-start">
         {/* Background Image with Parallax effect */}
         <div
           className="absolute inset-0 bg-cover bg-fixed bg-center"
@@ -70,7 +70,7 @@ const Home = () => {
 
       <main>
         {/* Services Section */}
-        <section id="services" className="py-16 sm:py-20 bg-white">
+        <section id="services" className="py-16 sm:py-20 bg-white snap-start">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-3xl font-bold text-center mb-4">服務項目</h2>
             <p className="text-center text-gray-500 mb-12 max-w-2xl mx-auto">我們提供多樣化的專業服務，滿足您對美的所有想像。</p>
@@ -95,7 +95,7 @@ const Home = () => {
         </section>
 
         {/* Works Section */}
-        <section id="works" className="py-16 sm:py-20">
+        <section id="works" className="py-16 sm:py-20 snap-start">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-3xl font-bold text-center mb-4">作品集</h2>
             <p className="text-center text-gray-500 mb-12 max-w-2xl mx-auto">拖曳中間的滑桿，查看我們為顧客帶來的驚喜改變。</p>
@@ -107,7 +107,7 @@ const Home = () => {
         </section>
 
         {/* Lash Style Showcase */}
-        <section className="py-16 sm:py-20 bg-pink-50/50">
+        <section className="py-16 sm:py-20 bg-pink-50/50 snap-start">
           <h2 className="text-3xl font-bold text-center mb-12">更多作品展示</h2>
           <Swiper
             modules={[Navigation, Pagination, Autoplay]}
@@ -135,7 +135,7 @@ const Home = () => {
       </main>
 
       {/* Footer */}
-      <footer id="contact" className="bg-gray-900 text-white">
+      <footer id="contact" className="bg-gray-900 text-white snap-start">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
             {/* About */}
