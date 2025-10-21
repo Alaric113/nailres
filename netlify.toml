@@ -14,3 +14,10 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+  # Proxy rule to make Firebase Auth handler appear on the same domain.
+# This is the key to solving iOS Safari's storage partitioning issue.
+[[redirects]]
+  from = "/__/auth/*"
+  to = "https://nail-62ea4.firebaseapp.com/__/auth/:splat"
+  status = 200
