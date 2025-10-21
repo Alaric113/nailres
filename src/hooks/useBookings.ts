@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, Timestamp, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 import type { BookingDocument } from '../types/booking';
@@ -10,7 +10,7 @@ export interface BookingWithService extends Omit<BookingDocument, 'dateTime' | '
   id: string;
   dateTime: Date;
   createdAt: Date;
-  service: Service | null; // Include the full service object
+  serviceName: string; // Keep it simple for display
 }
 
 export const useBookings = () => {
@@ -52,7 +52,7 @@ export const useBookings = () => {
           ...data,
           dateTime: (data.dateTime as Timestamp).toDate(),
           createdAt: (data.createdAt as Timestamp).toDate(),
-          service: servicesMap.get(data.serviceId) || null,
+          serviceName: servicesMap.get(data.serviceId)?.name || '未知服務',
         };
       });
 
@@ -68,5 +68,14 @@ export const useBookings = () => {
     return () => unsubscribe();
   }, [currentUser]);
 
-  return { bookings, isLoading, error };
+  const cancelBooking = async (bookingId: string) => {
+    const bookingRef = doc(db, 'bookings', bookingId);
+    await updateDoc(bookingRef, {
+      status: 'cancelled',
+    });
+    // The onSnapshot listener will automatically update the state.
+  };
+
+
+  return { bookings, isLoading, error, cancelBooking };
 };

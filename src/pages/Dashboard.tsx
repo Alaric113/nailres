@@ -1,21 +1,23 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useBookings } from '../hooks/useBookings';
-import { auth } from '../lib/firebase';
-import { signOut } from 'firebase/auth';
-const Dashboard = () => {
-  const { currentUser: user, userProfile } = useAuthStore();
-  const { bookings, isLoading, error } = useBookings();
-  const navigate = useNavigate();
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import { format } from 'date-fns';
+import { zhTW } from 'date-fns/locale';
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      // The useAuth hook will handle state update and redirect
-      navigate('/');
-    } catch (error) {
-      console.error("Error signing out: ", error);
+const Dashboard = () => {
+  const { userProfile } = useAuthStore();
+  const { bookings, isLoading, error, cancelBooking } = useBookings();
+
+  const handleCancel = async (bookingId: string) => {
+    if (window.confirm('您確定要取消這個預約嗎？')) {
+      try {
+        await cancelBooking(bookingId);
+        alert('預約已成功取消。');
+      } catch (err) {
+        console.error('取消預約失敗:', err);
+        alert('取消預約失敗，請稍後再試。');
+      }
     }
   };
 
@@ -32,84 +34,76 @@ const Dashboard = () => {
     }
   };
 
-  const translateStatus = (status: string) => {
-    switch (status) {
-      case 'confirmed': return '已確認';
-      case 'completed': return '已完成';
-      case 'cancelled': return '已取消';
-      default: return status;
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
+      {/* Page Header */}
       <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-            歡迎回來, {userProfile?.profile.displayName || user?.email}!
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Hi, {userProfile?.profile.displayName || '使用者'}
           </h1>
-          <div className="flex items-center gap-4">
-            {userProfile?.role === 'admin' && (
-              <Link
-                to="/admin"
-                className="px-4 py-2 bg-gray-700 text-white font-semibold rounded-md shadow-sm hover:bg-gray-800 transition-colors"
-              >
-                管理後台
-              </Link>
-            )}
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-500 text-white font-semibold rounded-md shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-            >
-              登出
-            </button>
-          </div>
+          <p className="mt-1 text-gray-600">歡迎回來！在這裡管理您的預約。</p>
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Quick Actions Column */}
+
           <div className="lg:col-span-1">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">快速操作</h2>
+            <div className="bg-white rounded-lg shadow-md p-6">
               <Link
                 to="/booking"
-                className="w-full block text-center px-6 py-3 bg-pink-500 text-white font-semibold rounded-md shadow-lg hover:bg-pink-600 transition-all transform hover:scale-105"
+                className="w-full inline-block text-center bg-pink-500 text-white font-bold rounded-md py-3 px-4 shadow-md hover:bg-pink-600 transition-colors"
               >
-                + 建立新預約
+                + 新增預約
               </Link>
             </div>
           </div>
-
-          {/* My Bookings Column */}
+          {/* Left Column: My Bookings */}
           <div className="lg:col-span-2">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">我的預約記錄</h2>
-            {isLoading && <div className="flex justify-center p-8"><LoadingSpinner /></div>}
-            {error && <p className="text-center text-red-500 bg-red-50 p-4 rounded-md">{error}</p>}
-            {!isLoading && !error && bookings.length === 0 && (
-              <div className="text-center text-gray-500 bg-white p-8 rounded-lg shadow">
-                <p>您目前沒有任何預約。</p>
-              </div>
-            )}
-            <div className="space-y-4">
-              {bookings.map(booking => (
-                <div key={booking.id} className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                    <div className="flex-grow">
-                      <p className="font-bold text-lg text-gray-800">{booking.service?.name || '服務已刪除'}</p>
-                      <p className="text-sm text-gray-600">{booking.dateTime.toLocaleString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">我的預約紀錄</h2>
+              {isLoading && <div className="flex justify-center py-8"><LoadingSpinner /></div>}
+              {error && <p className="text-red-500">{error}</p>}
+              {!isLoading && bookings.length === 0 && (
+                <p className="text-gray-500">您目前沒有任何預約。</p>
+              )}
+              <div className="space-y-4">
+                {bookings.map((booking) => (
+                  <div key={booking.id} className="border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <p className="font-semibold text-gray-800">{booking.serviceName}</p>
+                      <p className="text-sm text-gray-600">
+                        {format(booking.dateTime, 'yyyy年MM月dd日 (EEEE) pp', { locale: zhTW })}
+                      </p>
                     </div>
-                    <div className="mt-2 sm:mt-0 flex items-center gap-4">
-                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusChipClass(booking.status)}`}>
-                        {translateStatus(booking.status)}
+                    <div className="flex items-center gap-4">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusChipClass(booking.status)}`}>
+                        {booking.status === 'confirmed' && '已確認'}
+                        {booking.status === 'completed' && '已完成'}
+                        {booking.status === 'cancelled' && '已取消'}
+                        {booking.status === 'pending' && '待處理'}
                       </span>
+                      {booking.status === 'confirmed' && (
+                        <button
+                          onClick={() => handleCancel(booking.id)}
+                          className="text-sm text-red-600 hover:underline"
+                        >
+                          取消
+                        </button>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* Right Column: Actions */}
+          
         </div>
       </main>
     </div>
