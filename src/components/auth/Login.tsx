@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, db, googleProvider, lineProvider } from '../../lib/firebase';
+import { auth, googleProvider, lineProvider } from '../../lib/firebase';
 import { handleSocialSignIn } from '../../lib/socialAuth';
 
 const Login = () => {
