@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, Views, type View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
@@ -25,11 +25,30 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+const useWindowSize = () => {
+  const [size, setSize] = useState([window.innerWidth]);
+  useEffect(() => {
+    const handleResize = () => {
+      setSize([window.innerWidth]);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  return size;
+};
+
 const AdminDashboard = () => {
   const { bookings, loading, error } = useAllBookings();
   const { closedDays } = useBusinessHoursSummary();
   const [date, setDate] = useState(new Date());
-  const [view, setView] = useState<View>(Views.WEEK);
+  const [width] = useWindowSize();
+  const isMobile = width < 768; // Tailwind's 'md' breakpoint
+
+  const [view, setView] = useState<View>(isMobile ? Views.DAY : Views.WEEK);
+
+  useEffect(() => {
+    setView(isMobile ? Views.DAY : Views.WEEK);
+  }, [isMobile]);
 
   const getStatusChipClass = (status: string) => {
     switch (status) {
@@ -75,22 +94,24 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-            管理員後台
-          </h1>
-          <div className="flex items-center gap-4">
-            <Link to="/admin/hours" className="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-md shadow-sm hover:bg-yellow-600 transition-colors">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-row justify-between items-start sm:items-center mb-4">
+            <h1 className="text-2xl font-bold text-gray-800">
+              管理員後台
+            </h1>
+            <Link to="/dashboard" className="text-sm font-medium text-indigo-600 hover:underline mt-2 sm:mt-0">
+              返回使用者儀表板 &rarr;
+            </Link>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <Link to="/admin/hours" className="flex-grow sm:flex-grow-0 px-4 py-2 text-center bg-yellow-500 text-white font-semibold rounded-md shadow-sm hover:bg-yellow-600 transition-colors">
               營業時間
             </Link>
-            <Link to="/admin/customers" className="px-4 py-2 bg-green-500 text-white font-semibold rounded-md shadow-sm hover:bg-green-600 transition-colors">
+            <Link to="/admin/customers" className="flex-grow sm:flex-grow-0 px-4 py-2 text-center bg-green-500 text-white font-semibold rounded-md shadow-sm hover:bg-green-600 transition-colors">
               客戶管理
             </Link>
-            <Link to="/admin/services" className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-md shadow-sm hover:bg-blue-600 transition-colors">
-              服務管理
-            </Link>
-            <Link to="/dashboard" className="text-sm font-medium text-indigo-600 hover:underline">
-              返回使用者儀表板 &rarr;
+            <Link to="/admin/services" className="flex-grow sm:flex-grow-0 px-4 py-2 text-center bg-blue-500 text-white font-semibold rounded-md shadow-sm hover:bg-blue-600 transition-colors">
+              服務項目
             </Link>
           </div>
         </div>
@@ -108,7 +129,7 @@ const AdminDashboard = () => {
             onNavigate={setDate}
             culture='zh-TW'
             onView={setView}
-            views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+            views={isMobile ? [Views.DAY, Views.AGENDA] : [Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
             messages={{
               next: "向後",
               previous: "向前",

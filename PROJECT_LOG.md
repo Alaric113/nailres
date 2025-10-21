@@ -287,6 +287,9 @@
         - **[完成]** **修正 TypeScript 型別錯誤:** 為 `dateFnsLocalizer` 的 `startOfWeek` 函式加上明確的型別，解決 `implicitly has an 'any' type` 的錯誤。
         - **[完成]** **修正行事曆視圖切換錯誤:** 為 `AdminDashboard.tsx` 中的 `view` 狀態提供明確的 `View` 型別，解決因型別推斷過於狹窄導致的 `onView` 屬性報錯問題。
         - **[完成]** **修正 `verbatimModuleSyntax` 型別匯入錯誤:** 將 `View` 型別的匯入方式改為 `import type`，以符合 TypeScript 的嚴格模組語法規則。
+        - **[完成]** **優化儀表板頁首 UI/UX:** 調整 `AdminDashboard.tsx` 頁首佈局，使其在不同螢幕尺寸下（RWD）都有更好的視覺效果與操作體驗。
+        - **[完成]** **優化行事曆 RWD:** 讓管理員儀表板的行事曆能根據螢幕寬度，自動切換為對行動裝置更友善的預設視圖（日視圖）。
+        - **[完成]** **修正行事曆渲染錯誤:** 重構 `useAllBookings.ts` 的 `useEffect` 結構，確保 `onSnapshot` 監聽器能被正確清理，解決因非同步副作用導致的 `Cannot read properties of undefined (reading 'title')` 執行階段錯誤。
         - **[完成]** **修正預約時長顯示錯誤:** 已根據使用者當前的程式碼版本，更新 `useAllBookings.ts` Hook，使其在組合資料時能正確地將服務時長 (`serviceDuration`) 包含進來，解決了行事曆上所有預約都只顯示一小時的問題。
 
 1.  **[已解決] 啟動錯誤：路徑別名解析失敗**
