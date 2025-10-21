@@ -50,6 +50,12 @@ const Login = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        {/* --- DEBUG INFO --- */}
+        <div className="p-2 text-xs text-gray-500 bg-gray-100 rounded break-all">
+          <strong>User Agent:</strong> {navigator.userAgent}
+        </div>
+        {/* --- END DEBUG INFO --- */}
+
         <h2 className="text-2xl font-bold text-center text-gray-900">登入您的帳號</h2>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
