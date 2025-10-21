@@ -241,6 +241,12 @@
 
 ## 9. 待辦事項與修復紀錄
 
+1.  **[核心修正] 重構認證流程以解決社群登入競爭問題:**
+    - **目標:** 解決因 `useAuth` 與 `handleSocialSignIn` 之間的競爭關係，導致社群登入（特別是 LINE）失敗的問題。
+    - **任務:**
+        - **[完成]** 將「建立新使用者 Firestore 文件」的邏輯從 `socialAuth.ts` 統一移動到 `useAuth.ts` 的 `onAuthStateChanged` 監聽器中。
+        - **[完成]** 簡化 `socialAuth.ts`，使其僅負責觸發 Firebase 的登入方法 (`signInWithPopup` 或 `signInWithRedirect`)，不再處理資料庫寫入。
+
 1.  **建構客戶管理功能:**
     - **目標:** 建立一個管理員專用的客戶名單，並能為客戶新增備註。
     - **任務:**

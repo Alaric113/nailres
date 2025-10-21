@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth'; // Use 'type' for type-only imports
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './lib/firebase';
 import { useAuthStore } from './store/authStore';
 import type { UserDocument } from './types/user';
@@ -22,12 +22,32 @@ export const useAuth = () => {
           const userDocRef = doc(db, 'users', firebaseUser.uid);
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
+            // Existing user, just set the state
             const userProfileData = userDocSnap.data() as UserDocument;
             setAuthState(firebaseUser, userProfileData);
           } else {
-            // This can happen during registration race conditions or if the doc was deleted manually.
-            console.error('User profile not found in Firestore.');
-            setAuthState(firebaseUser, null);
+            // This is a new user (e.g., via social sign-in redirect or just created).
+            // We create their profile document here to avoid race conditions.
+            console.log('User profile not found, creating a new one...');
+            const socialProviderData = firebaseUser.providerData.find(p => p.providerId.includes('google.com') || p.providerId.includes('oidc.line'));
+
+            const newUserProfile: UserDocument = {
+              email: firebaseUser.email || `${socialProviderData?.providerId}-${firebaseUser.uid}@placeholder.com`,
+              profile: {
+                displayName: firebaseUser.displayName || '新使用者',
+                avatarUrl: firebaseUser.photoURL || '',
+              },
+              role: 'user',
+              createdAt: serverTimestamp(),
+              lastLogin: serverTimestamp(),
+              ...(socialProviderData?.providerId.includes('oidc.line') && { lineUserId: socialProviderData.uid }),
+            };
+
+            await setDoc(userDocRef, newUserProfile);
+            
+            // Set the auth state with the newly created profile
+            // We don't need to re-fetch because we already have the data.
+            setAuthState(firebaseUser, newUserProfile);
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);

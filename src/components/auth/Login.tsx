@@ -36,7 +36,7 @@ const Login = () => {
     setError(null);
     try {
       const authProvider = provider === 'google' ? googleProvider : lineProvider;
-      await handleSocialSignIn(provider, authProvider);
+      await handleSocialSignIn(authProvider);
       // On success, onAuthStateChanged will handle the redirect.
       // On redirect, the page will reload and onAuthStateChanged will handle it.
     } catch (error: any) {
