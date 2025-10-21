@@ -16,12 +16,23 @@ const isMobile = (): boolean => {
 };
 
 /**
+ * Detects if the current browser is Safari on an iOS device.
+ * This is a special case due to Safari's strict tracking prevention (ITP).
+ */
+const isIosSafari = (): boolean => {
+  const ua = navigator.userAgent;
+  return /iP(ad|hone|od)/.test(ua) && /Safari/.test(ua) && !/CriOS|EdgiOS/.test(ua);
+};
+
+
+/**
  * Determines the appropriate sign-in method based on the environment.
- * @returns 'popup' for desktop, 'redirect' for mobile.
+ * @returns 'popup' for desktop and iOS Safari, 'redirect' for other mobile browsers.
  */
 const getAuthMethod = (): 'popup' | 'redirect' => {
-  // With the proxy in place, redirect is reliable on all mobile devices.
-  // Popups provide a better UX on desktop.
+  // iOS Safari has issues with redirects, so we prefer popups there.
+  // For other mobile browsers, redirect is more reliable.
+  if (isIosSafari()) return 'popup';
   return isMobile() ? 'redirect' : 'popup';
 };
 
