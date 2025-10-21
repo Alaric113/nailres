@@ -7,11 +7,11 @@ import {
 import { auth } from './firebase';
 
 /**
- * Detects if the current browser is the LINE in-app browser.
- * @returns {boolean} True if it's the LINE browser, false otherwise.
+ * Detects if the current browser is on a mobile device.
+ * @returns {boolean} True if it's a mobile browser, false otherwise.
  */
-const isLineBrowser = (): boolean => {
-  return /Line\//i.test(navigator.userAgent);
+const isMobileBrowser = (): boolean => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
 
 /**
@@ -26,8 +26,8 @@ export const handleSocialSignIn = async (
 ) => {
   const provider = providerName === 'google' ? new GoogleAuthProvider() : new OAuthProvider('oidc.line');
 
-  if (isLineBrowser()) {
-    // For LINE's in-app browser, redirect is more reliable.
+  if (isMobileBrowser()) {
+    // For all mobile browsers, redirect is more reliable than popup.
     await signInWithRedirect(auth, provider);
     // The page will redirect. All user creation/update logic is now handled
     // by the onAuthStateChanged listener in useAuth.ts when the user returns.
