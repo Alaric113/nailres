@@ -1,68 +1,97 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { BookingDocument, EnrichedBooking } from '../types/booking';
+import type { BookingDocument } from '../types/booking';
 import type { UserDocument } from '../types/user';
 import type { Service } from '../types/service';
 
+// 擴充 Booking 介面，包含從其他集合獲取的資料
+export interface EnrichedBooking extends BookingDocument {
+  id: string;
+  userName?: string;
+  serviceName?: string;
+  serviceDuration?: number;
+}
+
 /**
- * Custom hook to fetch all bookings from the 'bookings' collection in real-time.
- * It also fetches related user and service data to enrich the booking information.
- * @returns An object containing the list of bookings, a loading state, and an error state.
+ * Custom hook to fetch all bookings from Firestore,
+ * enriching them with user and service details.
  */
 export const useAllBookings = () => {
   const [bookings, setBookings] = useState<EnrichedBooking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const bookingsCollection = collection(db, 'bookings');
-    const q = query(bookingsCollection, orderBy('dateTime', 'desc'));
+    const bookingsRef = collection(db, 'bookings');
+    const q = query(bookingsRef, orderBy('dateTime', 'desc'));
+
+    let isInitialLoad = true;
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
-      setLoading(true);
+      setError(null);
       try {
-        // Pre-fetch all users and services to create a lookup map for this snapshot
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        const usersMap = new Map<string, UserDocument>();
-        usersSnapshot.forEach(doc => {
-          usersMap.set(doc.id, doc.data() as UserDocument);
-        });
+        const rawBookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (BookingDocument & { id: string })[];
+        
+        const enrichedBookingsPromises = rawBookings.map(async (booking) => {
+          let userName: string | undefined;
+          let serviceName: string | undefined;
+          let serviceDuration: number | undefined;
 
-        const servicesSnapshot = await getDocs(collection(db, 'services'));
-        const servicesMap = new Map<string, Service>();
-        servicesSnapshot.forEach(doc => {
-          servicesMap.set(doc.id, { id: doc.id, ...doc.data() } as Service);
-        });
+          // Fetch user data
+          if (booking.userId) {
+            const userDocRef = doc(db, 'users', booking.userId);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+              const userData = userDocSnap.data() as UserDocument;
+              // Safeguard: Correctly access displayName from the profile object
+              userName = userData.profile?.displayName ?? '未知使用者';
+            } else {
+              userName = '使用者已刪除';
+            }
+          } else {
+            userName = '無使用者ID';
+          }
 
-        const bookingsData = snapshot.docs.map((doc): EnrichedBooking => {
-          const booking = doc.data() as BookingDocument;
-          const user = usersMap.get(booking.userId);
-          const service = servicesMap.get(booking.serviceId);
+          // Fetch service data
+          if (booking.serviceId) {
+            const serviceDocRef = doc(db, 'services', booking.serviceId);
+            const serviceDocSnap = await getDoc(serviceDocRef);
+            if (serviceDocSnap.exists()) {
+              const serviceData = serviceDocSnap.data() as Service;
+              // Safeguard: Use optional chaining and nullish coalescing for name and duration
+              serviceName = serviceData.name ?? '未知服務';
+              serviceDuration = serviceData.duration ?? 60; // Default to 60 minutes if duration is missing
+            } else {
+              serviceName = '服務已刪除';
+              serviceDuration = 60; // Default duration if service not found
+            }
+          } else {
+            serviceName = '無服務ID';
+            serviceDuration = 60; // Default duration if no service ID
+          }
 
           return {
-            id: doc.id,
             ...booking,
-            userName: user?.profile.displayName || '未知用戶',
-            serviceName: service?.name || '未知服務',
-            serviceDuration: service?.duration || 60,
+            userName,
+            serviceName,
+            serviceDuration,
           };
         });
 
-        setBookings(bookingsData);
+        const enrichedBookings = await Promise.all(enrichedBookingsPromises);
+        setBookings(enrichedBookings);
       } catch (err) {
-        console.error("Error enriching bookings data: ", err);
-        setError(err instanceof Error ? err : new Error('Failed to enrich booking data'));
+        console.error("Error enriching bookings data:", err);
+        setError("無法載入預約資料。");
       } finally {
-        setLoading(false);
+        if (isInitialLoad) {
+          setLoading(false);
+          isInitialLoad = false;
+        }
       }
-    }, (err) => {
-      console.error("Error fetching bookings: ", err);
-      setError(err);
-      setLoading(false);
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 

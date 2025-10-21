@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { User } from 'firebase/auth';
+import { signOut, type User } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import type { UserDocument as UserProfile } from '../types/user';
 
 interface AuthState {
@@ -10,6 +11,7 @@ interface AuthState {
   // This is now the single source of truth for setting auth state.
   // It also handles the loading state change.
   setAuthState: (user: User | null, profile: UserProfile | null) => void;
+  logout: () => Promise<void>;
 }
 
 /**
@@ -22,4 +24,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   authIsLoading: true,
   // When auth state is set, loading is automatically finished.
   setAuthState: (user, profile) => set({ currentUser: user, userProfile: profile, authIsLoading: false }),
+  logout: async () => {
+    await signOut(auth);
+    set({ currentUser: null, userProfile: null });
+  },
 }));

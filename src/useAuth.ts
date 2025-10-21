@@ -12,7 +12,7 @@ import type { UserDocument } from './types/user';
  */
 export const useAuth = () => {
   // Get the state-setting functions once from the store.
-  const { setCurrentUser, setLoading } = useAuthStore.getState();
+  const { setAuthState } = useAuthStore.getState();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
@@ -23,23 +23,20 @@ export const useAuth = () => {
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
             const userProfileData = userDocSnap.data() as UserDocument;
-            setCurrentUser(firebaseUser, userProfileData);
+            setAuthState(firebaseUser, userProfileData);
           } else {
             // This can happen during registration race conditions or if the doc was deleted manually.
             console.error('User profile not found in Firestore.');
-            setCurrentUser(firebaseUser, null);
+            setAuthState(firebaseUser, null);
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
           // In case of permissions error or network error, still set the auth user but with a null profile.
-          setCurrentUser(firebaseUser, null);
-        } finally {
-          setLoading(false);
+          setAuthState(firebaseUser, null);
         }
       } else {
         // User is signed out.
-        setCurrentUser(null, null);
-        setLoading(false); // Also ensure loading is false on logout.
+        setAuthState(null, null);
       }
     });
 

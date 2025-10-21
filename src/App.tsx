@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth'; // 確保 useAuth 在這裡被呼叫
 import { useAuthStore } from './store/authStore';
+import Navbar from './components/Navbar'; // 引入新的導覽列
+import MainLayout from './components/MainLayout'; // 引入新的佈局元件
 
 // Public Page Components
 import Home from './pages/Home';
@@ -33,27 +35,49 @@ function App() {
   return (
     // [App Checkpoint 2] App has finished loading (authIsLoading: false). Rendering routes.
     <Router>
+      <Navbar />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
 
         {/* Redirect logged-in users from login/register to their dashboard */}
-        <Route path="/login" element={!currentUser ? <Login /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />} />
-        <Route path="/register" element={!currentUser ? <Register /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />} />
+        <Route
+          path="/login"
+          element={
+            !currentUser ? (
+              <MainLayout>
+                <Login />
+              </MainLayout>
+            ) : (
+              <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />
+            )
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            !currentUser ? (
+              <MainLayout>
+                <Register />
+              </MainLayout>
+            ) : (
+              <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />
+            )
+          }
+        />
 
         {/* Protected Routes for regular users */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/booking" element={<BookingPage />} />
+          <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
+          <Route path="/booking" element={<MainLayout><BookingPage /></MainLayout>} />
         </Route>
 
         {/* Protected Routes for admins */}
         <Route element={<AdminRoute />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/services" element={<ServiceManagement />} />
-          <Route path="/admin/customers" element={<CustomerListPage />} />
-          <Route path="/admin/hours" element={<HoursSettingsPage />} />
-      
+          <Route path="/admin" element={<MainLayout><AdminDashboard /></MainLayout>} />
+          <Route path="/admin/services" element={<MainLayout><ServiceManagement /></MainLayout>} />
+          <Route path="/admin/customers" element={<MainLayout><CustomerListPage /></MainLayout>} />
+          <Route path="/admin/hours" element={<MainLayout><HoursSettingsPage /></MainLayout>} />
         </Route>
       </Routes>
     </Router>
