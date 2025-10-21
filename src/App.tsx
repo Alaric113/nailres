@@ -23,11 +23,12 @@ import AdminRoute from './components/AdminRoute';
 
 function App() {
   // This hook will run on app startup and handle auth state synchronization.
-  useAuth(); // 確保 useAuth 在這裡被呼叫
+  const { isCheckingRedirect } = useAuth(); // 確保 useAuth 在這裡被呼叫
   const { currentUser, userProfile, authIsLoading } = useAuthStore();
 
-  // While the initial auth state is being determined, show a global loading indicator.
-  if (authIsLoading) {
+  // While the initial auth state is being determined, OR we are processing a redirect,
+  // show a global loading indicator. This is the key to preventing UI flashes and race conditions.
+  if (authIsLoading || isCheckingRedirect) {
     console.log('[App Checkpoint 1] App is in loading state (authIsLoading: true).');
     return <div className="flex items-center justify-center h-screen">正在載入應用程式...</div>;
   }

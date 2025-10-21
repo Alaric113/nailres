@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { onAuthStateChanged, getRedirectResult, type User } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -13,6 +13,9 @@ import type { UserDocument } from '../types/user';
 export const useAuth = () => {
   // Get the state-setting function once from the store.
   const { setAuthState } = useAuthStore.getState();
+
+  // A local state to manage the redirect check, preventing the main app from rendering prematurely.
+  const [isCheckingRedirect, setIsCheckingRedirect] = useState(true);
 
   useEffect(() => {
     let unsubscribe = () => {};
@@ -52,6 +55,9 @@ export const useAuth = () => {
       }
     };
 
+    // Check if we are returning from a redirect operation.
+    const authRedirectInProgress = localStorage.getItem('firebaseAuthRedirect') === 'true';
+
     // First, process any redirect result. This is crucial.
     getRedirectResult(auth)
       .then((result) => {
@@ -60,12 +66,17 @@ export const useAuth = () => {
           // correctly create their profile if it's their first time.
           console.log('Handled redirect result for user:', result.user.uid);
         }
+
+        if (authRedirectInProgress) {
+          localStorage.removeItem('firebaseAuthRedirect');
+        }
       })
       .catch((error) => {
         console.error('Error from getRedirectResult:', error);
       })
       .finally(() => {
         // AFTER processing the redirect, set up the normal auth state listener.
+        setIsCheckingRedirect(false); // Allow the app to proceed
         unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
           if (firebaseUser) {
             handleUser(firebaseUser);
@@ -77,4 +88,7 @@ export const useAuth = () => {
 
     return () => unsubscribe();
   }, []);
+
+  // Return a flag indicating if we are in the critical redirect-checking phase.
+  return { isCheckingRedirect };
 };

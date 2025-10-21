@@ -28,6 +28,9 @@ export const handleSocialSignIn = async (
 
   if (isMobileBrowser()) {
     // For all mobile browsers, redirect is more reliable than popup.
+    // Set a flag in localStorage to indicate a redirect is in progress.
+    // This helps us handle the auth state correctly on return.
+    localStorage.setItem('firebaseAuthRedirect', 'true');
     await signInWithRedirect(auth, provider);
     // The page will redirect. All user creation/update logic is now handled
     // by the onAuthStateChanged listener in useAuth.ts when the user returns.
