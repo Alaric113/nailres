@@ -13,6 +13,7 @@ export interface UserDocument {
   createdAt: Timestamp | FieldValue;
   lastLogin: Timestamp | FieldValue;
   notes?: string;
+  lineUserId?: string;
 }
 
 // This represents the user document with its ID from the collection
