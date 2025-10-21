@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db, googleProvider, lineProvider } from '../lib/firebase';
-import type { UserDocument } from '../types/user';
+import { auth, db } from '../lib/firebase';
+import type { UserDocument } from '../types/user'; 
 import { handleSocialSignIn } from '../lib/socialAuth';
 
 const Register = () => {
@@ -62,8 +62,7 @@ const Register = () => {
     setIsSubmitting(true);
     setError(null);
     try {
-      const authProvider = provider === 'google' ? googleProvider : lineProvider;
-      await handleSocialSignIn(authProvider);
+      await handleSocialSignIn(provider);
       // On success, onAuthStateChanged will handle the redirect.
       // On redirect, the page will reload and onAuthStateChanged will handle it.
     } catch (error: any) {

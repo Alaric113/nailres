@@ -1,7 +1,8 @@
 import {
   signInWithPopup,
   signInWithRedirect,
-  type AuthProvider,
+  GoogleAuthProvider,
+  OAuthProvider,
 } from 'firebase/auth';
 import { auth } from './firebase';
 
@@ -18,21 +19,23 @@ const isLineBrowser = (): boolean => {
  * It automatically chooses between popup and redirect based on the browser environment.
  * It also creates a user document in Firestore if the user is new.
  *
- * @param authProvider - The Firebase AuthProvider instance.
+ * @param providerName - The name of the provider ('google' or 'line').
  */
 export const handleSocialSignIn = async (
-  authProvider: AuthProvider
+  providerName: 'google' | 'line'
 ) => {
+  const provider = providerName === 'google' ? new GoogleAuthProvider() : new OAuthProvider('oidc.line');
+
   if (isLineBrowser()) {
     // For LINE's in-app browser, redirect is more reliable.
-    await signInWithRedirect(auth, authProvider);
+    await signInWithRedirect(auth, provider);
     // The page will redirect. All user creation/update logic is now handled
     // by the onAuthStateChanged listener in useAuth.ts when the user returns.
     return;
   }
 
   // For desktop browsers, popup is a better UX.
-  await signInWithPopup(auth, authProvider);
+  await signInWithPopup(auth, provider);
   // After the popup closes, the onAuthStateChanged listener in useAuth.ts
   // will fire and handle user creation/update.
 };

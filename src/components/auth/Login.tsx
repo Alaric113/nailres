@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, googleProvider, lineProvider } from '../../lib/firebase';
+import { auth } from '../../lib/firebase';
 import { handleSocialSignIn } from '../../lib/socialAuth';
 
 const Login = () => {
@@ -35,8 +35,7 @@ const Login = () => {
     setIsSubmitting(true);
     setError(null);
     try {
-      const authProvider = provider === 'google' ? googleProvider : lineProvider;
-      await handleSocialSignIn(authProvider);
+      await handleSocialSignIn(provider);
       // On success, onAuthStateChanged will handle the redirect.
       // On redirect, the page will reload and onAuthStateChanged will handle it.
     } catch (error: any) {
