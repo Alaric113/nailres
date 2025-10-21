@@ -69,7 +69,7 @@ const BookingHistoryPage = () => {
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div>
                     <h2 className="text-xl font-semibold text-pink-600">
-                      {booking.service?.name || '未知服務'}
+                      {booking.serviceName}
                     </h2>
                     <p className="mt-1 text-gray-600">
                       {format(booking.dateTime, 'yyyy年MM月dd日 EEEE HH:mm', { locale: zhTW })}
