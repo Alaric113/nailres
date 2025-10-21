@@ -168,52 +168,72 @@ const ServiceManagement = () => {
 
           <div className="mt-12">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">現有服務列表</h2>
-            <div className="bg-white shadow-md rounded-lg overflow-x-auto">
-              {servicesLoading && <div className="p-8 text-center"><LoadingSpinner /></div>}
-              {servicesError && <p className="p-8 text-center text-red-500">讀取服務列表失敗。</p>}
-              {!servicesLoading && !servicesError && (
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">服務名稱</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">價格</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">時長(分)</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分類</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {services.map((service) => (
-                      <tr key={service.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${service.price}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.duration}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.category}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                            onClick={() => handleToggleAvailability(service)}
-                            disabled={isToggling === service.id}
-                            className={`px-3 py-1 text-xs font-semibold rounded-full ${service.available ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} disabled:opacity-50`}
-                          >
+            {servicesLoading && <div className="p-8 text-center"><LoadingSpinner /></div>}
+            {servicesError && <p className="p-8 text-center text-red-500">讀取服務列表失敗。</p>}
+            {!servicesLoading && !servicesError && (
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden md:block bg-white shadow-md rounded-lg overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">服務名稱</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">價格</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">時長(分)</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分類</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {services.map((service) => (
+                        <tr key={service.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.name}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${service.price}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.duration}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.category}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onClick={() => handleToggleAvailability(service)} disabled={isToggling === service.id} className={`px-3 py-1 text-xs font-semibold rounded-full ${service.available ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} disabled:opacity-50`}>
+                              {isToggling === service.id ? '...' : (service.available ? '上架中' : '已下架')}
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onClick={() => handleEditClick(service)} className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-300 disabled:cursor-not-allowed" disabled={!!editingService}>
+                              編輯
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="grid grid-cols-1 gap-4 md:hidden">
+                  {services.map((service) => (
+                    <div key={service.id} className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-bold text-lg text-gray-800 flex-1 break-words">{service.name}</h3>
+                        <button onClick={() => handleEditClick(service)} className="ml-4 flex-shrink-0 text-indigo-600 hover:text-indigo-900 disabled:text-gray-300" disabled={!!editingService}>
+                          編輯
+                        </button>
+                      </div>
+                      <div className="space-y-2 text-sm text-gray-600 border-t pt-2 mt-2">
+                        <p><strong className="font-medium text-gray-700">分類:</strong> {service.category}</p>
+                        <p><strong className="font-medium text-gray-700">價格:</strong> ${service.price}</p>
+                        <p><strong className="font-medium text-gray-700">時長:</strong> {service.duration} 分鐘</p>
+                        <div className="flex items-center pt-1">
+                          <strong className="font-medium text-gray-700 mr-2">狀態:</strong>
+                          <button onClick={() => handleToggleAvailability(service)} disabled={isToggling === service.id} className={`px-3 py-1 text-xs font-semibold rounded-full ${service.available ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} disabled:opacity-50`}>
                             {isToggling === service.id ? '...' : (service.available ? '上架中' : '已下架')}
                           </button>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                            onClick={() => handleEditClick(service)}
-                            className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-300 disabled:cursor-not-allowed"
-                            disabled={!!editingService}
-                          >
-                            編輯
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </main>
