@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth'; // Use 'type' for type-only imports
+
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './lib/firebase';
 import { useAuthStore } from './store/authStore';

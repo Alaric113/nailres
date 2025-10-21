@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth'; // Use 'type' for type-only imports
-import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, getRedirectResult, type User } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 import type { UserDocument } from '../types/user';
@@ -15,39 +15,66 @@ export const useAuth = () => {
   const { setAuthState } = useAuthStore.getState();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
-      console.log('[Auth Checkpoint 1] onAuthStateChanged triggered. User:', firebaseUser?.email);
+    let unsubscribe = () => {};
 
-      if (firebaseUser) {
-        // User is signed in, now fetch their profile from Firestore.
-        try {
-          console.log('[Auth Checkpoint 3.1] Fetching user profile from Firestore...');
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
+    // This function handles fetching or creating user profiles.
+    const handleUser = async (firebaseUser: User) => {
+      try {
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
 
-          if (userDocSnap.exists()) {
-            const userProfileData = userDocSnap.data() as UserDocument;
-            console.log('[Auth Checkpoint 3] User profile fetched:', userProfileData);
-            setAuthState(firebaseUser, userProfileData);
-            console.log('[Auth Checkpoint 3.2] Zustand state updated with user, profile, and loading set to false.');
-          } else {
-            // This can happen during registration race conditions or if the doc was deleted manually.
-            console.error('User profile not found in Firestore.');
-            setAuthState(firebaseUser, null);
-          }
-        } catch (error) {
-          console.error('[Auth Checkpoint 4] Error fetching user profile:', error);
-          // In case of permissions error or network error, still set the auth user but with a null profile.
-          setAuthState(firebaseUser, null);
+        if (userDocSnap.exists()) {
+          // Existing user, just set the state
+          setAuthState(firebaseUser, userDocSnap.data() as UserDocument);
+        } else {
+          // New user (e.g., via social sign-in). Create their profile.
+          console.log('User profile not found, creating a new one...');
+          const socialProviderData = firebaseUser.providerData[0];
+          const isLineLogin = socialProviderData?.providerId.includes('line');
+
+          const newUserProfile: UserDocument = {
+            email: firebaseUser.email || `${socialProviderData?.providerId}-${firebaseUser.uid}@placeholder.com`,
+            profile: {
+              displayName: firebaseUser.displayName || '新使用者',
+              avatarUrl: firebaseUser.photoURL || '',
+            },
+            role: 'user',
+            createdAt: serverTimestamp(),
+            lastLogin: serverTimestamp(),
+            ...(isLineLogin && { lineUserId: socialProviderData.uid }),
+          };
+          await setDoc(userDocRef, newUserProfile);
+          setAuthState(firebaseUser, newUserProfile);
         }
-      } else {
-        // User is signed out.
-        console.log('[Auth Checkpoint 6] User is logged out.');
-        setAuthState(null, null);
+      } catch (error) {
+        console.error('Error handling user state:', error);
+        setAuthState(firebaseUser, null); // Set user but with null profile on error
       }
-    });
+    };
+
+    // First, process any redirect result. This is crucial.
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          // User signed in via redirect. The handleUser logic below will now
+          // correctly create their profile if it's their first time.
+          console.log('Handled redirect result for user:', result.user.uid);
+        }
+      })
+      .catch((error) => {
+        console.error('Error from getRedirectResult:', error);
+      })
+      .finally(() => {
+        // AFTER processing the redirect, set up the normal auth state listener.
+        unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+          if (firebaseUser) {
+            handleUser(firebaseUser);
+          } else {
+            setAuthState(null, null);
+          }
+        });
+      });
 
     return () => unsubscribe();
-    // By using getState(), we can remove the dependencies, ensuring this effect runs only once.
   }, []);
 };
