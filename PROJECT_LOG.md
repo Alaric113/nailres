@@ -187,6 +187,13 @@
     - **解決方案:**
         - **[完成]** 前往 Google Cloud API 庫，為專案啟用 `firestore.googleapis.com` API。
 
+1.  **[核心修正] 解決 iOS Safari 儲存分區導致的登入失敗問題:**
+    - **目標:** 徹底解決因 iOS Safari 儲存分區 (Storage Partitioning) 策略，導致 `signInWithRedirect` 流程中 `sessionStorage` 狀態遺失而登入失敗的問題。
+    - **任務:**
+        - **[未成功]** **採用代理方案:** 在 `netlify.toml` 中設定代理，將 `/__/auth/*` 的請求轉發至 Firebase，從而統一應用程式與認證端點的網域。
+        - **[未成功]** **更新 Firebase 設定:** 在 `firebase.ts` 中，將 `authDomain` 明確設定為 Netlify 的域名 (`treering83.netlify.app`)。
+        - **[未成功]** **簡化登入邏輯:** 由於已解決跨網域問題，將 `socialAuth.ts` 的邏輯簡化回「行動裝置使用 redirect，桌面使用 popup」的最佳實踐。
+
 1.  **[技術債] 解決 Tailwind CSS 本地設定問題:**
     - **目標:** 移除對 CDN 的依賴，使專案能獨立運作。
     - **問題描述:** 嘗試設定本地 Tailwind CSS + PostCSS 失敗，導致樣式無法載入。
@@ -236,16 +243,8 @@
         - **[完成]** 修正 `Dashboard.tsx` 中的登出邏輯，使其導向首頁。
         - **[完成]** 刪除專案中重複、錯誤的檔案，統一程式碼來源。
         - **[完成]** 修正 `useAllBookings.ts` 中的型別匯出問題。
-        - **[完成]** 移除 `Dashboard.tsx` 中多餘的登出與管理後台按鈕，統一由導覽列處理。
-        - **[完成]** 修正 `Login.tsx` 中因 `db` 變數未被使用而導致的建置錯誤。
 
 ## 9. 待辦事項與修復紀錄
-
-1.  **[核心修正] 重構認證流程以解決社群登入競爭問題:**
-    - **目標:** 解決因 `useAuth` 與 `handleSocialSignIn` 之間的競爭關係，導致社群登入（特別是 LINE）失敗的問題。
-    - **任務:**
-        - **[完成]** 將「建立新使用者 Firestore 文件」的邏輯從 `socialAuth.ts` 統一移動到 `useAuth.ts` 的 `onAuthStateChanged` 監聽器中。
-        - **[完成]** 簡化 `socialAuth.ts`，使其僅負責觸發 Firebase 的登入方法 (`signInWithPopup` 或 `signInWithRedirect`)，不再處理資料庫寫入。
 
 1.  **建構客戶管理功能:**
     - **目標:** 建立一個管理員專用的客戶名單，並能為客戶新增備註。
@@ -321,14 +320,6 @@
         - **[完成]** 全域搜尋並取代所有 `from '@/lib/firebase'` 的引用為 `from '@/firebase'`，確保所有相關檔案路徑一致。
 
 1.  **[已解決] 啟動錯誤：專案結構混亂導致的路徑解析問題**
-    - **目標:** 徹底解決 `npm run dev` 啟動時所有 `Failed to resolve import` 相關的錯誤。
-    - **問題描述:** 專案中存在多個重複的 `firebase.ts` 及其他 hooks/types 檔案，導致 `import` 路徑混亂，Vite 無法正確解析模組。
-    - **下一步:**
-        - **[完成]** 建立 `src/lib` 目錄，並將 `firebase.ts` 統一移動至 `src/lib/firebase.ts`。
-        - **[完成]** 刪除所有在 `src/pages`, `src/hooks`, `src/types` 等目錄下的重複檔案。
-        - **[完成]** 全域修正所有 `import` 路徑，使其指向 `src/lib/firebase.ts` 或其他正確的模組位置。
-
-1.  **[UI/UX] 首頁介面現代化升級**
     - **目標:** 徹底解決 `npm run dev` 啟動時所有 `Failed to resolve import` 相關的錯誤。
     - **問題描述:** 專案中存在多個重複的 `firebase.ts` 及其他 hooks/types 檔案，導致 `import` 路徑混亂，Vite 無法正確解析模組。
     - **下一步:**
