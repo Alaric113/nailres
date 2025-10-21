@@ -19,9 +19,9 @@ const nailImages = [
 ];
 
 const lashImages = [
-  'https://via.placeholder.com/800x600/d8b4fe/581c87?text=Lash+Style+1',
-  'https://via.placeholder.com/800x600/c4b5fd/4c1d95?text=Lash+Style+2',
-  'https://via.placeholder.com/800x600/a5b4fc/312e81?text=Lash+Style+3',
+  'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/mdoel_2.jpg?alt=media&token=863e8dce-e08f-48d8-a574-dd0dedc9af96',
+  'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/model_1.jpg?alt=media&token=933a5950-353c-4633-b270-17c4b0b578df',
+  
 ];
 
 const Home = () => {
