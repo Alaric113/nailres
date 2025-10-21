@@ -26,7 +26,7 @@ export const useAllBookings = () => {
           getDocs(collection(db, 'services')),
         ]);
         usersMap = new Map(usersSnapshot.docs.map(doc => [doc.id, doc.data() as UserDocument]));
-        servicesMap = new Map(servicesSnapshot.docs.map(doc => [doc.id, doc.data() as Service]));
+        servicesMap = new Map(servicesSnapshot.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() } as Service]));
       } catch (err) {
         console.error("Error fetching related data: ", err);
         setError(err as Error);
@@ -51,6 +51,7 @@ export const useAllBookings = () => {
               ...bookingData,
               userName: user?.profile?.displayName || '未知用戶',
               serviceName: service?.name || '未知服務',
+              serviceDuration: service?.duration || 60, // Default to 60 mins if not found
             };
           });
 

@@ -13,8 +13,7 @@ interface CalendarSelectorProps {
 const CalendarSelector = ({ selectedDate, onDateSelect, closedDays, isLoading }: CalendarSelectorProps) => {
   
   const modifiers = {
-    closed: closedDays,
-    disabled: closedDays, // Also disable selection for closed days
+    closed: closedDays, // Keep this for styling closed days
   };
 
   const modifierStyles = {
@@ -42,7 +41,10 @@ const CalendarSelector = ({ selectedDate, onDateSelect, closedDays, isLoading }:
         className="bg-white p-4 rounded-lg shadow-md"
         modifiers={modifiers}
         modifiersStyles={modifierStyles}
-        disabled={{ before: new Date() }} // Disable past dates
+        disabled={[
+          { before: new Date() }, // Disable past dates
+          ...closedDays // Also disable closed days
+        ]}
       />
     </div>
   );

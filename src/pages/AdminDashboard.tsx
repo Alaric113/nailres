@@ -1,15 +1,35 @@
-import { useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Calendar, dateFnsLocalizer, Views, type View } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { zhTW } from 'date-fns/locale';
+import { addMinutes } from 'date-fns';
 import { useAllBookings } from '../hooks/useAllBookings';
+import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
 import type { EnrichedBooking } from '../types/booking';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+
+// Setup the localizer by providing the moment Object
+// to the correct localizer.
+const locales = {
+  'zh-TW': zhTW,
+};
+
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek: (date: Date) => startOfWeek(date, { locale: zhTW }),
+  getDay,
+  locales,
+});
+
 const AdminDashboard = () => {
   const { bookings, loading, error } = useAllBookings();
-  const [editingStatus, setEditingStatus] = useState<{ [key: string]: string }>({});
-  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const { closedDays } = useBusinessHoursSummary();
+  const [date, setDate] = useState(new Date());
+  const [view, setView] = useState<View>(Views.WEEK);
 
   const getStatusChipClass = (status: string) => {
     switch (status) {
@@ -24,43 +44,26 @@ const AdminDashboard = () => {
     }
   };
 
-  const translateStatus = (status: string) => {
-    switch (status) {
-      case 'confirmed': return '已確認';
-      case 'completed': return '已完成';
-      case 'cancelled': return '已取消';
-      default: return status;
+  const events = bookings.map((booking: EnrichedBooking) => ({
+    title: `${booking.userName} - ${booking.serviceName}`,
+    start: booking.dateTime.toDate(),
+    end: addMinutes(booking.dateTime.toDate(), booking.serviceDuration || 60),
+    resource: booking, // Store original booking data
+  }));
+
+  const dayPropGetter = (date: Date) => {
+    const isClosed = closedDays.some(
+      closedDay => format(closedDay, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+    );
+    if (isClosed) {
+      return {
+        style: {
+          backgroundColor: '#fef2f2', // Tailwind's red-50
+        },
+      };
     }
+    return {};
   };
-
-  const handleStatusChange = (bookingId: string, newStatus: string) => {
-    setEditingStatus(prev => ({ ...prev, [bookingId]: newStatus }));
-  };
-
-  const handleUpdateBooking = async (bookingId: string) => {
-    const newStatus = editingStatus[bookingId];
-    if (!newStatus) return;
-
-    setIsUpdating(bookingId);
-    try {
-      const bookingRef = doc(db, 'bookings', bookingId);
-      await updateDoc(bookingRef, {
-        status: newStatus,
-      });
-      // Clear the editing state for this booking after successful update
-      setEditingStatus(prev => {
-        const newState = { ...prev };
-        delete newState[bookingId];
-        return newState;
-      });
-    } catch (err) {
-      console.error("Error updating booking status: ", err);
-      alert("更新失敗，請稍後再試。");
-    } finally {
-      setIsUpdating(null);
-    }
-  };
-
   if (loading && bookings.length === 0) {
     return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>;
   }
@@ -93,59 +96,52 @@ const AdminDashboard = () => {
         </div>
       </header>
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">所有預約</h2>
-        <div className="bg-white shadow-md rounded-lg overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">顧客</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">服務項目</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">預約時間</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {bookings.map((booking: EnrichedBooking) => (
-                <tr key={booking.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{booking.userName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.serviceName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(booking.dateTime.seconds * 1000).toLocaleString('zh-TW')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-2">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusChipClass(booking.status)}`}>
-                      {translateStatus(booking.status)}
-                    </span>
-                    <select
-                      value={editingStatus[booking.id] || booking.status}
-                      onChange={(e) => handleStatusChange(booking.id, e.target.value)}
-                      className="block w-32 pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                    >
-                      <option value="confirmed">已確認</option>
-                      <option value="completed">已完成</option>
-                      <option value="cancelled">已取消</option>
-                    </select>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => handleUpdateBooking(booking.id)}
-                      disabled={!editingStatus[booking.id] || isUpdating === booking.id || editingStatus[booking.id] === booking.status}
-                      className="px-4 py-2 font-semibold text-white bg-pink-500 rounded-md hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isUpdating === booking.id ? '更新中...' : '儲存'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {bookings.length === 0 && !loading && (
-            <p className="text-center py-8 text-gray-500">目前沒有任何預約記錄。</p>
-          )}
+        <div className="bg-white p-4 rounded-lg shadow-md" style={{ height: '80vh' }}>
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            defaultView={Views.WEEK}
+            date={date}
+            view={view}
+            onNavigate={setDate}
+            culture='zh-TW'
+            onView={setView}
+            views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+            messages={{
+              next: "向後",
+              previous: "向前",
+              today: "今天",
+              month: "月",
+              week: "週",
+              day: "日",
+              agenda: "列表"
+            }}
+            components={{
+              day: { header: DayHeader },
+            }}
+            eventPropGetter={(event) => ({
+              className: getStatusChipClass(event.resource.status),
+              style: {
+                border: 'none',
+                color: '#1f2937',
+              }
+            })}
+            dayPropGetter={dayPropGetter}
+          />
         </div>
       </main>
     </div>
+  );
+};
+// A custom component to render the day headers, allowing us to style them.
+const DayHeader = ({ date, label }: { date: Date; label: string }) => {
+  const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+  return (
+    <span className={isToday ? 'font-bold text-pink-600' : ''}>
+      {label}
+    </span>
   );
 };
 

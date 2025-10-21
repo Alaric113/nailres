@@ -119,6 +119,7 @@ const HoursSettingsPage = () => {
             className="bg-white p-4 rounded-lg shadow-md"
             modifiers={modifiers}
             modifiersStyles={modifierStyles}
+            disabled={{ before: new Date() }}
           />
         </div>
         <div className="md:col-span-2 bg-white p-6 rounded-lg shadow-md">

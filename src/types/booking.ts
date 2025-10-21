@@ -23,4 +23,5 @@ export interface EnrichedBooking extends BookingDocument {
   id: string;
   userName: string;
   serviceName: string;
+  serviceDuration: number;
 }
