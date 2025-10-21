@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import type { BusinessHours } from '../types/businessHours';
 import type { BookingDocument } from '../types/booking';
 import type { Service } from '../types/service';
 
@@ -20,9 +21,29 @@ export const useAvailableSlots = (selectedDate: string, serviceDuration: number 
       setError(null);
 
       try {
-        // --- 1. Define Business Hours & Slot Interval ---
-        const openingHour = 10; // 10:00 AM
-        const closingHour = 19; // 7:00 PM
+        // --- 1. Fetch Business Hours for the selected date ---
+        const businessHoursRef = doc(db, 'businessHours', selectedDate);
+        const businessHoursSnap = await getDoc(businessHoursRef);
+
+        let openingHour = 10; // Default opening hour
+        let closingHour = 19; // Default closing hour
+        let isDayOff = false;
+
+        if (businessHoursSnap.exists()) {
+          const data = businessHoursSnap.data() as BusinessHours;
+          if (data.isClosed) {
+            isDayOff = true;
+          } else {
+            openingHour = parseInt(data.openingTime.split(':')[0], 10);
+            closingHour = parseInt(data.closingTime.split(':')[0], 10);
+          }
+        }
+
+        if (isDayOff) {
+          setAvailableSlots([]);
+          setIsLoading(false);
+          return;
+        }
         const slotInterval = 15; // Check for a new slot every 15 minutes
 
         // --- 2. Fetch Existing Bookings for the Selected Date ---

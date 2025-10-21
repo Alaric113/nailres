@@ -7,11 +7,13 @@ import Home from './pages/Home';
 import Login from './components/auth/Login';
 import Register from './pages/Register';
 
-// Protected Page Components
+// Page Components
 import Dashboard from './pages/Dashboard';
 import BookingPage from './pages/BookingPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ServiceManagement from './pages/ServiceManagement';
+import CustomerListPage from './pages/CustomerListPage';
+import HoursSettingsPage from './pages/HoursSettingsPage';
 
 // Route Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -49,6 +51,9 @@ function App() {
         <Route element={<AdminRoute />}>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/services" element={<ServiceManagement />} />
+          <Route path="/admin/customers" element={<CustomerListPage />} />
+          <Route path="/admin/hours" element={<HoursSettingsPage />} />
+      
         </Route>
       </Routes>
     </Router>

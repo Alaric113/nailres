@@ -30,6 +30,10 @@
     - 程式碼必須清晰、可讀性高，並在適當之處加上註解。
     - 優先使用 `diff` 格式提供程式碼變更，以便於審閱。
 
+4.  **路徑一致性 (Consistent Pathing):**
+    - **優先使用相對路徑 (`../`)** 進行模組匯入，以避免路徑別名 (`@/`) 設定不一致導致的解析錯誤。
+    - 保持專案內部引用路徑的一致性。
+
 ## 3. 系統架構與資料流 (System Architecture & Data Flow)
 
 為了提供一個清晰的全局視圖，以下是本系統的主要組件及其交互方式。
@@ -209,6 +213,13 @@
         - **[完成]** 修正 `src/store/authStore.ts` 中的 `_setCurrentUser` 函式，移除對 `authIsLoading` 狀態的錯誤操作，解決狀態競爭 (Race Condition) 問題，確保登入後能正確跳轉。
         - **[完成]** 在 `useAuth.ts` 中使用 `Promise.resolve().then()` 將 `_setLoading(false)` 的呼叫延遲到微任務中，解決因 Zustand 批次更新導致 `useEffect` 依賴未觸發跳轉的問題。
 
+1.  **[核心修正] 解決 Google 登入時的 API 金鑰格式錯誤:**
+    - **目標:** 解決因環境變數設定不當，導致 Google 登入請求失敗的問題。
+    - **問題描述:** 瀏覽器控制台顯示 `GET https://identitytoolkit.googleapis.com/... 400 (Bad Request)` 錯誤。
+    - **根本原因:** `.env` 檔案中的 `VITE_FIREBASE_API_KEY` 值包含了不應有的引號 (`"`) 和逗號 (`,`)，導致 Firebase SDK 發送了格式錯誤的 API 金鑰。
+    - **解決方案:**
+        - **[完成]** 修正 `.env` 檔案，移除所有環境變數值周圍的引號與結尾的逗號，確保其為純字串值。
+
 1.  **專案結構清理與修正:**
     - **目標:** 解決因檔案重複與路徑錯誤導致的功能不一致問題。
     - **任務:**
@@ -227,6 +238,47 @@
         - **[完成]** 修正 `useAllBookings.ts` 中的型別匯出問題。
 
 ## 7. 待討論事項
+
+1.  **建構客戶管理功能:**
+    - **目標:** 建立一個管理員專用的客戶名單，並能為客戶新增備註。
+    - **任務:**
+        - **建立客戶列表頁面:**
+            - **[完成]** 建立 `useAllUsers.ts` Hook，用於從 Firestore 的 `users` 集合中讀取所有使用者資料。
+            - **[完成]** 建立 `src/pages/admin/CustomerListPage.tsx` 元件。
+            - **[完成]** 在客戶列表頁面中，顯示所有客戶的名稱、Email、註冊時間等資訊。
+        - **實作客戶備註功能:**
+            - **[完成]** 修正 `CustomerListPage.tsx` 中因 `formatTimestamp` 工具函式不存在導致的匯入錯誤，已建立 `src/utils/formatTimestamp.ts`。
+            - **[完成]** 更新 `src/types/user.ts` 以包含 `notes` 欄位。
+            - **[完成]** 在客戶列表頁面 (`CustomerListPage.tsx`) 中，提供一個文字輸入框，讓管理員可以編輯並儲存客戶備註。
+            - **[完成]** 在 Firestore 的 `users` 文件結構中新增一個 `notes` 欄位 (型別為 `string`)。
+            - **[完成]** 在客戶管理頁面新增返回儀表板的導覽連結，並優化頁面佈局以符合後台整體風格。
+            - **[完成]** 新增安全的權限變更功能，管理員可透過確認對話框提升或降級使用者權限。
+        - **[完成]** **整合路由:** 在 `App.tsx` 中新增 `/admin/customers` 路由，並在管理員儀表板 (`AdminDashboard.tsx`) 中加入前往此頁面的連結。
+    - **[已解決]** 根據使用者回報的錯誤訊息，`CustomerListPage.tsx` 目前位於 `src/pages/CustomerListPage.tsx`。請確保此檔案的實際位置與 `App.tsx` 中的路由設定 (`import CustomerListPage from './pages/CustomerListPage';`) 一致。若原意是放在 `src/pages/admin/` 下，則需調整 `App.tsx` 的匯入路徑。
+
+1.  **開發營業時間設定功能:**
+    - **目標:** 讓管理員能以日曆形式，彈性設定每一天的營業時間或公休日。 **[進行中]**
+    - **任務:**
+        - **[完成]** **設計資料模型:** 規劃一個新的 Firestore 集合 `businessHours`，並建立 `src/types/businessHours.ts` 型別定義。
+        - **[完成]** **建立設定頁面:** 建立 `src/pages/admin/HoursSettingsPage.tsx` 頁面骨架。
+        - **[完成]** **整合路由:** 在 `App.tsx` 與 `AdminDashboard.tsx` 中加入新頁面的路由與連結。
+        - **[完成]** **整合日曆元件:** 引入 `react-day-picker`，並在 `HoursSettingsPage.tsx` 中實作日曆選擇、讀取及儲存每日營業時間至 Firestore 的功能。
+        - **[完成]** **修正型別錯誤:** 調整 `businessHours.ts` 中的 `updatedAt` 型別，使其相容 `FieldValue`，解決 `serverTimestamp()` 造成的型別錯誤。
+        - **[完成]** **解決 Firestore 400 錯誤 (權限問題):** 已指示使用者更新 Firestore 安全規則，允許管理員讀寫 `businessHours` 集合。
+        - **[完成]** **優化日曆顯示:** 在營業時間設定頁面的日曆上，以特殊樣式標示出所有「公休日」，提升視覺辨識度。
+        - **[完成]** **更新預約邏輯:** 已根據使用者當前的程式碼版本，修改 `useAvailableSlots.ts` Hook，使其在計算可預約時段前，先讀取指定日期的 `businessHours` 設定，取代原有的固定營業時間。
+        - **[完成]** **優化預約頁面:** 已根據使用者當前的程式碼版本，在 `BookingPage.tsx` 新增頁首與返回儀表板的導覽連結，提升使用者體驗。
+        - **[完成]** **修正預約頁面語法錯誤:** 移除 `BookingPage.tsx` 中因複製貼上錯誤而產生的多餘程式碼，解決 `Unexpected token` 錯誤。
+        - **[完成]** **優化預約日曆:** 在預約頁面的日曆 (`CalendarSelector.tsx`) 上標示出公休日，提升使用者體驗。
+
+1.  **建立預約行事曆檢視:**
+    - **目標:** 在管理員後台以日曆形式呈現所有未來的預約，方便一覽行程。
+    - **任務:**
+        - **[待辦]** **建立行事曆頁面:** 建立 `src/pages/admin/BookingCalendarPage.tsx`。
+        - **[待辦]** **整合日曆元件:** 引入一個功能更完整的行事曆套件 (例如 `react-big-calendar`)，它能很好地展示時間區塊事件。
+        - **[待辦]** **資料整合:** 使用 `useAllBookings.ts` Hook 獲取所有預約資料，並將其轉換為行事曆元件所需的格式，然後在日曆上渲染出來。
+
+
 1.  **[已解決] 啟動錯誤：路徑別名解析失敗**
     - **目標:** 解決 `npm run dev` 時出現的 `Failed to resolve import "@/App"` 錯誤。
     - **問題描述:** 專案缺少 `vite.config.ts` 檔案，導致 Vite 無法識別 `@` 路徑別名。

@@ -12,4 +12,10 @@ export interface UserDocument {
   role: 'user' | 'admin';
   createdAt: Timestamp | FieldValue;
   lastLogin: Timestamp | FieldValue;
+  notes?: string;
+}
+
+// This represents the user document with its ID from the collection
+export interface EnrichedUser extends UserDocument {
+  id: string;
 }

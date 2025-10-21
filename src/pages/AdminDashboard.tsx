@@ -77,6 +77,12 @@ const AdminDashboard = () => {
             管理員後台
           </h1>
           <div className="flex items-center gap-4">
+            <Link to="/admin/hours" className="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-md shadow-sm hover:bg-yellow-600 transition-colors">
+              營業時間
+            </Link>
+            <Link to="/admin/customers" className="px-4 py-2 bg-green-500 text-white font-semibold rounded-md shadow-sm hover:bg-green-600 transition-colors">
+              客戶管理
+            </Link>
             <Link to="/admin/services" className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-md shadow-sm hover:bg-blue-600 transition-colors">
               服務管理
             </Link>
