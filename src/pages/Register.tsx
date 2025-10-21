@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, googleProvider, lineProvider } from '../lib/firebase';
 import type { UserDocument } from '../types/user';
+import { handleSocialSignIn } from '../lib/socialAuth';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -57,78 +58,17 @@ const Register = () => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    console.log('[Register Checkpoint 6] Google Sign-In button clicked.');
+  const socialSignInWrapper = async (provider: 'google' | 'line') => {
     setIsSubmitting(true);
     setError(null);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log('[Register Checkpoint 7] signInWithPopup successful. User:', result.user.email);
-      const user = result.user;
-
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      console.log('[Register Checkpoint 8] Checking if user exists in Firestore...');
-      if (!userDocSnap.exists()) {
-        const newUserDocument: UserDocument = {
-          email: user.email!,
-          profile: {
-            displayName: user.displayName || 'New User',
-            avatarUrl: user.photoURL || '',
-          },
-          role: 'user',
-          createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp(),
-        };
-        await setDoc(userDocRef, newUserDocument);
-        console.log('[Register Checkpoint 9] New Google user. Firestore document created.');
-      } else {
-        await setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
-        console.log('[Register Checkpoint 10] Existing Google user. lastLogin updated.');
-      }
+      const authProvider = provider === 'google' ? googleProvider : lineProvider;
+      await handleSocialSignIn(provider, authProvider);
+      // On success, onAuthStateChanged will handle the redirect.
+      // On redirect, the page will reload and onAuthStateChanged will handle it.
     } catch (error: any) {
-      console.error('[Register Checkpoint 11] Google Sign-In Error:', error);
-      setError('使用 Google 登入失敗，請稍後再試。');
-      console.error('Google Sign-In Error:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleLineSignIn = async () => {
-    console.log('[Register Checkpoint] LINE Sign-In button clicked.');
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      const result = await signInWithPopup(auth, lineProvider);
-      console.log('[Register Checkpoint] LINE signInWithPopup successful. User:', result.user.displayName);
-      const user = result.user;
-
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      if (!userDocSnap.exists()) {
-        // Find the LINE provider data to get the LINE-specific user ID
-        const lineProviderData = user.providerData.find(p => p.providerId === 'oidc.line');
-
-        const newUserDocument: UserDocument = {
-          email: user.email || `line-${user.uid}@placeholder.com`, // LINE may not provide email
-          profile: {
-            displayName: user.displayName || 'LINE User',
-            avatarUrl: user.photoURL || '',
-          },
-          role: 'user',
-          createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp(),
-          lineUserId: lineProviderData?.uid, // Save the LINE User ID
-        };
-        await setDoc(userDocRef, newUserDocument);
-        console.log('[Register Checkpoint] New LINE user. Firestore document created.');
-      }
-    } catch (error: any) {
-      console.error('[Register Checkpoint] LINE Sign-In Error:', error);
-      setError('使用 LINE 登入失敗，請稍後再試。');
+      console.error(`Social Sign-In Error (${provider}):`, error);
+      setError(`使用 ${provider === 'google' ? 'Google' : 'LINE'} 登入失敗，請稍後再試。`);
     } finally {
       setIsSubmitting(false);
     }
@@ -168,14 +108,14 @@ const Register = () => {
         </div>
 
         <div>
-          <button onClick={handleGoogleSignIn} disabled={isSubmitting} className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+          <button onClick={() => socialSignInWrapper('google')} disabled={isSubmitting} className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
             <img className="h-5 w-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google icon" />
             使用 Google 註冊
           </button>
         </div>
 
         <div className="mt-4">
-          <button onClick={handleLineSignIn} disabled={isSubmitting} className="w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#06C755] hover:bg-[#05a546] disabled:opacity-50">
+          <button onClick={() => socialSignInWrapper('line')} disabled={isSubmitting} className="w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#06C755] hover:bg-[#05a546] disabled:opacity-50">
             <img className="h-6 w-6 mr-2" src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE icon" />
             使用 LINE 註冊
           </button>

@@ -176,8 +176,9 @@
         - **[完成]** 在 `Login.tsx` 和 `Register.tsx` 頁面新增「使用 Google 登入/註冊」按鈕。
         - **[完成]** 在 `Register.tsx` 中實作 `handleGoogleSignIn` 函式，處理 `signInWithPopup` 流程，並在使用者首次登入時自動於 Firestore 建立使用者資料。
         - **[完成]** 在 `Login.tsx` 中實作 `handleGoogleSignIn` 函式，處理 Google 登入並更新 `lastLogin` 時間戳。
-        - **[完成]** **實作 LINE 登入:** 採用 Firebase 原生的 OpenID Connect (OIDC) 支援，已在 `Register.tsx` 與 `Login.tsx` 中加入 LINE 登入/註冊功能。
-        - **[完成]** **為 LINE 訊息發送做準備:** 在 `user.ts` 型別定義中加入 `lineUserId`，並在使用者透過 LINE 登入/註冊時，將其 LINE User ID 儲存至 Firestore，為後續的訊息推播功能打下基礎。
+        - **[完成]** **實作 LINE 登入:** 採用 Firebase 原生的 OpenID Connect (OIDC) 支援。
+        - **[完成]** **優化社群登入:** 將登入邏輯抽象化至 `src/lib/socialAuth.ts`，並自動偵測 LINE 內建瀏覽器，切換至 `signInWithRedirect` 模式以解決行動裝置登入失敗問題。
+        - **[完成]** **為 LINE 訊息發送做準備:** 在使用者透過 LINE 登入/註冊時，將其 LINE User ID (`lineUserId`) 儲存至 Firestore，為後續的訊息推播功能打下基礎。
 
 1.  **修復 Google 登入後 Firestore 連線錯誤:**
     - **目標:** 解決 Google 登入成功後，無法讀取 Firestore 使用者資料的問題。
