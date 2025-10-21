@@ -1,5 +1,5 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, OAuthProvider } from 'firebase/auth';
+import { GoogleAuthProvider, OAuthProvider, initializeAuth, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
@@ -16,7 +16,13 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, {
+  // This is the key change. We are explicitly setting the persistence to
+  // browserLocalPersistence to avoid issues with partitioned storage in
+  // modern browsers (like Safari ITP or in-app browsers) which can cause
+  // signInWithRedirect to fail.
+  persistence: browserLocalPersistence,
+});
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 
