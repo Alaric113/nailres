@@ -101,7 +101,7 @@ const Home = () => {
           <h2 className="text-3xl font-bold text-center mb-8">魅力美睫造型</h2>
           <Swiper
             modules={[Navigation, Pagination, Autoplay]}
-            spaceBetween={30}
+            spaceBetween={2}
             slidesPerView={1}
             navigation
             pagination={{ clickable: true }}
