@@ -21,13 +21,13 @@ const isMobile = (): boolean => {
  */
 const isIosSafari = (): boolean => {
   const ua = navigator.userAgent;
-  return /iP(ad|hone|od)/.test(ua) && /Safari/.test(ua) && !/CriOS/.test(ua) && !/FxiOS/.test(ua);
+  return /iP(ad|hone|od)/.test(ua) && /Safari/.test(ua) && !/CriOS|EdgiOS/.test(ua);
 };
 
 
 /**
  * Determines the appropriate sign-in method based on the environment.
- * @returns 'popup' for desktop, 'redirect' for mobile.
+ * @returns 'popup' for desktop and iOS Safari, 'redirect' for other mobile browsers.
  */
 const getAuthMethod = (): 'popup' | 'redirect' => {
   // iOS Safari has issues with redirects, so we prefer popups there.
