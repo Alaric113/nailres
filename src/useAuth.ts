@@ -29,7 +29,8 @@ export const useAuth = () => {
             // This is a new user (e.g., via social sign-in redirect or just created).
             // We create their profile document here to avoid race conditions.
             console.log('User profile not found, creating a new one...');
-            const socialProviderData = firebaseUser.providerData.find(p => p.providerId.includes('google.com') || p.providerId.includes('oidc.line'));
+            const socialProviderData = firebaseUser.providerData[0]; // The first entry is the primary provider
+            const isLineLogin = socialProviderData?.providerId.includes('line'); // Checks for 'oidc.line' or 'line.me'
 
             const newUserProfile: UserDocument = {
               email: firebaseUser.email || `${socialProviderData?.providerId}-${firebaseUser.uid}@placeholder.com`,
@@ -40,7 +41,7 @@ export const useAuth = () => {
               role: 'user',
               createdAt: serverTimestamp(),
               lastLogin: serverTimestamp(),
-              ...(socialProviderData?.providerId.includes('oidc.line') && { lineUserId: socialProviderData.uid }),
+              ...(isLineLogin && { lineUserId: socialProviderData.uid }),
             };
 
             await setDoc(userDocRef, newUserProfile);
