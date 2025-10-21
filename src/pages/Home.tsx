@@ -10,13 +10,6 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
-// Placeholder images (replace with your actual image paths)
-const nailImages = [
-  'https://via.placeholder.com/800x600/fecdd3/9f1239?text=Nail+Art+1',
-  'https://via.placeholder.com/800x600/fbcfe8/861955?text=Nail+Art+2',
-  'https://via.placeholder.com/800x600/f5d0fe/7e22ce?text=Nail+Art+3',
-];
-
 const lashImages = [
   'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/mdoel_2.jpg?alt=media&token=863e8dce-e08f-48d8-a574-dd0dedc9af96',
   'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/model_1.jpg?alt=media&token=933a5950-353c-4633-b270-17c4b0b578df',

@@ -14,14 +14,3 @@ export interface BookingDocument {
   createdAt: Timestamp;
   notes?: string; // Optional notes from the customer
 }
-
-/**
- * Represents a booking document enriched with related user and service names.
- * This is primarily for display purposes in the admin dashboard.
- */
-export interface EnrichedBooking extends BookingDocument {
-  id: string;
-  userName: string;
-  serviceName: string;
-  serviceDuration: number;
-}

@@ -4,9 +4,8 @@ import { Calendar, dateFnsLocalizer, Views, type View } from 'react-big-calendar
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { addMinutes } from 'date-fns';
-import { useAllBookings } from '../hooks/useAllBookings';
+import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
 import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
-import type { EnrichedBooking } from '../types/booking';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -63,7 +62,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const events = bookings.map((booking: EnrichedBooking) => ({
+  const events = bookings.map((booking) => ({
     title: `${booking.userName} - ${booking.serviceName}`,
     start: booking.dateTime.toDate(),
     end: addMinutes(booking.dateTime.toDate(), booking.serviceDuration || 60),
@@ -88,7 +87,7 @@ const AdminDashboard = () => {
   }
 
   if (error) {
-    return <div className="text-red-500 text-center mt-10">Error loading bookings: {error.message}</div>;
+    return <div className="text-red-500 text-center mt-10">Error loading bookings: {error}</div>;
   }
 
   return (
