@@ -328,6 +328,47 @@
 1.  **[已解決] 啟動錯誤：路徑別名解析失敗**
     - **目標:** 解決 `npm run dev` 時出現的 `Failed to resolve import "@/App"` 錯誤。
     - **問題描述:** 專案缺少 `vite.config.ts` 檔案，導致 Vite 無法識別 `@` 路徑別名。
+    - **任務:**
+        - **[完成]** 建立 `vite.config.ts` 檔案。
+        - **[完成]** 在設定檔中新增 `resolve.alias` 選項，將 `@` 指向 `src` 目錄。
+
+1.  **效能優化 (Performance Optimization):**
+    - **目標:** 提升首頁載入體驗，避免背景圖片延遲出現。
+    - **任務:**
+        - **[完成]** **實作圖片預載入:** 在 `index.html` 中新增 `<link rel="preload" as="image" ...>` 標籤，指示瀏覽器在應用程式啟動初期就優先下載首頁的背景圖片（即使是外部 URL）。
+
+1.  **[已解決] 啟動錯誤：Firebase 模組解析失敗**
+    - **目標:** 解決 `npm run dev` 時出現的 `Failed to resolve import "@/firebase"` 錯誤。
+    - **問題描述:** 專案中所有對 Firebase 模組的引用路徑不正確，應為 `src/lib/firebase.ts`。
+    - **修正:** 經過進一步除錯，發現 `firebase.ts` 實際位於 `src/` 目錄下，而非 `src/lib/`。
+    - **解決方案:**
+        - **[完成]** 全域搜尋並取代所有 `from '@/lib/firebase'` 的引用為 `from '@/firebase'`，確保所有相關檔案路徑一致。
+
+1.  **[已解決] 啟動錯誤：專案結構混亂導致的路徑解析問題**
+    - **目標:** 徹底解決 `npm run dev` 啟動時所有 `Failed to resolve import` 相關的錯誤。
+    - **問題描述:** 專案中存在多個重複的 `firebase.ts` 及其他 hooks/types 檔案，導致 `import` 路徑混亂，Vite 無法正確解析模組。
+    - **下一步:**
+        - **[完成]** 建立 `src/lib` 目錄，並將 `firebase.ts` 統一移動至 `src/lib/firebase.ts`。
+        - **[完成]** 刪除所有在 `src/pages`, `src/hooks`, `src/types` 等目錄下的重複檔案。
+        - **[完成]** 全域修正所有 `import` 路徑，使其指向 `src/lib/firebase.ts` 或其他正確的模組位置。
+
+1.  **服務項目管理功能擴充:**
+    - **目標:** 讓管理員能夠刪除服務項目。
+    - **任務:**
+        - **[完成]** 在 `ServiceManagement.tsx` 中新增「刪除」按鈕。
+        - **[完成]** 實作 `handleDeleteService` 函式，處理刪除確認提示並呼叫 Firebase `deleteDoc` 移除服務文件。
+        - **[完成]** 確保刪除操作的載入狀態和錯誤處理。
+
+## 10. 待討論事項
+
+- **金流串接細節:** 需要獲取綠界 (ECPay) 的測試商店 ID 與 API Key。
+- **LINE Bot 憑證:** 需要申請 LINE Channel Secret 和 Channel Access Token 以進行後續整合。
+- **UI/UX 設計稿:** 目前只有架構，尚無具體的 UI 設計稿，這會是下一步規劃的重點。
+
+---
+**日誌結束**
+    - **目標:** 解決 `npm run dev` 時出現的 `Failed to resolve import "@/App"` 錯誤。
+    - **問題描述:** 專案缺少 `vite.config.ts` 檔案，導致 Vite 無法識別 `@` 路徑別名。
     - **解決方案:**
     - **任務:**
         - **[完成]** 建立 `vite.config.ts` 檔案。

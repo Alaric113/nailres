@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
 import { useServices } from '../hooks/useServices';
@@ -13,6 +13,7 @@ const ServiceManagement = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isToggling, setIsToggling] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   // Fetch existing services
   const { services, isLoading: servicesLoading, error: servicesError } = useServices();
 
@@ -73,9 +74,9 @@ const ServiceManagement = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    setFormData(prev => ({ ...prev, [id]: value })); // `id` should match the key in formData
   };
 
   const handleEditClick = (service: Service) => {
@@ -106,6 +107,24 @@ const ServiceManagement = () => {
     }
   };
 
+  const handleDeleteService = async (serviceId: string, serviceName: string) => {
+    if (!window.confirm(`您確定要刪除服務項目 "${serviceName}" 嗎？此操作無法復原。`)) {
+      return;
+    }
+    setIsDeleting(serviceId);
+    try {
+      const serviceRef = doc(db, 'services', serviceId);
+      await deleteDoc(serviceRef);
+      setSuccess(`服務項目 "${serviceName}" 已成功刪除！`);
+      if (editingService?.id === serviceId) setEditingService(null); // If deleting the one being edited
+    } catch (err) {
+      console.error("Error deleting service: ", err);
+      setFormError('刪除服務失敗，請稍後再試。');
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow-sm">
@@ -127,19 +146,29 @@ const ServiceManagement = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="serviceName" className="block text-sm font-medium text-gray-700">服務名稱</label>
-                <input type="text" id="name" value={formData.name} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                <input type="text" id="name" value={formData.name} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
               </div>
               <div>
                 <label htmlFor="price" className="block text-sm font-medium text-gray-700">價格 (NT$)</label>
-                <input type="number" id="price" value={formData.price} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                <input type="number" id="price" value={formData.price} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
               </div>
               <div>
                 <label htmlFor="duration" className="block text-sm font-medium text-gray-700">所需時間 (分鐘)</label>
-                <input type="number" id="duration" value={formData.duration} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                <input type="number" id="duration" value={formData.duration} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
               </div>
               <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700">分類</label>
-                <input type="text" id="category" value={formData.category} onChange={handleInputChange} placeholder="例如：手部保養, 足部光療" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                <select
+                  id="category"
+                  value={formData.category}
+                  onChange={handleFieldChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="" disabled>請選擇分類</option>
+                  <option value="美睫">美睫</option>
+                  <option value="霧眉">霧眉</option>
+                  <option value="美甲">美甲</option>
+                </select>
               </div>
 
               {formError && <p className="text-sm text-red-600">{formError}</p>}
@@ -197,9 +226,16 @@ const ServiceManagement = () => {
                               {isToggling === service.id ? '...' : (service.available ? '上架中' : '已下架')}
                             </button>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onClick={() => handleEditClick(service)} className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-300 disabled:cursor-not-allowed" disabled={!!editingService}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
+                            <button
+                              onClick={() => handleEditClick(service)}
+                              className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-300 disabled:cursor-not-allowed"
+                              disabled={!!editingService || !!isDeleting}
+                            >
                               編輯
+                            </button>
+                            <button onClick={() => handleDeleteService(service.id, service.name)} disabled={isDeleting === service.id || !!editingService} className="text-red-600 hover:text-red-900 disabled:text-gray-300 disabled:cursor-not-allowed">
+                              {isDeleting === service.id ? '刪除中...' : '刪除'}
                             </button>
                           </td>
                         </tr>
@@ -213,9 +249,16 @@ const ServiceManagement = () => {
                   {services.map((service) => (
                     <div key={service.id} className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-bold text-lg text-gray-800 flex-1 break-words">{service.name}</h3>
-                        <button onClick={() => handleEditClick(service)} className="ml-4 flex-shrink-0 text-indigo-600 hover:text-indigo-900 disabled:text-gray-300" disabled={!!editingService}>
+                        <h3 className="font-bold text-lg text-gray-800 flex-1 break-words pr-2">{service.name}</h3>
+                        <button
+                          onClick={() => handleEditClick(service)}
+                          className="ml-4 flex-shrink-0 text-indigo-600 hover:text-indigo-900 disabled:text-gray-300"
+                          disabled={!!editingService || !!isDeleting}
+                        >
                           編輯
+                        </button>
+                        <button onClick={() => handleDeleteService(service.id, service.name)} disabled={isDeleting === service.id || !!editingService} className="ml-2 flex-shrink-0 text-red-600 hover:text-red-900 disabled:text-gray-300 disabled:cursor-not-allowed">
+                          {isDeleting === service.id ? '刪除中...' : '刪除'}
                         </button>
                       </div>
                       <div className="space-y-2 text-sm text-gray-600 border-t pt-2 mt-2">
