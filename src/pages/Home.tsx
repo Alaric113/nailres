@@ -172,9 +172,9 @@ const Home = () => {
               <h3 className="text-lg font-semibold mb-4">關注我們</h3>
               <div className="flex space-x-6">
                 <a href="https://www.instagram.com/treering_83/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">Instagram</a>
-                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">Facebook</a>
+                <a href="https://www.facebook.com/share/19Z1mqXuKG/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">Facebook</a>
                 <a href="https://www.tiktok.com/@treering_83?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">TikTok</a>
-                <a href="https://line.me" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">LINE</a>
+                <a href="https://page.line.me/985jirte" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">LINE</a>
               </div>
             </div>
           </div>
