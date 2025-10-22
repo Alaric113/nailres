@@ -1,15 +1,15 @@
 import type { Timestamp, FieldValue } from 'firebase/firestore';
 
-export interface UserProfile {
-  displayName: string | null;
-  avatarUrl?: string;
-}
+export type UserRole = 'user' | 'admin' | 'platinum';
 
 // This represents the data stored in the /users/{uid} document
 export interface UserDocument {
   email: string;
-  profile: UserProfile;
-  role: 'user' | 'admin';
+  profile: {
+    displayName: string | null;
+    avatarUrl?: string | null;
+  };
+  role: UserRole; // Use the UserRole union type
   createdAt: Timestamp | FieldValue;
   lastLogin: Timestamp | FieldValue;
   notes?: string;

@@ -16,27 +16,22 @@ const lashImages = [
 ];
 
 // 服務項目資料
-const services = [
+// 將服務項目改為服務分類，並移除圖片
+const categories = [
   {
-    title: '精緻美甲',
-    price: '900',
-    description: '包含手部基礎護理與單色凝膠，可加價設計款式。',
-    image: 'https://images.unsplash.com/photo-1522152249805-2b2aa12a8347?q=80&w=1200&auto=format&fit=crop',
-    link: '/booking?service=nail',
+    title: '美睫服務',
+    description: '打造迷人電眼，多種款式與材質選擇。',
+    link: '/booking?category=美睫',
   },
   {
-    title: '經典美睫',
-    price: '1,200',
-    description: '自然款、濃密款可選，使用高品質睫毛與溫和黑膠。',
-    image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?q=80&w=1200&auto=format&fit=crop',
-    link: '/booking?service=lash',
+    title: '霧眉服務',
+    description: '專業霧眉技術，讓您擁有自然持久的完美眉型。',
+    link: '/booking?category=霧眉',
   },
   {
-    title: '手足深層護理',
-    price: '1,500',
-    description: '去角質、保濕按摩與指緣修護，恢復肌膚柔嫩光澤。',
-    image: 'https://images.unsplash.com/photo-1604654894610-df62318c4e1b?q=80&w=1200&auto=format&fit=crop',
-    link: '/booking?service=care',
+    title: '美甲服務',
+    description: '從基礎保養到精緻設計，讓您的指尖綻放光彩。',
+    link: '/booking?category=美甲',
   },
 ];
 
@@ -69,30 +64,7 @@ const Home = () => {
       </header>
 
       <main>
-        {/* Services Section */}
-        <section id="services" className="py-16 sm:py-20 bg-white snap-start">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center mb-4">服務項目</h2>
-            <p className="text-center text-gray-500 mb-12 max-w-2xl mx-auto">我們提供多樣化的專業服務，滿足您對美的所有想像。</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {services.map((service) => (
-                <div key={service.title} className="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden flex flex-col transform hover:-translate-y-2 transition-transform duration-300">
-                  <img src={service.image} alt={service.title} className="w-full h-48 object-cover" />
-                  <div className="p-6 flex flex-col flex-grow">
-                    <h3 className="text-xl font-bold mb-2">{service.title}</h3>
-                    <p className="text-gray-600 mb-4 flex-grow">{service.description}</p>
-                    <div className="flex justify-between items-center mt-4">
-                      <span className="text-lg font-bold text-pink-500">NT$ {service.price} 起</span>
-                      <Link to={service.link} className="bg-gray-800 text-white font-semibold rounded-lg py-2 px-4 text-sm hover:bg-gray-900 transition-colors">
-                        預約
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        
 
         {/* Works Section */}
         <section id="works" className="py-16 sm:py-20 snap-start">
@@ -130,7 +102,31 @@ const Home = () => {
             ))}
           </Swiper>
         </section>
+        
 
+        {/* Services Section */}
+        <section id="services" className="py-16 sm:py-20 bg-white snap-start">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold text-center mb-4">服務項目</h2>
+            <p className="text-center text-gray-500 mb-12 max-w-2xl mx-auto">我們提供多樣化的專業服務，滿足您對美的所有想像。</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {categories.map((category) => (
+                <div key={category.title} className="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden flex flex-col transform hover:-translate-y-2 transition-transform duration-300">
+                  <div className="p-6 flex flex-col flex-grow">
+                    <h3 className="text-xl font-bold mb-2 text-center">{category.title}</h3>
+                    <p className="text-gray-600 mb-4 flex-grow text-center">{category.description}</p>
+                    <div className="flex justify-center items-center mt-4">
+                      {/* <span className="text-lg font-bold text-pink-500">NT$ {category.price} 起</span> */}
+                      <Link to={category.link} className="bg-pink-500 text-white font-semibold rounded-lg py-2 px-4 text-sm hover:bg-pink-600 transition-colors">
+                        查看詳情
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
         
       </main>
 

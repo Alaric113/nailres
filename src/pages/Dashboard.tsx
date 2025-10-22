@@ -37,7 +37,12 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Page Header */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-white shadow-sm p-1 flex flex-row items-center">
+        <img
+          src={userProfile?.profile.avatarUrl || 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/dashboard_banner.jpg?alt=media&token=5c3f3fcb-Bbb4-4f3d-8f3d-5f7e6c3e4e2e'}
+          alt="Dashboard Banner"
+          className="w-20 h-20 rounded-full object-cover"
+        />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <h1 className="text-3xl font-bold text-gray-900">
             Hi, {userProfile?.profile.displayName || '使用者'}

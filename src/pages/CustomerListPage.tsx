@@ -4,7 +4,16 @@ import { Link } from 'react-router-dom';
 import { db } from '../lib/firebase';
 import { useAllUsers } from "../hooks/useAllUsers";
 import { formatTimestamp } from "../utils/formatTimestamp";
-import type { EnrichedUser } from '../types/user';
+import type {  UserRole } from '../types/user';
+
+const roleMap: Record<UserRole, string> = {
+  admin: '管理員',
+  user: '一般會員',
+  platinum: '白金會員',
+};
+
+// 預設頭像 URL
+const DEFAULT_AVATAR = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
 
 const CustomerListPage = () => {
   const { users, loading, error } = useAllUsers();
@@ -12,7 +21,6 @@ const CustomerListPage = () => {
   const [noteText, setNoteText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [roleChangeTarget, setRoleChangeTarget] = useState<EnrichedUser | null>(null);
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -57,17 +65,13 @@ const CustomerListPage = () => {
     }
   };
 
-  const handleConfirmRoleChange = async () => {
-    if (!roleChangeTarget) return;
-
+  const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setIsUpdatingRole(true);
     setSaveError(null);
-    const newRole = roleChangeTarget.role === 'user' ? 'admin' : 'user';
 
     try {
-      const userDocRef = doc(db, 'users', roleChangeTarget.id);
+      const userDocRef = doc(db, 'users', userId);
       await updateDoc(userDocRef, { role: newRole });
-      setRoleChangeTarget(null); // Close modal on success
     } catch (err) {
       console.error("Error updating role:", err);
       setSaveError("權限更新失敗，請稍後再試。");
@@ -118,15 +122,30 @@ const CustomerListPage = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.profile.displayName || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <img className="h-10 w-10 rounded-full object-cover" src={user.profile.avatarUrl || DEFAULT_AVATAR} alt="" />
+                        </div>
+                        <div className="ml-4">{user.profile.displayName || 'N/A'}</div>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
-                          {user.role === 'admin' ? '管理員' : '使用者'}
-                        </span>
-                        <button onClick={() => setRoleChangeTarget(user)} className="text-xs text-blue-600 hover:underline">變更</button>
-                      </div>
+                      <select
+                        value={user.role}
+                        onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
+                        disabled={isUpdatingRole}
+                        className={`w-full p-1 border rounded-md text-xs ${
+                          user.role === 'admin' ? 'bg-red-100 text-red-800 border-red-200' : 
+                          user.role === 'platinum' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 
+                          'bg-gray-100 text-gray-800 border-gray-200'
+                        }`}
+                      >
+                        <option value="admin">管理員</option>
+                        <option value="user">一般會員</option>
+                        <option value="platinum">白金會員</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTimestamp(user.createdAt)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTimestamp(user.lastLogin)}</td>
@@ -155,25 +174,37 @@ const CustomerListPage = () => {
         {/* Mobile Card View */}
         <div className="grid grid-cols-1 gap-4 md:hidden">
           {filteredUsers.map((user) => (
-            <div key={user.id} className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-bold text-lg text-gray-800">{user.profile.displayName || 'N/A'}</h3>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
-                    {user.role === 'admin' ? '管理員' : '使用者'}
-                  </span>
-                  <button onClick={() => setRoleChangeTarget(user)} className="text-xs text-blue-600 hover:underline">變更</button>
-                </div>
+            <div key={user.id} className="bg-white rounded-3xl shadow-md border border-gray-200 flex overflow-hidden">
+              {/* Left: Avatar */}
+              <div className="flex-shrink-0 w-20 p-1 justify-center items-center flex bg-gray-50">
+                <img className="w-18 h-18 rounded-full object-cover" src={user.profile.avatarUrl || DEFAULT_AVATAR} alt="Avatar" />
               </div>
-              <div className="space-y-2 text-sm text-gray-600 border-t pt-2">
-                <p><strong className="font-medium text-gray-700">Email:</strong> {user.email}</p>
-                <p><strong className="font-medium text-gray-700">註冊時間:</strong> {formatTimestamp(user.createdAt)}</p>
-                <p><strong className="font-medium text-gray-700">上次登入:</strong> {formatTimestamp(user.lastLogin)}</p>
-                <div className="pt-2">
-                  <strong className="font-medium text-gray-700">備註:</strong>
+              {/* Right: Content */}
+              <div className="p-4 flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-lg text-gray-800 truncate pr-2">{user.profile.displayName || 'N/A'}</h3>
+                    <select
+                      value={user.role}
+                      onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
+                      disabled={isUpdatingRole}
+                      className={`p-1 border rounded-md text-xs flex-shrink-0 ${
+                        user.role === 'admin' ? 'bg-red-100 text-red-800 border-red-200' : 
+                        user.role === 'platinum' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 
+                        'bg-gray-100 text-gray-800 border-gray-200'
+                      }`}
+                    >
+                      <option value="admin">{roleMap.admin}</option>
+                      <option value="user">{roleMap.user}</option>
+                      <option value="platinum">{roleMap.platinum}</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-1 pt-1 border-t border-gray-200">
+                  <strong className="text-sm font-medium text-gray-600">備註:</strong>
                   {editingUserId === user.id ? (
                     <div className="flex flex-col gap-2 mt-1">
-                      <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md" rows={3} />
+                      <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm" rows={2} />
                       <div className="flex gap-2">
                         <button onClick={() => handleSaveNote(user.id)} disabled={isSaving} className="px-3 py-1 text-xs font-semibold text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:bg-gray-400">{isSaving ? '儲存中...' : '儲存'}</button>
                         <button onClick={handleCancel} className="px-3 py-1 text-xs font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">取消</button>
@@ -181,12 +212,12 @@ const CustomerListPage = () => {
                     </div>
                   ) : (
                     <div className="flex items-start justify-between gap-2 mt-1">
-                      <p className="flex-1 break-words text-gray-500">{user.notes || '無'}</p>
+                      <p className="flex-1 break-words text-sm text-gray-500">{user.notes || '無'}</p>
                       <button onClick={() => handleEditClick(user.id, user.notes)} className="text-indigo-600 hover:text-indigo-900 text-xs flex-shrink-0">編輯</button>
                     </div>
                   )}
+                  </div>
                 </div>
-              </div>
             </div>
           ))}
         </div>
@@ -196,333 +227,7 @@ const CustomerListPage = () => {
             {searchTerm ? '找不到符合條件的客戶。' : '目前沒有任何客戶資料。'}
           </p>
         )}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       </main>
-      {/* Role Change Confirmation Modal */}
-      {roleChangeTarget && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full transform transition-all">
-            <h3 className="text-lg font-bold mb-4">確認變更權限</h3>
-            <p className="mb-6 text-sm text-gray-700">
-              您確定要將使用者 <strong className="text-gray-900">{roleChangeTarget.profile.displayName || roleChangeTarget.email}</strong> 的權限變更為
-              <strong className={`mx-1 ${roleChangeTarget.role === 'user' ? 'text-red-600' : 'text-green-600'}`}>
-                {roleChangeTarget.role === 'user' ? '「管理員」' : '「使用者」'}
-              </strong>
-              嗎？
-            </p>
-            <div className="flex justify-end gap-4">
-              <button onClick={() => setRoleChangeTarget(null)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
-                取消
-              </button>
-              <button onClick={handleConfirmRoleChange} disabled={isUpdatingRole} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 transition-colors">
-                {isUpdatingRole ? '更新中...' : '確認變更'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
