@@ -18,6 +18,7 @@
 
 1.  **以日誌為中心 (Log-Driven Development):**
     - **每次回應都必須更新本文件 (`PROJECT_LOG.md`)。**
+    - **AI 協作者在開始新任務前，必須確認已閱讀並理解本文件的最新版本。**
     - **更新內容包含：**
         - **完成進度:** 在 `3. 當前進度與 AI 貢獻摘要` 中，將已完成的任務標記為 `[完成]` 或 `[進行中]`。
         - **定義下一步:** 在 `4. 下一步行動` 中，清晰地定義出下一個具體的、可執行的開發任務。
@@ -194,8 +195,15 @@
     - **任務:**
         - **[完成]** **設定網域代理:** 修改 `netlify.toml`，新增代理規則，將 `/__/auth/*` 的請求轉發至 Firebase 的認證端點 (`https://<YOUR-PROJECT-ID>.firebaseapp.com/__/auth/:splat`)。**備註:** `netlify.toml` 中已存在此規則，請確認 `to` 欄位中的 Firebase Project ID (`nail-62ea4`) 是否與您的專案實際 ID 一致。
         - **[完成]** **更新 Firebase 設定:** 在 `src/lib/firebase.ts` 中，將 `authDomain` 明確設定為您的 Netlify 主機域名（例如 `treering83.netlify.app`）。**備註:** 這需要您在 `.env` 檔案中設定 `VITE_FIREBASE_AUTH_DOMAIN` 為您的 Netlify 域名。`src/lib/firebase.ts` 中的 `persistence` 和 `popupRedirectResolver` 設定已符合要求。
-        - **[ ] **更新認證提供商設定:** 前往 LINE Developers Console、Google Cloud Console，將授權的回調 URL 更新為新的同網域路徑（例如 `https://treering83.netlify.app/__/auth/handler`）。
-        - **[ ] **更新 Firebase 控制台設定:** 在 Firebase Console 的「Authentication > Settings > Authorized domains」中，確保已加入您的 Netlify 主機域名。
+        - **[進行中]** **更新認證提供商設定:** 前往 LINE Developers Console、Google Cloud Console，將授權的回調 URL 更新為新的同網域路徑（例如 `https://treering83.netlify.app/__/auth/handler`）。
+        - **[進行中]** **更新認證提供商設定:** 前往 LINE Developers Console、Google Cloud Console，將授權的回調 URL 更新為新的同網域路徑（例如 `https://treering83.netlify.app/__/auth/handler`）。
+            - **[已解決]** **LINE 登入 400 錯誤 (redirect_uri 不符):** 錯誤日誌顯示 `redirect_uri` 為 Firebase 預設域名。**根本原因:** `.env` 檔案中的環境變數值被錯誤地用引號 (`"`) 包裹。**解決方案:** 移除 `.env` 檔案中所有變數值的引號，並重新啟動開發伺服器。
+            - **[進行中]** **LINE 登入卡在 `/__/auth/handler` 頁面:** 雖然 `redirect_uri` 已正確導向 Netlify 域名，但登入流程未完成。**原因分析:** Firebase 控制台中 LINE 登入提供者設定不正確，或 Netlify 域名未加入 Firebase 授權網域。**解決方案:** 檢查 Firebase Console 的「Authentication > Sign-in method > LINE」設定 (啟用狀態、Channel ID/Secret)，並在「Authentication > Settings > Authorized domains」中新增 `treering83.netlify.app`。
+        - **[完成]** **AI 協作者已審閱專案日誌:** Gemini Code Assist 已閱讀並理解所有專案文件與當前任務。
+        - **[進行中]** **更新 Firebase 控制台設定:** 在 Firebase Console 的「Authentication > Settings > Authorized domains」中，確保已加入您的 Netlify 主機域名。
+        - **[進行中]** **驗證 Netlify 代理與環境變數設定:**
+            - **[ ]** **確認 `netlify.toml` 中的 Firebase Project ID:** 檢查 `[[redirects]]` 規則中 `to = "https://<YOUR-PROJECT-ID>.firebaseapp.com/__/auth/:splat"` 的 `<YOUR-PROJECT-ID>` 是否與您的實際 Firebase 專案 ID 完全一致。目前設定為 `nail-62ea4`。
+            - **[ ]** **確認 Netlify 環境變數 `VITE_FIREBASE_AUTH_DOMAIN`:** 檢查 Netlify 部署設定中的環境變數，確保 `VITE_FIREBASE_AUTH_DOMAIN` 已正確設定為 `treering83.netlify.app`。
         - **[完成]** **調整前端登入邏輯:**
             - 在 `src/lib/firebase.ts` 初始化時，使用 `initializeAuth` 並設定 `persistence` 為 `browserLocalPersistence`。 (此部分已在 `src/lib/firebase.ts` 中完成)
             - 在 `src/lib/socialAuth.ts` 中，調整登入策略：優先嘗試 `signInWithPopup`，若被瀏覽器攔截 (catch block)，則降級為 `signInWithRedirect`。 (已完成)
