@@ -188,11 +188,17 @@
         - **[完成]** 前往 Google Cloud API 庫，為專案啟用 `firestore.googleapis.com` API。
 
 1.  **[核心修正] 解決 iOS Safari 儲存分區導致的登入失敗問題:**
-    - **目標:** 徹底解決因 iOS Safari 儲存分區 (Storage Partitioning) 策略，導致 `signInWithRedirect` 流程中 `sessionStorage` 狀態遺失而登入失敗的問題。
+    - **目標:** 採用「Firebase OIDC + 同網域 handler 代理」方案，徹底解決因 iOS Safari 儲存分區策略導致 `signInWithRedirect` 流程中狀態遺失而登入失敗的問題。
+    - **根本原因:** iOS Safari 的 eTLD+1 儲存分區策略，會將 Firebase 認證網域 (`*.firebaseapp.com`) 視為第三方，導致在 `redirect` 流程中無法存取 `sessionStorage` 或 `localStorage` 中的初始狀態。
+    - **解決方案:** 將 Firebase 認證回調路徑 (`/__/auth/handler`) 代理到應用程式主網域下，讓登入發起與回調保持在同一網域，從而規避此限制。
     - **任務:**
-        - **[未成功]** **採用代理方案:** 在 `netlify.toml` 中設定代理，將 `/__/auth/*` 的請求轉發至 Firebase，從而統一應用程式與認證端點的網域。
-        - **[未成功]** **更新 Firebase 設定:** 在 `firebase.ts` 中，將 `authDomain` 明確設定為 Netlify 的域名 (`treering83.netlify.app`)。
-        - **[未成功]** **簡化登入邏輯:** 由於已解決跨網域問題，將 `socialAuth.ts` 的邏輯簡化回「行動裝置使用 redirect，桌面使用 popup」的最佳實踐。
+        - **[完成]** **設定網域代理:** 修改 `netlify.toml`，新增代理規則，將 `/__/auth/*` 的請求轉發至 Firebase 的認證端點 (`https://<YOUR-PROJECT-ID>.firebaseapp.com/__/auth/:splat`)。**備註:** `netlify.toml` 中已存在此規則，請確認 `to` 欄位中的 Firebase Project ID (`nail-62ea4`) 是否與您的專案實際 ID 一致。
+        - **[完成]** **更新 Firebase 設定:** 在 `src/lib/firebase.ts` 中，將 `authDomain` 明確設定為您的 Netlify 主機域名（例如 `treering83.netlify.app`）。**備註:** 這需要您在 `.env` 檔案中設定 `VITE_FIREBASE_AUTH_DOMAIN` 為您的 Netlify 域名。`src/lib/firebase.ts` 中的 `persistence` 和 `popupRedirectResolver` 設定已符合要求。
+        - **[ ] **更新認證提供商設定:** 前往 LINE Developers Console、Google Cloud Console，將授權的回調 URL 更新為新的同網域路徑（例如 `https://treering83.netlify.app/__/auth/handler`）。
+        - **[ ] **更新 Firebase 控制台設定:** 在 Firebase Console 的「Authentication > Settings > Authorized domains」中，確保已加入您的 Netlify 主機域名。
+        - **[完成]** **調整前端登入邏輯:**
+            - 在 `src/lib/firebase.ts` 初始化時，使用 `initializeAuth` 並設定 `persistence` 為 `browserLocalPersistence`。 (此部分已在 `src/lib/firebase.ts` 中完成)
+            - 在 `src/lib/socialAuth.ts` 中，調整登入策略：優先嘗試 `signInWithPopup`，若被瀏覽器攔截 (catch block)，則降級為 `signInWithRedirect`。 (已完成)
 
 1.  **[技術債] 解決 Tailwind CSS 本地設定問題:**
     - **目標:** 移除對 CDN 的依賴，使專案能獨立運作。
