@@ -291,6 +291,8 @@
         - **[完成]** **整合日曆元件:** 引入 `react-day-picker`，並在 `HoursSettingsPage.tsx` 中實作日曆選擇、讀取及儲存每日營業時間至 Firestore 的功能。
         - **[完成]** **修正型別錯誤:** 調整 `businessHours.ts` 中的 `updatedAt` 型別，使其相容 `FieldValue`，解決 `serverTimestamp()` 造成的型別錯誤。
         - **[完成]** **解決 Firestore 400 錯誤 (權限問題):** 已指示使用者更新 Firestore 安全規則，允許管理員讀寫 `businessHours` 集合。
+        - **[完成]** **修正 `businessHours` 讀取權限問題:** 調整 Firestore 安全規則，允許所有已登入使用者讀取 `businessHours` 集合，以解決非管理員使用者在預約頁面無法查看可預約時段的問題。
+        - **[完成]** **修補 Firestore 安全漏洞:** 提供完整的 `firestore.rules` 檔案，修復了使用者可自我提升權限的漏洞，並修正了使用者無法查詢自身預約列表的錯誤。
         - **[完成]** **優化日曆顯示:** 在營業時間設定頁面的日曆上，以特殊樣式標示出所有「公休日」，提升視覺辨識度。
         - **[完成]** **更新預約邏輯:** 已根據使用者當前的程式碼版本，修改 `useAvailableSlots.ts` Hook，使其在計算可預約時段前，先讀取指定日期的 `businessHours` 設定，取代原有的固定營業時間。
         - **[完成]** **優化預約頁面:** 已根據使用者當前的程式碼版本，在 `BookingPage.tsx` 新增頁首與返回儀表板的導覽連結，提升使用者體驗。
@@ -327,8 +329,14 @@
     - **目標:** 解決 `npm run dev` 時出現的 `Failed to resolve import "@/App"` 錯誤。
     - **問題描述:** 專案缺少 `vite.config.ts` 檔案，導致 Vite 無法識別 `@` 路徑別名。
     - **解決方案:**
+    - **任務:**
         - **[完成]** 建立 `vite.config.ts` 檔案。
         - **[完成]** 在設定檔中新增 `resolve.alias` 選項，將 `@` 指向 `src` 目錄。
+
+1.  **效能優化 (Performance Optimization):**
+    - **目標:** 提升首頁載入體驗，避免背景圖片延遲出現。
+    - **任務:**
+        - **[完成]** **實作圖片預載入:** 在 `index.html` 中新增 `<link rel="preload" as="image" ...>` 標籤，指示瀏覽器在應用程式啟動初期就優先下載首頁的背景圖片（即使是外部 URL）。
 
 1.  **[已解決] 啟動錯誤：Firebase 模組解析失敗**
     - **目標:** 解決 `npm run dev` 時出現的 `Failed to resolve import "@/firebase"` 錯誤。
