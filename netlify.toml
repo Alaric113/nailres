@@ -8,16 +8,18 @@
   [build.environment]
     # This should be a comma-separated string, not an array.
     SECRETS_SCAN_OMIT_KEYS = "VITE_FIREBASE_API_KEY,VITE_FIREBASE_AUTH_DOMAIN,VITE_FIREBASE_PROJECT_ID,VITE_FIREBASE_STORAGE_BUCKET,VITE_FIREBASE_MESSAGING_SENDER_ID,VITE_FIREBASE_APP_ID"
+
+# Proxy rule to make Firebase Auth handler appear on the same domain.
+# This is the key to solving iOS Safari's storage partitioning issue.
+# IMPORTANT: This rule must come BEFORE the general SPA redirect rule.
+[[redirects]]
+  from = "/__/auth/*"
+  to = "https://nail-62ea4.firebaseapp.com/__/auth/:splat"
+  status = 200
+
 # Redirect rule for Single Page Applications (SPA)
 # 這會將所有找不到的路徑都導向 index.html，讓 React Router 接管
 [[redirects]]
   from = "/*"
   to = "/index.html"
-  status = 200
-
-  # Proxy rule to make Firebase Auth handler appear on the same domain.
-# This is the key to solving iOS Safari's storage partitioning issue.
-[[redirects]]
-  from = "/__/auth/*"
-  to = "https://nail-62ea4.firebaseapp.com/__/auth/:splat"
   status = 200

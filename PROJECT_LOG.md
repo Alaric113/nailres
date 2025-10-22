@@ -198,7 +198,9 @@
         - **[進行中]** **更新認證提供商設定:** 前往 LINE Developers Console、Google Cloud Console，將授權的回調 URL 更新為新的同網域路徑（例如 `https://treering83.netlify.app/__/auth/handler`）。
         - **[進行中]** **更新認證提供商設定:** 前往 LINE Developers Console、Google Cloud Console，將授權的回調 URL 更新為新的同網域路徑（例如 `https://treering83.netlify.app/__/auth/handler`）。
             - **[已解決]** **LINE 登入 400 錯誤 (redirect_uri 不符):** 錯誤日誌顯示 `redirect_uri` 為 Firebase 預設域名。**根本原因:** `.env` 檔案中的環境變數值被錯誤地用引號 (`"`) 包裹。**解決方案:** 移除 `.env` 檔案中所有變數值的引號，並重新啟動開發伺服器。
-            - **[進行中]** **LINE 登入卡在 `/__/auth/handler` 頁面:** 雖然 `redirect_uri` 已正確導向 Netlify 域名，但登入流程未完成。**原因分析:** Firebase 控制台中 LINE 登入提供者設定不正確，或 Netlify 域名未加入 Firebase 授權網域。**解決方案:** 檢查 Firebase Console 的「Authentication > Sign-in method > LINE」設定 (啟用狀態、Channel ID/Secret)，並在「Authentication > Settings > Authorized domains」中新增 `treering83.netlify.app`。
+            - **[已解決]** **LINE 登入失敗並顯示 `auth/unauthorized-domain` 錯誤:** 雖然 `redirect_uri` 已正確導向 Netlify 域名，但登入流程未完成。
+                - **根本原因:** `netlify.toml` 中的重新導向規則順序錯誤。通用的 SPA 規則 (`from = "/*"`) 被放置在 Firebase 代理規則 (`from = "/__/auth/*"`) 之前，導致代理規則從未被觸發。
+                - **解決方案:** 調整 `netlify.toml`，將 Firebase 代理規則移至 SPA 規則之前，確保 `/__/auth/*` 的請求能被正確代理。
         - **[完成]** **AI 協作者已審閱專案日誌:** Gemini Code Assist 已閱讀並理解所有專案文件與當前任務。
         - **[進行中]** **更新 Firebase 控制台設定:** 在 Firebase Console 的「Authentication > Settings > Authorized domains」中，確保已加入您的 Netlify 主機域名。
         - **[進行中]** **驗證 Netlify 代理與環境變數設定:**
