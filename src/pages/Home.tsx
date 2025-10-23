@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 // Import Swiper React components
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+import { Pagination, EffectCoverflow } from 'swiper/modules';
 import BeforeAfterSlider from '../components/BeforeAfterSlider'; // 引入前後對比元件
 
 // Import Swiper styles
@@ -82,17 +82,26 @@ const Home = () => {
         <section className="py-16 sm:py-20 bg-pink-50/50 snap-start">
           <h2 className="text-3xl font-bold text-center mb-12">更多作品展示</h2>
           <Swiper
-            modules={[Navigation, Pagination, Autoplay]}
-            spaceBetween={30}
-            slidesPerView={1}
-            navigation
+            modules={[EffectCoverflow, Pagination,]}
+            effect={'coverflow'}
+            centeredSlides={true}
+            slidesPerView={1.5} // 在最小螢幕上顯示 1.5 張，創造出 "還有下一張" 的視覺提示
+            spaceBetween={15} // 在最小螢幕上使用較小的間距
+            coverflowEffect={{
+              rotate: 50,
+              stretch: 0,
+              depth: 100,
+              modifier: 1,
+              slideShadows: true,
+            }}
             pagination={{ clickable: true }}
-            autoplay={{ delay: 3500, disableOnInteraction: false }}
             loop={true}
             className="max-w-6xl mx-auto px-4"
             breakpoints={{
-              640: { slidesPerView: 2, spaceBetween: 20 },
-              1024: { slidesPerView: 3, spaceBetween: 30 },
+              // 480px 以上，顯示 2 張
+              480: { slidesPerView: 2, spaceBetween: 20 },
+              // 768px (md) 以上，顯示 3 張
+              768: { slidesPerView: 3, spaceBetween: 30 },
             }}
           >
             {lashImages.map((src, index) => (
