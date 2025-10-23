@@ -90,7 +90,7 @@ const BookingPage = () => {
             預約服務
           </h1>
           <Link to="/dashboard" className="text-sm font-medium text-indigo-600 hover:underline">
-            &larr; 返回儀表板
+            &larr; 返回
           </Link>
         </div>
       </header>

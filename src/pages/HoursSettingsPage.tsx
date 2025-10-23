@@ -158,7 +158,7 @@ const HoursSettingsPage = () => {
             營業時間設定
           </h1>
           <Link to="/admin" className="text-sm font-medium text-indigo-600 hover:underline">
-            &larr; 返回管理員儀表板
+            &larr; 返回管理員頁面
           </Link>
         </div>
       </header>

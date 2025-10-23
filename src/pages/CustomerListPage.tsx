@@ -106,7 +106,7 @@ const CustomerListPage = () => {
             客戶管理
           </h1>
           <Link to="/admin" className="text-sm font-medium text-indigo-600 hover:underline">
-            &larr; 返回管理員儀表板
+            &larr; 返回管理員頁面
           </Link>
         </div>
       </header>

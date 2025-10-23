@@ -45,7 +45,7 @@ const CalendarPage = () => {
   };
 
   const events = useMemo(() => bookings.map((booking) => ({
-    title: `${booking.userName} - ${booking.serviceName}`,
+    title: `${booking.serviceName}`, // Only show service name
     start: booking.dateTime,
     end: addMinutes(booking.dateTime, booking.serviceDuration || 60),
     extendedProps: { booking },
@@ -78,7 +78,7 @@ const CalendarPage = () => {
             所有行程
           </h1>
           <Link to="/admin" className="text-sm font-medium text-indigo-600 hover:underline">
-            &larr; 返回管理員儀表板
+            &larr; 返回管理員頁面
           </Link>
         </div>
       </header>
@@ -89,13 +89,13 @@ const CalendarPage = () => {
             <p>讀取預約資料時發生問題: {error}</p>
           </div>
         )}
-        <div className="bg-white p-4 rounded-lg shadow-md" style={{ minHeight: '80vh' }}>
+        <div className="bg-white p-1 pt-2 rounded-xl shadow-md" style={{ minHeight: '80vh' }}>
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView={isMobile ? 'timeGridDay' : 'timeGridWeek'}
             headerToolbar={{
-              left: 'prev,next today',
+              left: 'prev,today,next',
               center: 'title',
               right: 'dayGridMonth,timeGridWeek,timeGridDay'
             }}
@@ -105,6 +105,17 @@ const CalendarPage = () => {
             slotMinTime="09:00:00"
             slotMaxTime="21:00:00"
             height="auto"
+            eventContent={(arg) => {
+              const titleParts = arg.event.title.split('\n');
+              return (
+                <div className="fc-event-main-custom">
+                  <div className="fc-event-time">{arg.timeText}</div>
+                  <div className="fc-event-title-container">
+                    {titleParts.map((part, i) => <div key={i} className="fc-event-title-line">{part}</div>)}
+                  </div>
+                </div>
+              );
+            }}
             eventClick={(info) => {
               setSelectedBooking(info.event.extendedProps.booking as EnrichedBooking);
             }}
@@ -131,4 +142,3 @@ const CalendarPage = () => {
 };
 
 export default CalendarPage;
-

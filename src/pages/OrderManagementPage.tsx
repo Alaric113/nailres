@@ -73,7 +73,7 @@ const OrderManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm"><div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center"><h1 className="text-xl sm:text-2xl font-bold text-gray-800">{pageTitle}</h1><Link to="/admin" className="text-sm font-medium text-indigo-600 hover:underline">&larr; 返回管理員儀表板</Link></div></header>
+      <header className="bg-white shadow-sm"><div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center"><h1 className="text-xl sm:text-2xl font-bold text-gray-800">{pageTitle}</h1><Link to="/admin" className="text-sm font-medium text-indigo-600 hover:underline">&larr; 返回管理員頁面</Link></div></header>
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="space-y-4 max-h-[75vh] overflow-y-auto">

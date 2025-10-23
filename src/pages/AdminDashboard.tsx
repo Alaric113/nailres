@@ -56,7 +56,7 @@ const AdminDashboard = () => {
               管理員後台
             </h1>
             <Link to="/dashboard" className="text-sm font-medium text-indigo-600 hover:underline mt-2 sm:mt-0">
-              返回使用者儀表板 &rarr;
+              返回使用者儀頁面 &rarr;
             </Link>
           </div>
           {/* Data Summary Section */}

@@ -7,9 +7,49 @@
 .fc-today-highlight .fc-col-header-cell-cushion, .fc-today-highlight.fc-daygrid-day-number {
   color: #db2777; /* pink-600 */
   font-weight: bold;
+  font-size: 14px;
 }
 
 .fc-event-conflicting {
   border: 2px solid #f97316 !important; /* orange-500 */
   box-shadow: 0 0 5px rgba(249, 115, 22, 0.7);
+}
+
+/* Custom event content for line breaks */
+.fc-event-main-custom {
+  overflow: hidden;
+  white-space: normal;
+  font-size: 12px; /* Allow wrapping */
+}
+
+.fc-event-title-container {
+  white-space: pre-wrap; /* Respect newlines in the title string */
+}
+
+.fc-event-title-line {
+  display: block; /* Ensure each part is on a new line */
+}
+
+/* 適用於 FullCalendar 的客製化樣式 */
+/* 調整所有按鈕 (例如: '今天', '月', '週', '日') 的樣式 */
+.fc .fc-button {
+    /* 提高選擇器優先級以覆蓋預設樣式 */
+    font-size: 14px !important; /* 使用 !important 確保字體大小被應用 */
+    padding: 0.2em 0.4em !important; /* 增加內距讓按鈕看起來不會太擠 */
+    border-radius: 8px !important; /* 圓角 */
+    border: 1px solid #e5e7eb; /* 加上細邊框 */
+    background-color: #ffffff; /* 白色背景 */
+    color: #374151; /* 深灰色文字 */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease-in-out;
+}
+
+
+
+.fc .fc-toolbar-title {
+    /* 調整日期標題的字體大小 */
+    font-size: 12px; /* 範例：放大標題字體 */
+    
+    /* 調整字體粗細 */
+    font-weight: 500; 
 }
