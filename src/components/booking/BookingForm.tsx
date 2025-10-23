@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuthStore } from '../../store/authStore';
@@ -6,12 +6,12 @@ import type { Service } from '../../types/service';
 import { useNavigate } from 'react-router-dom';
 
 interface BookingFormProps {
-  service: Service;
+  services: Service[];
   dateTime: Date;
   onBookingSuccess: () => void;
 }
 
-const BookingForm: React.FC<BookingFormProps> = ({ service, dateTime, onBookingSuccess }) => {
+const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, onBookingSuccess }) => {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,10 +19,20 @@ const BookingForm: React.FC<BookingFormProps> = ({ service, dateTime, onBookingS
   const userProfile = useAuthStore((state) => state.userProfile);
   const navigate = useNavigate();
 
-  const finalPrice = 
-    userProfile?.role === 'platinum' && service.platinumPrice 
-    ? service.platinumPrice 
-    : service.price;
+  const { totalDuration, totalPrice, serviceNames, serviceIds } = useMemo(() => {
+    const isPlatinum = userProfile?.role === 'platinum';
+    return services.reduce(
+      (acc, service) => {
+        const price = isPlatinum && service.platinumPrice ? service.platinumPrice : service.price;
+        acc.totalDuration += service.duration;
+        acc.totalPrice += price;
+        acc.serviceNames.push(service.name);
+        acc.serviceIds.push(service.id);
+        return acc;
+      },
+      { totalDuration: 0, totalPrice: 0, serviceNames: [] as string[], serviceIds: [] as string[] }
+    );
+  }, [services, userProfile]);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,10 +47,12 @@ const BookingForm: React.FC<BookingFormProps> = ({ service, dateTime, onBookingS
     try {
       await addDoc(collection(db, 'bookings'), {
         userId: currentUser.uid,
-        serviceId: service.id,
+        serviceIds: serviceIds,
+        serviceNames: serviceNames,
         dateTime: dateTime, // Directly pass the JavaScript Date object
         status: 'confirmed', // Or 'pending' if you need confirmation
-        amount: finalPrice,
+        amount: totalPrice,
+        duration: totalDuration,
         paymentStatus: 'unpaid',
         createdAt: serverTimestamp(),
         notes: notes,
@@ -62,8 +74,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ service, dateTime, onBookingS
         <div className="space-y-4">
           <div>
             <h3 className="text-lg font-semibold">預約詳情</h3>
-            <p>服務項目: {service.name}</p>
-            <p>價格: ${finalPrice}</p>
+            <p>服務項目: {serviceNames.join('、')}</p>
+            <p>總時長: {totalDuration} 分鐘</p>
+            <p>總金額: ${totalPrice}</p>
             <p>時間: {dateTime.toLocaleString('zh-TW')}</p>
           </div>
           <div>
