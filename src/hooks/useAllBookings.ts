@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, type Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, Timestamp, where } from 'firebase/firestore';
+import { addMinutes } from 'date-fns';
 import { db } from '../lib/firebase';
 import type { UserDocument } from '../types/user';
 import type { BookingDocument } from '../types/booking'; // Ensure BookingDocument is imported
@@ -13,28 +14,61 @@ export interface EnrichedBooking extends Omit<BookingDocument, 'dateTime' | 'cre
   userName?: string;
   serviceName?: string;
   serviceDuration?: number;
+  isConflicting?: boolean;
 }
 
 /**
  * Custom hook to fetch all bookings from Firestore,
  * enriching them with user and service details.
  */
-export const useAllBookings = () => {
+export const useAllBookings = (dateRange: { start: Date; end: Date } | null) => {
   const [bookings, setBookings] = useState<EnrichedBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setLoading(true);
     const bookingsRef = collection(db, 'bookings');
-    const q = query(bookingsRef, orderBy('dateTime', 'desc'));
-
-    let isInitialLoad = true;
+    
+    let q;
+    if (dateRange) {
+      q = query(
+        bookingsRef,
+        where('dateTime', '>=', Timestamp.fromDate(dateRange.start)),
+        where('dateTime', '<=', Timestamp.fromDate(dateRange.end)),
+        orderBy('dateTime', 'desc')
+      );
+    } else {
+      // If no date range, fetch all bookings (for pending orders page)
+      q = query(bookingsRef, orderBy('dateTime', 'desc'));
+    }
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       setError(null);
       try {
         const rawBookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (BookingDocument & { id: string })[];
-        
+
+        // --- Conflict Detection Logic ---
+        const bookingsWithDates = rawBookings
+          .filter(b => b.status !== 'cancelled') // Ignore cancelled bookings for conflict detection
+          .map(b => ({
+            id: b.id,
+            start: (b.dateTime as Timestamp).toDate(),
+            end: addMinutes((b.dateTime as Timestamp).toDate(), b.duration),
+          }))
+          .sort((a, b) => a.start.getTime() - b.start.getTime());
+
+        const conflictingIds = new Set<string>();
+        for (let i = 0; i < bookingsWithDates.length - 1; i++) {
+          const current = bookingsWithDates[i];
+          const next = bookingsWithDates[i + 1];
+          // If the next booking starts before the current one ends, it's a conflict
+          if (next.start < current.end) {
+            conflictingIds.add(current.id);
+            conflictingIds.add(next.id);
+          }
+        }
+
         const enrichedBookingsPromises = rawBookings.map(async (booking) => {
           let userName: string = '未知使用者'; // Default value
 
@@ -59,6 +93,7 @@ export const useAllBookings = () => {
             // We join serviceNames for display and use the total duration
             serviceName: booking.serviceNames.join('、'),
             serviceDuration: booking.duration,
+            isConflicting: conflictingIds.has(booking.id),
             dateTime: (booking.dateTime as Timestamp).toDate(), // Convert Timestamp to Date
             createdAt: (booking.createdAt as Timestamp).toDate(), // Convert Timestamp to Date
           };
@@ -70,15 +105,12 @@ export const useAllBookings = () => {
         console.error("Error enriching bookings data:", err);
         setError("無法載入預約資料。");
       } finally {
-        if (isInitialLoad) {
-          setLoading(false);
-          isInitialLoad = false;
-        }
+        setLoading(false);
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [dateRange]);
 
   return { bookings, loading, error };
 };

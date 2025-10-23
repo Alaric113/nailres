@@ -413,6 +413,75 @@
         - **[完成]** **修改預約邏輯:** 在 `src/components/booking/BookingForm.tsx` 中，根據使用者角色設定不同的初始預約狀態 (`pending_payment` 或 `pending_confirmation`)。
         - **[完成]** **更新儀表板顯示與取消邏輯:** 在 `src/pages/Dashboard.tsx` 中，更新狀態標籤的樣式與文字，並調整取消預約的條件。
 
+1.  **[新任務] 實施管理員後台綜合優化方案:**
+    - **目標:** 根據 `10. 核心功能重構與優化藍圖` 中的技術規範，重構管理員後台。
+    - **核心任務:**
+        - 將行事曆元件從 `react-big-calendar` 遷移至 `FullCalendar`。
+        - 新增「待處理任務概覽區」與「數據微觀顯示」卡片。
+        - 實作時間衝突檢測。
+        - 強化 `useAllBookings` Hook。
+
+## 10. 核心功能重構與優化藍圖 (Core Feature Refactoring & Optimization Blueprint)
+
+### 📄 管理員後台 (AdminDashboard) 綜合優化方案 (技術規範)
+
+**目的:** 將核心操作介面從 `react-big-calendar` 遷移至功能更強大的 `FullCalendar`，並新增「待處理任務概覽區」與「數據微觀顯示」，以提升管理員的操作效率和數據洞察力。
+
+#### 一、 UI 介面設計與佈局調整
+
+1.  **頂部任務與數據概覽區 (Task & Data Summary Section)**
+    - 將頁首下方的快捷功能按鈕區塊升級為「數據看板 (Dashboard Card)」風格，提供即時數據微觀顯示。
+
+| 卡片名稱 | 現有功能導航 | 數據微觀顯示 (Badge) | 數據來源 / 邏輯 |
+| :--- | :--- | :--- | :--- |
+| 營業時間 | `/admin/hours` (黃色) | **X 天** | 顯示 未來 7 天內 已排定的公休日數量。 |
+| 客戶管理 | `/admin/customers` (綠色) | **+Y 位** | 顯示 過去 7 天內 新註冊的客戶數量。 |
+| 服務項目 | `/admin/services` (藍色) | **Z 項** | 顯示目前總共啟用中的服務項目數量。 |
+| 待確認訂單 (新增卡片) | | **P 筆** | 顯示當前 `status === 'pending_confirmation'` 的預約總數。 |
+| 待付款訂單 (新增卡片) | | **NT$ T** | 顯示當前 `status === 'pending_payment'` 的總金額。 |
+
+2.  **核心內容區：行事曆主體**
+    - 行事曆仍保持最大視覺焦點 (佔據約 80vh)。
+
+#### 二、 功能與商業邏輯強化
+
+1.  **行事曆元件替換 (技術核心變動)**
+    - **舊：** `react-big-calendar` → **新：** `FullCalendar` (配合 React 元件與外掛)
+
+| 項目 | 實施規範 (FullCalendar) | 備註 |
+| :--- | :--- | :--- |
+| **即時資料更新** | 繼續使用 `useAllBookings` 的 `onSnapshot` 監聽。數據轉換後，透過 `calendarRef.current.getApi().setOption('events', newEvents)` 實現無刷新即時更新。 | 需確保 FullCalendar 的 Event Object 格式符合要求。 |
+| **性能優化** | `useAllBookings` 的 Firestore 查詢應限制日期範圍（例如：只查詢前後 6 個月的資料）。 | 減少讀取成本和載入時間。 |
+| **響應式視圖** | 桌面 (`>768px`): 預設 `timeGridWeek` (週視圖)；手機 (`<768px`): 自動切換為 `timeGridDay` (日視圖)。 | 確保中文化套件 (`zh-tw`) 已載入。 |
+| **視覺繼承** | 透過 `eventClassNames` 屬性根據 `status` 變數 (例如：`confirmed`、`cancelled`) 設定不同的背景顏色。 | 保持「已確認」綠色、「已取消」紅色等既有配色。 |
+| **公休日標示** | 利用 FullCalendar 的 `businessHours` 屬性或 `dayCellContent` Hook 實現背景色標示。 | 顏色保持淡紅色 `#fef2f2`。 |
+| **資訊密度提升** | 點擊事件 (`eventClick`) 彈出資訊彈窗 (Modal/Drawer)，顯示客戶聯絡資訊、金額、備註等詳細內容，並提供「編輯狀態」和「聯絡客戶」按鈕。 | 避免管理員頻繁跳轉頁面。 |
+| 🚨 **時間衝突檢測** | 在數據轉換層 (或 `useAllBookings` Hook 內)，加入邏輯判斷是否有預約時間重疊。衝突事件應在 FullCalendar 上以高亮警告色 (例如：亮橙色邊框) 呈現。 | 系統健壯性的關鍵。 |
+
+2.  **新增：待處理任務清單 (效率中心)**
+    - 新增兩個並排的卡片，即時反映管理員需要立即行動的訂單。
+    - **A. 待確認的訂單 (Pending Confirmation)**
+        - **數據篩選：** 讀取 `useAllBookings` 數據，篩選 `status === 'pending_confirmation'` 的所有預約。
+        - **顯示內容：** 清單式顯示：`[時間] [客戶名稱] - [服務名稱]`。
+        - **操作按鈕：**「確認」 (綠色)：點擊後將該訂單的 `status` 更新為 `'confirmed'`。「取消」 (紅色)：點擊後將該訂單的 `status` 更新為 `'cancelled'`。
+    - **B. 待付款的訂單 (Pending Payment)**
+        - **數據篩選：** 讀取 `useAllBookings` 數據，篩選 `status === 'pending_payment'` 的所有預約。
+        - **顯示內容：** 清單式顯示：`[時間] [客戶名稱] - NT$ [金額]`。
+        - **操作按鈕：**「標記為已付」 (藍色)：點擊後將該訂單的 `status` 更新為 `'pending_confirmation'`。「查看詳情」 (灰色)：跳轉至訂單詳細頁面，進行收款或其他操作。
+
+#### 三、 資料層 Hook 調整
+
+1.  **`useAllBookings` Hook 強化**
+    - **新增欄位：** 必須在資料豐富化階段新增計算欄位，用於前端篩選和顯示：
+        - `isConflicting: boolean` (透過時間衝突邏輯計算)
+        - `displayAmount: number` (從服務項目計算出的總金額)
+    - **查詢優化：** 實施日期範圍限制查詢，減少資料庫讀取量。
+
+2.  **`useBusinessHoursSummary` Hook 強化**
+    - 確保此 Hook 提供的公休日資料能夠被 `FullCalendar` 的 `businessHours` 或自訂渲染邏輯正確消費。
+
+## 11. 待討論事項
+
 ## 10. 待討論事項
 
 - **金流串接細節:** 需要獲取綠界 (ECPay) 的測試商店 ID 與 API Key。

@@ -1,88 +1,45 @@
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { Calendar, dateFnsLocalizer, Views, type View } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
-import { zhTW } from 'date-fns/locale';
-import { addMinutes } from 'date-fns';
+import { useMemo } from 'react';
+import { isWithinInterval, startOfDay, endOfDay, addDays } from 'date-fns';
 import { useAllBookings } from '../hooks/useAllBookings';
 import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
+import { useAllUsers } from '../hooks/useAllUsers';
+import { useServices } from '../hooks/useServices';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-
-// Setup the localizer by providing the moment Object
-// to the correct localizer.
-const locales = {
-  'zh-TW': zhTW,
-};
-
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek: (date: Date) => startOfWeek(date, { locale: zhTW }),
-  getDay,
-  locales,
-});
-
-const useWindowSize = () => {
-  const [size, setSize] = useState([window.innerWidth]);
-  useEffect(() => {
-    const handleResize = () => {
-      setSize([window.innerWidth]);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-  return size;
-};
+import SummaryCard from '../components/admin/SummaryCard';
+import { CalendarDaysIcon, UserGroupIcon, CubeIcon, CurrencyDollarIcon, CheckCircleIcon, CheckBadgeIcon, ArchiveBoxIcon, CalendarIcon } from '@heroicons/react/24/outline';
 
 const AdminDashboard = () => {
-  const { bookings, loading, error } = useAllBookings();
+  // Fetch all bookings for summary cards
+  const { bookings, loading, error } = useAllBookings(null);
   const { closedDays } = useBusinessHoursSummary();
-  const [date, setDate] = useState(new Date());
-  const [width] = useWindowSize();
-  const isMobile = width < 768; // Tailwind's 'md' breakpoint
+  const { users } = useAllUsers();
+  const { services } = useServices();
 
-  const [view, setView] = useState<View>(isMobile ? Views.DAY : Views.WEEK);
 
-  useEffect(() => {
-    setView(isMobile ? Views.DAY : Views.WEEK);
-  }, [isMobile]);
+  const summaryData = useMemo(() => {
+    const now = new Date();
+    const sevenDaysFromNow = addDays(now, 7);
+    const sevenDaysAgo = addDays(now, -7);
 
-  const getStatusChipClass = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-green-100 text-green-800';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+    return {
+      holidaysNext7Days: closedDays.filter(day => isWithinInterval(day, { start: startOfDay(now), end: endOfDay(sevenDaysFromNow) })).length,
+      newUsersLast7Days: users.filter(user => {
+        // Ensure createdAt exists and has a toDate method (i.e., it's a Timestamp, not a FieldValue)
+        const createdAtDate = user.createdAt && 'toDate' in user.createdAt ? user.createdAt.toDate() : null;
+        if (!createdAtDate) return false;
+        return isWithinInterval(createdAtDate, { start: sevenDaysAgo, end: now });
+      }).length,
+      activeServices: services.filter(service => service.available).length,
+      pendingConfirmation: bookings.filter(b => b.status === 'pending_confirmation').length,
+      pendingPaymentCount: bookings.filter(b => b.status === 'pending_payment').length,
+      confirmedCount: bookings.filter(b => b.status === 'confirmed').length,
+      completedCount: bookings.filter(b => b.status === 'completed').length,
+    };
+  }, [bookings, closedDays, users, services]);
 
-  const events = bookings.map((booking) => ({
-    title: `${booking.userName} - ${booking.serviceName}`,
-    start: booking.dateTime,
-    end: addMinutes(booking.dateTime, booking.serviceDuration || 60),
-    resource: booking, // Store original booking data
-  }));
 
-  const dayPropGetter = (date: Date) => {
-    const isClosed = closedDays.some(
-      closedDay => format(closedDay, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
-    );
-    if (isClosed) {
-      return {
-        style: {
-          backgroundColor: '#fef2f2', // Tailwind's red-50
-        },
-      };
-    }
-    return {};
-  };
-  if (loading && bookings.length === 0) {
+  if (loading && bookings.length === 0) { // Show initial loading spinner
     return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>;
   }
 
@@ -102,66 +59,81 @@ const AdminDashboard = () => {
               返回使用者儀表板 &rarr;
             </Link>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            <Link to="/admin/hours" className="flex-grow sm:flex-grow-0 px-4 py-2 text-center bg-yellow-500 text-white font-semibold rounded-md shadow-sm hover:bg-yellow-600 transition-colors">
-              營業時間
-            </Link>
-            <Link to="/admin/customers" className="flex-grow sm:flex-grow-0 px-4 py-2 text-center bg-green-500 text-white font-semibold rounded-md shadow-sm hover:bg-green-600 transition-colors">
-              客戶管理
-            </Link>
-            <Link to="/admin/services" className="flex-grow sm:flex-grow-0 px-4 py-2 text-center bg-blue-500 text-white font-semibold rounded-md shadow-sm hover:bg-blue-600 transition-colors">
-              服務項目
-            </Link>
+          {/* Data Summary Section */}
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <SummaryCard
+              title="所有行程"
+              value=""
+              unit=""
+              linkTo="/admin/calendar"
+              icon={<CalendarIcon className="h-6 w-6" />}
+              color="bg-purple-500"
+            />
+             <SummaryCard
+              title="客戶管理"
+              value={`${users.length} 位`}
+              unit="客戶"
+              linkTo="/admin/customers"
+              icon={<UserGroupIcon className="h-6 w-6" />}
+              color="bg-teal-500"
+            />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <SummaryCard
+              title="待確認訂單"
+              value={summaryData.pendingConfirmation}
+              unit="筆"
+              linkTo="/admin/orders?status=pending_confirmation"
+              icon={<CheckCircleIcon className="h-6 w-6" />}
+              color="bg-blue-500"
+            />
+            <SummaryCard
+              title="待付款訂單"
+              value={summaryData.pendingPaymentCount}
+              unit="筆"
+              linkTo="/admin/orders?status=pending_payment"
+              icon={<CurrencyDollarIcon className="h-6 w-6" />}
+              color="bg-yellow-500"
+            />
+            <SummaryCard
+              title="已確認訂單"
+              value={summaryData.confirmedCount}
+              unit="筆"
+              linkTo="/admin/orders?status=confirmed"
+              icon={<CheckBadgeIcon className="h-6 w-6" />}
+              color="bg-green-500"
+            />
+            <SummaryCard
+              title="已完成訂單"
+              value={summaryData.completedCount}
+              unit="筆"
+              linkTo="/admin/orders?status=completed"
+              icon={<ArchiveBoxIcon className="h-6 w-6" />}
+              color="bg-gray-500"
+            />
+            <SummaryCard
+              title="未來7日公休"
+              value={summaryData.holidaysNext7Days}
+              unit="天"
+              linkTo="/admin/hours"
+              icon={<CalendarDaysIcon className="h-6 w-6" />}
+              color="bg-red-500"
+            />
+            <SummaryCard
+              title="上架中服務"
+              value={summaryData.activeServices}
+              unit="項"
+              linkTo="/admin/services"
+              icon={<CubeIcon className="h-6 w-6" />}
+              color="bg-indigo-500"
+            />
           </div>
         </div>
       </header>
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="bg-white p-4 rounded-lg shadow-md" style={{ height: '80vh' }}>
-          <Calendar
-            localizer={localizer}
-            events={events}
-            startAccessor="start"
-            endAccessor="end"
-            defaultView={Views.WEEK}
-            date={date}
-            view={view}
-            onNavigate={setDate}
-            culture='zh-TW'
-            onView={setView}
-            views={isMobile ? [Views.DAY, Views.AGENDA] : [Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
-            messages={{
-              next: "向後",
-              previous: "向前",
-              today: "今天",
-              month: "月",
-              week: "週",
-              day: "日",
-              agenda: "列表"
-            }}
-            components={{
-              day: { header: DayHeader },
-            }}
-            eventPropGetter={(event) => ({
-              className: getStatusChipClass(event.resource.status),
-              style: {
-                border: 'none',
-                color: '#1f2937',
-              }
-            })}
-            dayPropGetter={dayPropGetter}
-          />
-        </div>
+        
       </main>
     </div>
-  );
-};
-// A custom component to render the day headers, allowing us to style them.
-const DayHeader = ({ date, label }: { date: Date; label: string }) => {
-  const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-  return (
-    <span className={isToday ? 'font-bold text-pink-600' : ''}>
-      {label}
-    </span>
   );
 };
 

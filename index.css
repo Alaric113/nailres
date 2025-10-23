@@ -1,0 +1,15 @@
+/* Add this to your src/index.css */
+.fc-event-yellow { background-color: #fef9c3; border-color: #fde047; color: #713f12; }
+.fc-event-blue { background-color: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+.fc-event-green { background-color: #dcfce7; border-color: #86efac; color: #166534; }
+.fc-event-gray { background-color: #e5e7eb; border-color: #d1d5db; color: #374151; }
+.fc-event-red { background-color: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+.fc-today-highlight .fc-col-header-cell-cushion, .fc-today-highlight.fc-daygrid-day-number {
+  color: #db2777; /* pink-600 */
+  font-weight: bold;
+}
+
+.fc-event-conflicting {
+  border: 2px solid #f97316 !important; /* orange-500 */
+  box-shadow: 0 0 5px rgba(249, 115, 22, 0.7);
+}

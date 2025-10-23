@@ -16,6 +16,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import ServiceManagement from './pages/ServiceManagement';
 import CustomerListPage from './pages/CustomerListPage';
 import HoursSettingsPage from './pages/HoursSettingsPage';
+import OrderManagementPage from './pages/OrderManagementPage';
+import CalendarPage from './pages/CalendarPage';
 
 // Route Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -79,6 +81,8 @@ function App() {
           <Route path="/admin/services" element={<MainLayout><ServiceManagement /></MainLayout>} />
           <Route path="/admin/customers" element={<MainLayout><CustomerListPage /></MainLayout>} />
           <Route path="/admin/hours" element={<MainLayout><HoursSettingsPage /></MainLayout>} />
+          <Route path="/admin/orders" element={<MainLayout><OrderManagementPage /></MainLayout>} />
+          <Route path="/admin/calendar" element={<MainLayout><CalendarPage /></MainLayout>} />
         </Route>
       </Routes>
     </Router>
