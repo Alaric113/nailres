@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, type Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { UserDocument } from '../types/user';
 import type { BookingDocument } from '../types/booking'; // Ensure BookingDocument is imported

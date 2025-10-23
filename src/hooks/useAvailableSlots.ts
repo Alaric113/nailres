@@ -3,7 +3,6 @@ import { collection, query, where, getDocs, Timestamp, doc, getDoc } from 'fireb
 import { db } from '../lib/firebase';
 import type { BusinessHours } from '../types/businessHours';
 import type { BookingDocument } from '../types/booking';
-import type { Service } from '../types/service';
 
 export const useAvailableSlots = (selectedDate: string, serviceDuration: number | null) => {
   const [availableSlots, setAvailableSlots] = useState<Date[]>([]);
