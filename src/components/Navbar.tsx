@@ -33,7 +33,7 @@ const Navbar = () => {
             {userProfile?.role === 'admin' && (
               <Link
                 to="/admin"
-                className="hidden sm:inline-block bg-gray-200 text-gray-700 font-bold rounded-full py-2 px-5 text-sm shadow-sm hover:bg-gray-300 transition-colors"
+                className=" sm:inline-block bg-gray-200 text-gray-700 font-bold rounded-full py-2 px-5 text-sm shadow-sm hover:bg-gray-300 transition-colors"
               >
                 管理後台
               </Link>

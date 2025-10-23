@@ -3,6 +3,7 @@ export interface Service {
   id: string; // The document ID
   name: string;
   price: number;
+  platinumPrice?: number;
   duration: number; // Duration in minutes
   category: string;
   description: string;

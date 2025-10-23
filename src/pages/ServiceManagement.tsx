@@ -7,7 +7,7 @@ import type { Service } from '../types/service';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const ServiceManagement = () => {
-  const [formData, setFormData] = useState({ name: '', price: '', duration: '', category: '' });
+  const [formData, setFormData] = useState({ name: '', price: '', duration: '', category: '', platinumPrice: '' });
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -24,6 +24,7 @@ const ServiceManagement = () => {
         price: String(editingService.price),
         duration: String(editingService.duration),
         category: editingService.category,
+        platinumPrice: String(editingService.platinumPrice || ''),
       });
     } else {
       resetForm();
@@ -50,6 +51,7 @@ const ServiceManagement = () => {
           price: Number(formData.price),
           duration: Number(formData.duration),
           category: formData.category,
+          platinumPrice: formData.platinumPrice ? Number(formData.platinumPrice) : null,
         });
         setSuccess(`服務項目 "${formData.name}" 已成功更新！`);
         setEditingService(null);
@@ -60,6 +62,7 @@ const ServiceManagement = () => {
           price: Number(formData.price),
           duration: Number(formData.duration),
           category: formData.category,
+          platinumPrice: formData.platinumPrice ? Number(formData.platinumPrice) : null,
           available: true, // New services are available by default
           createdAt: serverTimestamp(),
         });
@@ -76,7 +79,7 @@ const ServiceManagement = () => {
 
   const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value })); // `id` should match the key in formData
+    setFormData(prev => ({ ...prev, [id]: value }));
   };
 
   const handleEditClick = (service: Service) => {
@@ -90,7 +93,7 @@ const ServiceManagement = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', price: '', duration: '', category: '' });
+    setFormData({ name: '', price: '', duration: '', category: '', platinumPrice: '' });
     setFormError(null);
   };
 
@@ -149,11 +152,24 @@ const ServiceManagement = () => {
                 <input type="text" id="name" value={formData.name} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
               </div>
               <div>
-                <label htmlFor="price" className="block text-sm font-medium text-gray-700">價格 (NT$)</label>
+                <label htmlFor="price" className="block text-sm font-medium text-gray-700">一般價格 (NT$)</label>
                 <input type="number" id="price" value={formData.price} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
               </div>
               <div>
-                <label htmlFor="duration" className="block text-sm font-medium text-gray-700">所需時間 (分鐘)</label>
+                <label htmlFor="platinumPrice" className="block text-sm font-medium text-gray-700">
+                  白金會員價 (選填)
+                </label>
+                <input
+                  type="number"
+                  name="platinumPrice" // name is not used, but good practice
+                  id="platinumPrice"
+                  value={formData.platinumPrice || ''}
+                  onChange={handleFieldChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-pink-500 focus:border-pink-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="duration" className="block text-sm font-medium text-gray-700">服務時長 (分鐘)</label>
                 <input type="number" id="duration" value={formData.duration} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
               </div>
               <div>
@@ -207,7 +223,7 @@ const ServiceManagement = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">服務名稱</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">價格</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">價格 (一般/白金)</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">時長(分)</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分類</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
@@ -218,7 +234,12 @@ const ServiceManagement = () => {
                       {services.map((service) => (
                         <tr key={service.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${service.price}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${service.price}
+                            {service.platinumPrice && (
+                              <span className="ml-2 text-yellow-600 font-bold">${service.platinumPrice}</span>
+                            )}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.duration}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.category}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -263,7 +284,12 @@ const ServiceManagement = () => {
                       </div>
                       <div className="space-y-2 text-sm text-gray-600 border-t pt-2 mt-2">
                         <p><strong className="font-medium text-gray-700">分類:</strong> {service.category}</p>
-                        <p><strong className="font-medium text-gray-700">價格:</strong> ${service.price}</p>
+                        <p><strong className="font-medium text-gray-700">一般價:</strong> ${service.price}</p>
+                        {service.platinumPrice && (
+                          <p className="text-yellow-700">
+                            <strong className="font-medium text-yellow-600">白金價:</strong> ${service.platinumPrice}
+                          </p>
+                        )}
                         <p><strong className="font-medium text-gray-700">時長:</strong> {service.duration} 分鐘</p>
                         <div className="flex items-center pt-1">
                           <strong className="font-medium text-gray-700 mr-2">狀態:</strong>

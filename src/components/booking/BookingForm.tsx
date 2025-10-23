@@ -16,7 +16,14 @@ const BookingForm: React.FC<BookingFormProps> = ({ service, dateTime, onBookingS
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currentUser = useAuthStore((state) => state.currentUser);
+  const userProfile = useAuthStore((state) => state.userProfile);
   const navigate = useNavigate();
+
+  const finalPrice = 
+    userProfile?.role === 'platinum' && service.platinumPrice 
+    ? service.platinumPrice 
+    : service.price;
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +40,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ service, dateTime, onBookingS
         serviceId: service.id,
         dateTime: dateTime, // Directly pass the JavaScript Date object
         status: 'confirmed', // Or 'pending' if you need confirmation
-        amount: service.price,
+        amount: finalPrice,
         paymentStatus: 'unpaid',
         createdAt: serverTimestamp(),
         notes: notes,
@@ -56,7 +63,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ service, dateTime, onBookingS
           <div>
             <h3 className="text-lg font-semibold">預約詳情</h3>
             <p>服務項目: {service.name}</p>
-            <p>價格: ${service.price}</p>
+            <p>價格: ${finalPrice}</p>
             <p>時間: {dateTime.toLocaleString('zh-TW')}</p>
           </div>
           <div>
