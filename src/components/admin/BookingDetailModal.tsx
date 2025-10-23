@@ -11,14 +11,6 @@ interface BookingDetailModalProps {
   onUpdateStatus: (bookingId: string, newStatus: BookingStatus) => Promise<void>;
 }
 
-const statusTextMap: Record<BookingStatus, string> = {
-  pending_payment: '訂金待付',
-  pending_confirmation: '確認中',
-  confirmed: '已確認',
-  completed: '已完成',
-  cancelled: '已取消',
-};
-
 const BookingDetailModal: React.FC<BookingDetailModalProps> = ({ booking, onClose, onUpdateStatus }) => {
   const [isUpdating, setIsUpdating] = useState(false);
 
