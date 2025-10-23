@@ -1,6 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Link, useLocation } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 import ServiceSelector from '../components/booking/ServiceSelector';
 import TimeSlotSelector from '../components/booking/TimeSlotSelector';
@@ -18,9 +20,24 @@ const BookingPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [activeStep, setActiveStep] = useState<'service' | 'date' | 'time' | 'confirm'>('service');
+  const [bookingDeadline, setBookingDeadline] = useState<Date | null>(null);
   const { userProfile } = useAuthStore();
   
   const { closedDays, loading: isLoadingClosedDays } = useBusinessHoursSummary();
+
+  useEffect(() => {
+    const fetchGlobalSettings = async () => {
+      const globalSettingsRef = doc(db, 'globals', 'settings');
+      const docSnap = await getDoc(globalSettingsRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.bookingDeadline) {
+          setBookingDeadline(data.bookingDeadline.toDate());
+        }
+      }
+    };
+    fetchGlobalSettings();
+  }, []);
 
   const handleServiceToggle = (service: Service) => {
     setSelectedServices(prev => {
@@ -132,7 +149,9 @@ const BookingPage = () => {
                     selectedDate={selectedDate} 
                     onDateSelect={handleDateSelect} 
                     closedDays={closedDays}
-                    isLoading={isLoadingClosedDays} />
+                    isLoading={isLoadingClosedDays}
+                    bookingDeadline={bookingDeadline}
+                  />
                 </div>
               )}
           </div>

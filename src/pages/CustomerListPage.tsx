@@ -18,6 +18,7 @@ const CustomerListPage = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
 
   if (loading) {
     return <div className="p-4">正在載入客戶資料...</div>;
@@ -28,6 +29,15 @@ const CustomerListPage = () => {
   }
 
   const filteredUsers = users.filter(user => {
+    // Role filter
+    if (roleFilter !== 'all' && user.role !== roleFilter) {
+      return false;
+    }
+
+    // Search term filter
+    if (!searchTerm) {
+      return true;
+    }
     const term = searchTerm.toLowerCase();
     const displayName = user.profile.displayName?.toLowerCase() || '';
     const email = user.email.toLowerCase();
@@ -74,6 +84,19 @@ const CustomerListPage = () => {
     }
   };
 
+  const tabs: { key: UserRole | 'all'; label: string }[] = [
+    { key: 'all', label: '全部' },
+    { key: 'admin', label: '管理員' },
+    { key: 'platinum', label: '白金會員' },
+    { key: 'user', label: '一般會員' },
+  ];
+
+  const getTabClass = (tabKey: UserRole | 'all') => {
+    return roleFilter === tabKey
+      ? 'bg-pink-500 text-white'
+      : 'bg-white text-gray-600 hover:bg-gray-100';
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -88,7 +111,7 @@ const CustomerListPage = () => {
         </div>
       </header>
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="mb-6">
+        <div className="mb-6 space-y-4">
           <input
             type="text"
             placeholder="搜尋客戶名稱或 Email..."
@@ -96,6 +119,18 @@ const CustomerListPage = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
+          <div className="flex flex-wrap gap-2">
+            {tabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setRoleFilter(tab.key)}
+                className={`px-4 py-2 text-sm font-semibold rounded-full shadow-sm transition-colors ${getTabClass(tab.key)}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          
         </div>
 
         {saveError && <p className="mb-4 text-red-500 bg-red-100 p-3 rounded-md">{saveError}</p>}
@@ -181,7 +216,9 @@ const CustomerListPage = () => {
 
         {filteredUsers.length === 0 && !loading && (
           <p className="text-center py-8 text-gray-500">
-            {searchTerm ? '找不到符合條件的客戶。' : '目前沒有任何客戶資料。'}
+            {roleFilter !== 'all' || searchTerm
+              ? '找不到符合條件的客戶。'
+              : '目前沒有任何客戶資料。'}
           </p>
         )}
       </main>

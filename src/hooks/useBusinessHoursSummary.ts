@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { parse } from 'date-fns';
+import type { BusinessHours } from '../types/businessHours';
 
 /**
  * Custom hook to fetch a summary of business hours, specifically which days are marked as closed.
@@ -9,27 +9,34 @@ import { parse } from 'date-fns';
  */
 export const useBusinessHoursSummary = () => {
   const [closedDays, setClosedDays] = useState<Date[]>([]);
+  const [customSettingDays, setCustomSettingDays] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const hoursCollection = collection(db, 'businessHours');
-    // Query for documents where isClosed is true
-    const q = query(hoursCollection, where('isClosed', '==', true));
+    const q = query(hoursCollection);
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const dates = snapshot.docs.map((doc) => {
-          // The doc.id is in 'yyyy-MM-dd' format, parse it into a Date object.
-          return parse(doc.id, 'yyyy-MM-dd', new Date());
+        const closed: Date[] = [];
+        const custom: Date[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data() as BusinessHours;
+          // Any document in businessHours is considered a custom setting
+          custom.push(new Date(doc.id + 'T00:00:00')); // Add T00:00:00 to avoid timezone issues
+          if (data.isClosed) {
+            closed.push(new Date(doc.id + 'T00:00:00'));
+          }
         });
-        setClosedDays(dates);
+        setClosedDays(closed);
+        setCustomSettingDays(custom);
         setLoading(false);
       },
       (err) => {
         console.error("Error fetching business hours summary:", err);
-        setError(err);
+        setError("無法載入營業時間摘要。");
         setLoading(false);
       }
     );
@@ -37,5 +44,5 @@ export const useBusinessHoursSummary = () => {
     return () => unsubscribe();
   }, []);
 
-  return { closedDays, loading, error };
+  return { closedDays, customSettingDays, loading, error };
 };
