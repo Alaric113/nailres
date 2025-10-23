@@ -23,15 +23,27 @@ const Dashboard = () => {
 
   const getStatusChipClass = (status: string) => {
     switch (status) {
+      case 'pending_payment':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'pending_confirmation':
+        return 'bg-blue-100 text-blue-800';
       case 'confirmed':
         return 'bg-green-100 text-green-800';
       case 'completed':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-gray-100 text-gray-800';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const statusTextMap: Record<string, string> = {
+    pending_payment: '訂金待付',
+    pending_confirmation: '確認中',
+    confirmed: '已確認',
+    completed: '已完成',
+    cancelled: '已取消',
   };
 
   return (
@@ -87,12 +99,10 @@ const Dashboard = () => {
                     </div>
                     <div className="flex items-center gap-4">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusChipClass(booking.status)}`}>
-                        {booking.status === 'confirmed' && '已確認'}
-                        {booking.status === 'completed' && '已完成'}
-                        {booking.status === 'cancelled' && '已取消'}
-                        {booking.status === 'pending' && '待處理'}
+                        {statusTextMap[booking.status] || '未知狀態'}
                       </span>
-                      {booking.status === 'confirmed' && (
+                      {/* Allow cancellation if the booking is not completed or already cancelled */}
+                      {!['completed', 'cancelled'].includes(booking.status) && (
                         <button
                           onClick={() => handleCancel(booking.id)}
                           className="text-sm text-red-600 hover:underline"

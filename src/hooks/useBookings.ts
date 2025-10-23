@@ -52,7 +52,9 @@ export const useBookings = () => {
           ...data,
           dateTime: (data.dateTime as Timestamp).toDate(),
           createdAt: (data.createdAt as Timestamp).toDate(),
-          serviceName: servicesMap.get(data.serviceId)?.name || '未知服務',
+          serviceName: Array.isArray(data.serviceNames) 
+            ? data.serviceNames.join('、') 
+            : (data as any).serviceName || '未知服務', // Fallback for old data structure
         };
       });
 

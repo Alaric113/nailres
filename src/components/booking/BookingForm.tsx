@@ -3,6 +3,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuthStore } from '../../store/authStore';
 import type { Service } from '../../types/service';
+import type { BookingStatus } from '../../types/booking';
 import { useNavigate } from 'react-router-dom';
 
 interface BookingFormProps {
@@ -44,16 +45,17 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, onBooking
     setIsSubmitting(true);
     setError(null);
 
+    const initialStatus: BookingStatus = userProfile?.role === 'platinum' ? 'pending_confirmation' : 'pending_payment';
+
     try {
       await addDoc(collection(db, 'bookings'), {
         userId: currentUser.uid,
         serviceIds: serviceIds,
         serviceNames: serviceNames,
         dateTime: dateTime, // Directly pass the JavaScript Date object
-        status: 'confirmed', // Or 'pending' if you need confirmation
+        status: initialStatus,
         amount: totalPrice,
         duration: totalDuration,
-        paymentStatus: 'unpaid',
         createdAt: serverTimestamp(),
         notes: notes,
       });
