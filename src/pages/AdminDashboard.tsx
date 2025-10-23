@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { isWithinInterval, startOfDay, endOfDay, addDays } from 'date-fns';
 import { useAllBookings } from '../hooks/useAllBookings';
 import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
@@ -7,7 +7,8 @@ import { useAllUsers } from '../hooks/useAllUsers';
 import { useServices } from '../hooks/useServices';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import SummaryCard from '../components/admin/SummaryCard';
-import { CalendarDaysIcon, UserGroupIcon, CubeIcon, CurrencyDollarIcon, CheckCircleIcon, CheckBadgeIcon, ArchiveBoxIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import ImageManagementModal from '../components/admin/ImageManagementModal';
+import { CalendarDaysIcon, UserGroupIcon, CubeIcon, CurrencyDollarIcon, CheckCircleIcon, CheckBadgeIcon, ArchiveBoxIcon, CalendarIcon, PhotoIcon } from '@heroicons/react/24/outline';
 
 const AdminDashboard = () => {
   // Fetch all bookings for summary cards
@@ -15,6 +16,7 @@ const AdminDashboard = () => {
   const { closedDays } = useBusinessHoursSummary();
   const { users } = useAllUsers();
   const { services } = useServices();
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
 
   const summaryData = useMemo(() => {
@@ -56,7 +58,7 @@ const AdminDashboard = () => {
               管理員後台
             </h1>
             <Link to="/dashboard" className="text-sm font-medium text-indigo-600 hover:underline mt-2 sm:mt-0">
-              返回使用者頁面 &rarr;
+              返回使用者儀表板 &rarr;
             </Link>
           </div>
           {/* Data Summary Section */}
@@ -71,11 +73,19 @@ const AdminDashboard = () => {
             />
             <SummaryCard
               title="營業時間"
-              value=''
-              unit=""
+              value={summaryData.holidaysNext7Days}
+              unit="天"
               linkTo="/admin/hours"
               icon={<CalendarDaysIcon className="h-6 w-6" />}
               color="bg-red-500"
+            />
+             <SummaryCard
+              title="首頁圖片"
+              value=""
+              unit=""
+              onClick={() => setIsImageModalOpen(true)}
+              icon={<PhotoIcon className="h-6 w-6" />}
+              color="bg-orange-500"
             />
              <SummaryCard
               title="客戶管理"
@@ -130,8 +140,9 @@ const AdminDashboard = () => {
         </div>
       </header>
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        
+        <p className="text-center text-gray-500">請從上方的儀表板選擇一個管理項目開始。</p>
       </main>
+      {isImageModalOpen && <ImageManagementModal onClose={() => setIsImageModalOpen(false)} />}
     </div>
   );
 };

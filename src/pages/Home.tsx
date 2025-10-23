@@ -1,4 +1,7 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 // Import Swiper React components
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -7,13 +10,7 @@ import BeforeAfterSlider from '../components/BeforeAfterSlider'; // 引入前後
 
 // Import Swiper styles
 import 'swiper/css';
-import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-
-const lashImages = [
-  'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/mdoel_2.jpg?alt=media&token=863e8dce-e08f-48d8-a574-dd0dedc9af96',
-  'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/model_1.jpg?alt=media&token=933a5950-353c-4633-b270-17c4b0b578df',
-];
 
 // 服務項目資料
 // 將服務項目改為服務分類，並移除圖片
@@ -36,6 +33,27 @@ const categories = [
 ];
 
 const Home = () => {
+  const [homepageImages, setHomepageImages] = useState({
+    beforeAfter: { before: '', after: '' },
+    lashImages: [],
+    nailImages: [],
+  });
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        const docRef = doc(db, 'globals', 'homepageImages');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setHomepageImages(docSnap.data() as any);
+        }
+      } catch (error) {
+        console.error("Error fetching homepage images:", error);
+      }
+    };
+    fetchImages();
+  }, []);
+
   return (
     <div className="bg-gray-50 text-gray-800 h-screen overflow-y-scroll snap-y snap-mandatory">
       {/* Hero Section */}
@@ -72,8 +90,8 @@ const Home = () => {
             <h2 className="text-3xl font-bold text-center mb-4">作品集</h2>
             <p className="text-center text-gray-500 mb-12 max-w-2xl mx-auto">拖曳中間的滑桿，查看我們為顧客帶來的驚喜改變。</p>
             <BeforeAfterSlider
-              beforeImage="https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/bf_1.jpg?alt=media&token=76199628-9c27-4859-96c4-6a6daa590c82"
-              afterImage="https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/af_1.jpg?alt=media&token=b8be2d3a-32de-403d-98d4-f638812f2317"
+              beforeImage={homepageImages.beforeAfter.before}
+              afterImage={homepageImages.beforeAfter.after}
             />
           </div>
         </section>
@@ -98,13 +116,11 @@ const Home = () => {
             loop={true}
             className="max-w-6xl mx-auto px-4"
             breakpoints={{
-              // 480px 以上，顯示 2 張
               480: { slidesPerView: 2, spaceBetween: 20 },
-              // 768px (md) 以上，顯示 3 張
               768: { slidesPerView: 3, spaceBetween: 30 },
             }}
           >
-            {lashImages.map((src, index) => (
+            {homepageImages.lashImages.map((src, index) => (
               <SwiperSlide key={`lash-${index}`}>
                 <img src={src} alt={`Lash Style ${index + 1}`} className="w-full h-80 object-cover rounded-lg shadow-xl" />
               </SwiperSlide>

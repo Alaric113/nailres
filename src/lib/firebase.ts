@@ -1,6 +1,7 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { initializeAuth, browserLocalPersistence, browserPopupRedirectResolver } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,7 +18,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-export const auth = initializeAuth(app, {
+const auth = initializeAuth(app, {
   // This is the key change. We are explicitly setting the persistence to
   // browserLocalPersistence to avoid issues with partitioned storage in
   // modern browsers (like Safari ITP or in-app browsers) which can cause
@@ -25,4 +26,8 @@ export const auth = initializeAuth(app, {
   persistence: browserLocalPersistence,
   popupRedirectResolver: browserPopupRedirectResolver,
 });
-export const db = getFirestore(app);
+
+const db = getFirestore(app);
+const storage = getStorage(app); // <-- Initialize and export storage
+
+export { db, auth, storage }; 
