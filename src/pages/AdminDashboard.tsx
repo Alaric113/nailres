@@ -69,16 +69,22 @@ const AdminDashboard = () => {
               icon={<CalendarIcon className="h-6 w-6" />}
               color="bg-purple-500"
             />
+            <SummaryCard
+              title="營業時間"
+              value=''
+              unit=""
+              linkTo="/admin/hours"
+              icon={<CalendarDaysIcon className="h-6 w-6" />}
+              color="bg-red-500"
+            />
              <SummaryCard
               title="客戶管理"
-              value={`${users.length} 位`}
-              unit="客戶"
+              value={`${users.length}`}
+              unit="位"
               linkTo="/admin/customers"
               icon={<UserGroupIcon className="h-6 w-6" />}
               color="bg-teal-500"
             />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <SummaryCard
               title="待確認訂單"
               value={summaryData.pendingConfirmation}
@@ -111,14 +117,7 @@ const AdminDashboard = () => {
               icon={<ArchiveBoxIcon className="h-6 w-6" />}
               color="bg-gray-500"
             />
-            <SummaryCard
-              title="未來7日公休"
-              value={summaryData.holidaysNext7Days}
-              unit="天"
-              linkTo="/admin/hours"
-              icon={<CalendarDaysIcon className="h-6 w-6" />}
-              color="bg-red-500"
-            />
+            
             <SummaryCard
               title="上架中服務"
               value={summaryData.activeServices}
