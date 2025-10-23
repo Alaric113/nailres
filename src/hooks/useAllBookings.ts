@@ -5,7 +5,10 @@ import type { UserDocument } from '../types/user';
 import type { BookingDocument } from '../types/booking'; // Ensure BookingDocument is imported
 
 // 擴充 Booking 介面，包含從其他集合獲取的資料
-export interface EnrichedBooking extends BookingDocument {
+// Omit the original Timestamp fields and redefine them as Date
+export interface EnrichedBooking extends Omit<BookingDocument, 'dateTime' | 'createdAt'> {
+  dateTime: Date;
+  createdAt: Date;
   id: string;
   userName?: string;
   serviceName?: string;
