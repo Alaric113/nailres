@@ -64,8 +64,8 @@ const AdminDashboard = () => {
 
   const events = bookings.map((booking) => ({
     title: `${booking.userName} - ${booking.serviceName}`,
-    start: booking.dateTime.toDate(),
-    end: addMinutes(booking.dateTime.toDate(), booking.serviceDuration || 60),
+    start: booking.dateTime,
+    end: addMinutes(booking.dateTime, booking.serviceDuration || 60),
     resource: booking, // Store original booking data
   }));
 
