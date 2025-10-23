@@ -416,10 +416,14 @@
 1.  **[新任務] 實施管理員後台綜合優化方案:**
     - **目標:** 根據 `10. 核心功能重構與優化藍圖` 中的技術規範，重構管理員後台。
     - **核心任務:**
-        - 將行事曆元件從 `react-big-calendar` 遷移至 `FullCalendar`。
-        - 新增「待處理任務概覽區」與「數據微觀顯示」卡片。
-        - 實作時間衝突檢測。
-        - 強化 `useAllBookings` Hook。
+        - **[完成]** **建立訂單管理頁面:** 建立 `OrderManagementPage.tsx`，取代舊的 `PendingOrdersPage.tsx`，並能根據 URL 參數動態顯示不同狀態的訂單。
+        - **[完成]** **建立行事曆專頁:** 建立 `CalendarPage.tsx`，並將所有行事曆相關邏輯從儀表板遷移至此。
+        - **[完成]** **重構儀表板:**
+            - 將 `AdminDashboard.tsx` 重構為純粹的數據總覽與導航入口。
+            - 新增「所有行程」、「已確認訂單」、「已完成訂單」等數據看板。
+            - 更新所有看板的連結，使其指向對應的功能頁面 (`/admin/calendar`, `/admin/orders?status=...` 等)。
+        - **[完成]** **更新路由:** 在 `App.tsx` 中新增 `/admin/calendar` 和 `/admin/orders` 的路由，並移除舊路由。
+
 
 ## 10. 核心功能重構與優化藍圖 (Core Feature Refactoring & Optimization Blueprint)
 

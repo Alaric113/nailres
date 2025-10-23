@@ -1,9 +1,13 @@
 import type { Timestamp, FieldValue } from 'firebase/firestore';
 
+
+export interface TimeSlot {
+  start: string; // "HH:mm" format
+  end: string;   // "HH:mm" format
+}
 // Represents the business hours settings for a specific day (doc ID: YYYY-MM-DD)
 export interface BusinessHours {
-  openingTime: string; // "HH:mm" format, e.g., "09:00"
-  closingTime: string; // "HH:mm" format, e.g., "18:00"
+  timeSlots: TimeSlot[];
   isClosed: boolean;   // true if it's a day off
   updatedAt?: Timestamp | FieldValue;
 }

@@ -5,15 +5,14 @@ import { format, isValid } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { BusinessHours } from '../types/businessHours';
+import type { BusinessHours, TimeSlot } from '../types/businessHours';
 import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
 
 import 'react-day-picker/dist/style.css';
 
 const HoursSettingsPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [openingTime, setOpeningTime] = useState('10:00');
-  const [closingTime, setClosingTime] = useState('19:00');
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([{ start: '10:00', end: '19:00' }]);
   const [isClosed, setIsClosed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,13 +35,11 @@ const HoursSettingsPage = () => {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data() as BusinessHours;
-          setOpeningTime(data.openingTime);
-          setClosingTime(data.closingTime);
           setIsClosed(data.isClosed);
+          setTimeSlots(data.timeSlots && data.timeSlots.length > 0 ? data.timeSlots : [{ start: '10:00', end: '19:00' }]);
         } else {
           // Reset to default if no setting exists for the day
-          setOpeningTime('10:00');
-          setClosingTime('19:00');
+          setTimeSlots([{ start: '10:00', end: '19:00' }]);
           setIsClosed(false);
         }
       } catch (error) {
@@ -68,9 +65,8 @@ const HoursSettingsPage = () => {
     const docRef = doc(db, 'businessHours', docId);
 
     const newSettings: BusinessHours = {
-      openingTime,
-      closingTime,
-      isClosed,
+      timeSlots: isClosed ? [] : timeSlots,
+      isClosed: isClosed,
       updatedAt: serverTimestamp(),
     };
 
@@ -83,6 +79,21 @@ const HoursSettingsPage = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleTimeSlotChange = (index: number, field: 'start' | 'end', value: string) => {
+    const newTimeSlots = [...timeSlots];
+    newTimeSlots[index][field] = value;
+    setTimeSlots(newTimeSlots);
+  };
+
+  const addTimeSlot = () => {
+    setTimeSlots([...timeSlots, { start: '10:00', end: '19:00' }]);
+  };
+
+  const removeTimeSlot = (index: number) => {
+    const newTimeSlots = timeSlots.filter((_, i) => i !== index);
+    setTimeSlots(newTimeSlots);
   };
 
   const modifiers = {
@@ -142,30 +153,35 @@ const HoursSettingsPage = () => {
                   設為公休日
                 </label>
               </div>
-              <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${isClosed ? 'opacity-50' : ''}`}>
-                <div>
-                  <label htmlFor="opening-time" className="block text-sm font-medium text-gray-700">開店時間</label>
-                  <input
-                    type="time"
-                    id="opening-time"
-                    value={openingTime}
-                    onChange={(e) => setOpeningTime(e.target.value)}
-                    disabled={isClosed}
-                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-50"
-                  />
+              {!isClosed && timeSlots.map((slot, index) => (
+                <div key={index} className="p-4 border border-gray-200 rounded-md space-y-4">
+                  <div className="flex justify-between items-center">
+                    <p className="font-medium text-gray-700">時段 {index + 1}</p>
+                    {timeSlots.length > 1 && (
+                      <button type="button" onClick={() => removeTimeSlot(index)} className="text-red-500 hover:text-red-700 text-sm font-medium">移除</button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor={`start-time-${index}`} className="block text-sm font-medium text-gray-700">開始時間</label>
+                      <input type="time" id={`start-time-${index}`} value={slot.start} onChange={(e) => handleTimeSlotChange(index, 'start', e.target.value)} disabled={isClosed} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-50" />
+                    </div>
+                    <div>
+                      <label htmlFor={`end-time-${index}`} className="block text-sm font-medium text-gray-700">結束時間</label>
+                      <input type="time" id={`end-time-${index}`} value={slot.end} onChange={(e) => handleTimeSlotChange(index, 'end', e.target.value)} disabled={isClosed} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-50" />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label htmlFor="closing-time" className="block text-sm font-medium text-gray-700">關店時間</label>
-                  <input
-                    type="time"
-                    id="closing-time"
-                    value={closingTime}
-                    onChange={(e) => setClosingTime(e.target.value)}
-                    disabled={isClosed}
-                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-50"
-                  />
-                </div>
-              </div>
+              ))}
+              {!isClosed && (
+                <button
+                  type="button"
+                  onClick={addTimeSlot}
+                  className="w-full mt-4 px-4 py-2 border border-dashed border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  + 新增營業時段
+                </button>
+              )}
               <div className="flex items-center justify-between pt-4">
                 <button
                   onClick={handleSave}

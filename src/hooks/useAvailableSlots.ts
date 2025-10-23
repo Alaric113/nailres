@@ -24,17 +24,14 @@ export const useAvailableSlots = (selectedDate: string, serviceDuration: number 
         const businessHoursRef = doc(db, 'businessHours', selectedDate);
         const businessHoursSnap = await getDoc(businessHoursRef);
 
-        let openingHour = 10; // Default opening hour
-        let closingHour = 19; // Default closing hour
         let isDayOff = false;
+        let timeSlots: { start: string; end: string }[] = [{ start: '10:00', end: '19:00' }]; // Default
 
         if (businessHoursSnap.exists()) {
           const data = businessHoursSnap.data() as BusinessHours;
-          if (data.isClosed) {
-            isDayOff = true;
-          } else {
-            openingHour = parseInt(data.openingTime.split(':')[0], 10);
-            closingHour = parseInt(data.closingTime.split(':')[0], 10);
+          isDayOff = data.isClosed;
+          if (data.timeSlots && data.timeSlots.length > 0) {
+            timeSlots = data.timeSlots;
           }
         }
 
@@ -65,23 +62,38 @@ export const useAvailableSlots = (selectedDate: string, serviceDuration: number 
         // --- 3. Generate All Potential Slots for the Day ---
         const potentialSlots: Date[] = [];
         const day = new Date(selectedDate);
-        for (let hour = openingHour; hour < closingHour; hour++) {
-          for (let minute = 0; minute < 60; minute += slotInterval) {
-            const slot = new Date(day);
-            slot.setHours(hour, minute, 0, 0);
-            potentialSlots.push(slot);
+
+        timeSlots.forEach(slotRange => {
+          const openingHour = parseInt(slotRange.start.split(':')[0], 10);
+          const closingHour = parseInt(slotRange.end.split(':')[0], 10);
+          for (let hour = openingHour; hour < closingHour; hour++) {
+            for (let minute = 0; minute < 60; minute += slotInterval) {
+              const slot = new Date(day);
+              slot.setHours(hour, minute, 0, 0);
+              potentialSlots.push(slot);
+            }
           }
-        }
+        });
 
         // --- 4. Filter Out Unavailable Slots ---
         const slots = potentialSlots.filter(slot => {
           const slotStart = slot.getTime();
           const slotEnd = slotStart + serviceDuration * 60 * 1000;
+          
+          // Check if the slot is within any of the defined business hour time slots
+          const isInBusinessHours = timeSlots.some(ts => {
+            const rangeStart = new Date(day);
+            const [startH, startM] = ts.start.split(':');
+            rangeStart.setHours(parseInt(startH), parseInt(startM), 0, 0);
 
-          // Check if slot ends after closing time
-          const closingTime = new Date(day);
-          closingTime.setHours(closingHour, 0, 0, 0);
-          if (slotEnd > closingTime.getTime()) {
+            const rangeEnd = new Date(day);
+            const [endH, endM] = ts.end.split(':');
+            rangeEnd.setHours(parseInt(endH), parseInt(endM), 0, 0);
+
+            return slotStart >= rangeStart.getTime() && slotEnd <= rangeEnd.getTime();
+          });
+
+          if (!isInBusinessHours) {
             return false;
           }
 
