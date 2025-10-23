@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { BookingDocument } from '../types/booking';
 import type { UserDocument } from '../types/user';
-import type { Service } from '../types/service';
+import type { BookingDocument } from '../types/booking'; // Ensure BookingDocument is imported
 
 // 擴充 Booking 介面，包含從其他集合獲取的資料
 export interface EnrichedBooking extends BookingDocument {
@@ -34,48 +33,31 @@ export const useAllBookings = () => {
         const rawBookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (BookingDocument & { id: string })[];
         
         const enrichedBookingsPromises = rawBookings.map(async (booking) => {
-          let userName: string | undefined;
-          let serviceName: string | undefined;
-          let serviceDuration: number | undefined;
+          let userName: string = '未知使用者'; // Default value
 
           // Fetch user data
           if (booking.userId) {
             const userDocRef = doc(db, 'users', booking.userId);
             const userDocSnap = await getDoc(userDocRef);
             if (userDocSnap.exists()) {
-              const userData = userDocSnap.data() as UserDocument;
-              // Safeguard: Correctly access displayName from the profile object
-              userName = userData.profile?.displayName ?? '未知使用者';
+              const userData = userDocSnap.data() as UserDocument; // Cast to UserDocument
+              userName = userData.profile?.displayName || '未知使用者';
             } else {
               userName = '使用者已刪除';
             }
           } else {
             userName = '無使用者ID';
           }
-
-          // Fetch service data
-          if (booking.serviceId) {
-            const serviceDocRef = doc(db, 'services', booking.serviceId);
-            const serviceDocSnap = await getDoc(serviceDocRef);
-            if (serviceDocSnap.exists()) {
-              const serviceData = serviceDocSnap.data() as Service;
-              // Safeguard: Use optional chaining and nullish coalescing for name and duration
-              serviceName = serviceData.name ?? '未知服務';
-              serviceDuration = serviceData.duration ?? 60; // Default to 60 minutes if duration is missing
-            } else {
-              serviceName = '服務已刪除';
-              serviceDuration = 60; // Default duration if service not found
-            }
-          } else {
-            serviceName = '無服務ID';
-            serviceDuration = 60; // Default duration if no service ID
-          }
-
+          
           return {
             ...booking,
             userName,
-            serviceName,
-            serviceDuration,
+            // serviceName and serviceDuration are now directly available from BookingDocument
+            // We join serviceNames for display and use the total duration
+            serviceName: booking.serviceNames.join('、'),
+            serviceDuration: booking.duration,
+            dateTime: (booking.dateTime as Timestamp).toDate(), // Convert Timestamp to Date
+            createdAt: (booking.createdAt as Timestamp).toDate(), // Convert Timestamp to Date
           };
         });
 

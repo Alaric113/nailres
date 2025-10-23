@@ -378,11 +378,40 @@
         - **[完成]** 移除 `Home.tsx` 中服務項目的圖片顯示。
         - **[完成]** 更新分類連結，使其導向 `/booking?category=<分類名稱>`。
 
+1.  **擴充服務項目功能 (白金會員價):**
+    - **目標:** 為服務項目新增「白金會員價」，並在預約時根據使用者角色自動套用。
+    - **任務:**
+        - **[完成]** **更新管理介面:** 在 `src/pages/admin/ServiceManagement.tsx` 的表單中新增 `platinumPrice` 欄位，並更新儲存邏輯與服務列表的顯示方式。
+        - **[完成]** **更新預約邏輯:**
+            - 在 `src/components/booking/BookingForm.tsx` 中，新增邏輯以根據使用者 `role` 判斷最終價格，並將正確的 `amount` 寫入 Firestore。
+        - **[完成]** **優化使用者體驗:**
+            - 在 `src/components/booking/ServiceSelector.tsx` 中，為白金會員顯示專屬價格，並以劃線標示原價，提升尊榮感。
+        - **[完成]** **更新專案日誌:** 在 `project_log.md` 中記錄本次功能擴充。
+
 1.  **專案整體審閱:**
     - **目標:** 確保 AI 協作者對專案的整體狀況有深入的理解。
     - **任務:**
         - **[完成]** **AI 協作者已審閱專案日誌:** Gemini Code Assist 已閱讀並理解所有專案文件，特別是 `project_log.md` 的內容與協作協議。
         - **[下一步]** **處理技術債:** 根據日誌中的 `[技術債]` 標記，下一步的優先任務是解決本地 Tailwind CSS 的設定問題，移除對 CDN 的依賴。
+
+1.  **優化預約流程 (多選服務與分類收合):**
+    - **目標:** 讓使用者可以一次選擇多個服務項目，並以可收合的分類方式呈現，提升預約體驗。
+    - **任務:**
+        - **[完成]** **修改資料模型:** 更新 `src/types/booking.ts`，將 `serviceId` 改為 `serviceIds: string[]` 和 `serviceNames: string[]`，並新增 `duration: number` (總時長)。
+        - **[完成]** **重構預約頁面:** 修改 `src/pages/BookingPage.tsx`，將 `selectedService` 改為 `selectedServices` 陣列，並調整步驟流程。
+        - **[完成]** **更新服務選擇器:** 修改 `src/components/booking/ServiceSelector.tsx`，使其支援多選服務，並根據 URL 參數預設展開特定分類。
+        - **[完成]** **更新預約確認表單:** 修改 `src/components/booking/BookingForm.tsx`，使其能處理多個服務的預約資訊，並計算總時長和總價格。
+        - **[完成]** **優化服務選擇器 UI:** 將服務項目列表改為響應式網格佈局 (小螢幕一排兩個，大螢幕依寬度調整)。
+        - **[完成]** **新增分類收合功能:** 為 `src/components/booking/ServiceSelector.tsx` 中的服務分類加入可收合的動畫效果。
+        - **[完成]** **修正儀表板顯示問題:** 修改 `src/hooks/useBookings.ts`，使其能正確讀取 `serviceNames` 陣列並顯示。
+        - **[完成]** **修正 `BookingStatus` 型別匯入錯誤:** 在 `src/components/booking/BookingForm.tsx` 中匯入 `BookingStatus` 型別。
+
+1.  **預約狀態流程重構:**
+    - **目標:** 將 `status` 和 `paymentStatus` 合併為一個統一的 `status` 欄位，並定義 5 種新狀態，根據會員等級設定初始狀態。
+    - **任務:**
+        - **[完成]** **更新資料模型:** 在 `src/types/booking.ts` 中更新 `BookingStatus` 型別，並移除 `paymentStatus`。
+        - **[完成]** **修改預約邏輯:** 在 `src/components/booking/BookingForm.tsx` 中，根據使用者角色設定不同的初始預約狀態 (`pending_payment` 或 `pending_confirmation`)。
+        - **[完成]** **更新儀表板顯示與取消邏輯:** 在 `src/pages/Dashboard.tsx` 中，更新狀態標籤的樣式與文字，並調整取消預約的條件。
 
 ## 10. 待討論事項
 

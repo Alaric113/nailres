@@ -61,13 +61,6 @@ export const useAvailableSlots = (selectedDate: string, serviceDuration: number 
         const querySnapshot = await getDocs(q);
         const bookingsData = querySnapshot.docs.map(doc => doc.data() as BookingDocument);
 
-        // --- Pre-fetch all services to get their durations efficiently ---
-        const servicesSnapshot = await getDocs(collection(db, 'services'));
-        const servicesMap = new Map<string, Service>();
-        servicesSnapshot.forEach(doc => {
-          servicesMap.set(doc.id, { id: doc.id, ...doc.data() } as Service);
-        });
-
 
 
         // --- 3. Generate All Potential Slots for the Day ---
@@ -96,8 +89,7 @@ export const useAvailableSlots = (selectedDate: string, serviceDuration: number 
           // Check for conflicts with existing bookings
           return !bookingsData.some(booking => {
             const bookingStart = booking.dateTime.toDate().getTime();
-            const bookedService = servicesMap.get(booking.serviceId);
-            const bookedServiceDuration = bookedService?.duration || 60; // Default to 60 mins if service not found
+            const bookedServiceDuration = booking.duration; // Use the total duration from the booking document
             const bookingEnd = bookingStart + bookedServiceDuration * 60 * 1000;
 
             // Conflict if the new slot overlaps with an existing booking
