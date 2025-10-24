@@ -391,16 +391,16 @@ const ServiceManagement = () => {
                       </div>
                         </div>
                       </div>
-                      <div className='flex flex-row'>
-                        <div className="space-y-2 text-sm text-gray-600 border-t pt-2 mt-2">
-                          <p><strong className="font-medium text-gray-700">分類:</strong> {service.category}</p>
-                          <p><strong className="font-medium text-gray-700">一般價:</strong> ${service.price}</p>
+                      <div className="flex flex-row gap-4 border-t pt-3 mt-3">
+                        <div className="flex-1 space-y-2 text-sm text-gray-600">
+                          <div><strong className="font-medium text-gray-700">分類:</strong> {service.category}</div>
+                          <div><strong className="font-medium text-gray-700">一般價:</strong> ${service.price}</div>
                           {service.platinumPrice && (
-                            <p className="text-yellow-700">
+                            <div className="text-yellow-700">
                               <strong className="font-medium text-yellow-600">白金價:</strong> ${service.platinumPrice}
-                            </p>
+                            </div>
                           )}
-                          <p><strong className="font-medium text-gray-700">時長:</strong> {service.duration} 分鐘</p>
+                          <div><strong className="font-medium text-gray-700">時長:</strong> {service.duration} 分鐘</div>
                           <div className="flex items-center pt-1">
                             <strong className="font-medium text-gray-700 mr-2">狀態:</strong>
                             <button onClick={() => handleToggleAvailability(service)} disabled={isToggling === service.id} className={`px-3 py-1 text-xs font-semibold rounded-full ${service.available ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} disabled:opacity-50`}>
@@ -408,10 +408,8 @@ const ServiceManagement = () => {
                             </button>
                           </div>
                         </div>
-                        <div className='mt-2 pt-2 border-t flex-1 flex flex-col justify-center items-center'>
-                          <p><strong className="font-medium text-gray-700">圖片:</strong></p>
-                          {service.imageUrl && (<img className="h-28 w-28 rounded-md object-cover mr-4" src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.name} />)}
-                          
+                        <div className="flex-shrink-0">
+                          <img className="h-28 w-28 rounded-md object-cover" src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.name} />
                         </div>
                       </div>
 

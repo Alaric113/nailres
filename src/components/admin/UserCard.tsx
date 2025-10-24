@@ -44,13 +44,13 @@ const UserCard: React.FC<UserCardProps> = ({ user, isUpdatingRole, onRoleChange,
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-md border border-gray-200 flex overflow-hidden">
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
       {/* Left: Avatar */}
-      <div className="flex-shrink-0 w-20 p-1 justify-center items-center flex bg-gray-50">
-        <img className="w-18 h-18 rounded-full object-cover ml-2" src={user.profile.avatarUrl || DEFAULT_AVATAR} alt="Avatar" />
+      <div className="flex-shrink-0 w-24 p-2 justify-center items-center flex bg-gray-50">
+        <img className="w-20 h-20 rounded-full object-cover" src={user.profile.avatarUrl || DEFAULT_AVATAR} alt="Avatar" />
       </div>
       {/* Right: Content */}
-      <div className="p-4 flex-1 flex flex-col justify-between">
+      <div className="p-3 flex-1 flex flex-col justify-between">
         <div>
           <div className="flex justify-between items-start mb-2">
             <h3 className="font-bold text-lg text-gray-800 truncate pr-2">{user.profile.displayName || 'N/A'}</h3>
@@ -70,7 +70,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, isUpdatingRole, onRoleChange,
             </select>
           </div>
         </div>
-        <div className="mt-1 pt-1 border-t border-gray-200">
+        <div className="mt-2 pt-2 border-t border-gray-200">
           <strong className="text-sm font-medium text-gray-600">備註:</strong>
           {isEditing ? (
             <div className="flex flex-col gap-2 mt-1">
