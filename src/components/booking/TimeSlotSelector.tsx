@@ -5,19 +5,19 @@ import { format } from 'date-fns';
 
 interface TimeSlotSelectorProps {
   selectedDate: string;
-  serviceDuration: number | null;
+  serviceDuration: number | null; // Allow null
   onTimeSelect: (time: Date) => void;
   selectedTime: Date | null;
 }
 
 const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({ selectedDate, serviceDuration, onTimeSelect, selectedTime }) => {
-  const { availableSlots, isLoading, error } = useAvailableSlots(selectedDate, serviceDuration);
+  const { availableSlots, loading, error } = useAvailableSlots(selectedDate, serviceDuration);
 
   if (!selectedDate || !serviceDuration) {
     return <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">請先選擇服務項目與日期。</div>;
   }
 
-  if (isLoading) {
+  if (loading) {
     return <div className="flex justify-center p-4"><LoadingSpinner /></div>;
   }
 

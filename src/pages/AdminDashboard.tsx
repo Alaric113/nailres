@@ -73,8 +73,8 @@ const AdminDashboard = () => {
             />
             <SummaryCard
               title="營業時間"
-              value={summaryData.holidaysNext7Days}
-              unit="天"
+              value=''
+              unit=""
               linkTo="/admin/hours"
               icon={<CalendarDaysIcon className="h-6 w-6" />}
               color="bg-red-500"

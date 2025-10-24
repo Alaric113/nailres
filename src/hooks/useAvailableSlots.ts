@@ -1,126 +1,118 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { BusinessHours } from '../types/businessHours';
+import { startOfDay, endOfDay, parse, set, addMinutes } from 'date-fns';
 import type { BookingDocument } from '../types/booking';
+import type { BusinessHours, TimeSlot } from '../types/businessHours';
 
-export const useAvailableSlots = (selectedDate: string, serviceDuration: number | null) => {
+const DEFAULT_BUSINESS_HOURS: TimeSlot[] = [{ start: '10:00', end: '19:00' }];
+
+export const useAvailableSlots = (date: string | null, serviceDuration: number | null) => {
   const [availableSlots, setAvailableSlots] = useState<Date[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!selectedDate || !serviceDuration) {
+    // Explicitly check for null or non-positive serviceDuration to help TypeScript's control flow analysis.
+    if (!date || serviceDuration === null || serviceDuration <= 0) {
       setAvailableSlots([]);
+      setLoading(false);
       return;
     }
 
-    const fetchAndCalculateSlots = async () => {
-      setIsLoading(true);
+    const fetchSlots = async () => {
+      setLoading(true);
       setError(null);
 
       try {
-        // --- 1. Fetch Business Hours for the selected date ---
-        const businessHoursRef = doc(db, 'businessHours', selectedDate);
-        const businessHoursSnap = await getDoc(businessHoursRef);
+        const selectedDate = parse(date, 'yyyy-MM-dd', new Date());
 
-        let isDayOff = false;
-        let timeSlots: { start: string; end: string }[] = [{ start: '10:00', end: '19:00' }]; // Default
+        // 1. Fetch business hours for the selected date
+        const businessHoursRef = doc(db, 'businessHours', date);
+        const businessHoursSnap = await getDoc(businessHoursRef);
+        let dayTimeSlots: TimeSlot[] = DEFAULT_BUSINESS_HOURS;
+        let isClosed = false;
 
         if (businessHoursSnap.exists()) {
           const data = businessHoursSnap.data() as BusinessHours;
-          isDayOff = data.isClosed;
+          isClosed = data.isClosed;
+          // If time slots are defined and not empty, use them. Otherwise, stick to default.
           if (data.timeSlots && data.timeSlots.length > 0) {
-            timeSlots = data.timeSlots;
+            dayTimeSlots = data.timeSlots;
           }
         }
 
-        if (isDayOff) {
+        if (isClosed) {
           setAvailableSlots([]);
-          setIsLoading(false);
+          setLoading(false);
           return;
         }
-        const slotInterval = 15; // Check for a new slot every 15 minutes
 
-        // --- 2. Fetch Existing Bookings for the Selected Date ---
-        const startOfDay = new Date(selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        // 2. Fetch existing bookings for the selected date
+        const startOfSelectedDay = startOfDay(selectedDate);
+        const endOfSelectedDay = endOfDay(selectedDate);
 
-        const bookingsRef = collection(db, 'bookings');
-        const q = query(
-          bookingsRef,
-          where('dateTime', '>=', Timestamp.fromDate(startOfDay)),
-          where('dateTime', '<=', Timestamp.fromDate(endOfDay))
+        const bookingsQuery = query(
+          collection(db, 'bookings'),
+          // To completely avoid any composite index requirement, query only by date range.
+          // We will filter the status on the client-side.
+          where('dateTime', '>=', startOfSelectedDay),
+          where('dateTime', '<', endOfSelectedDay)
         );
-        const querySnapshot = await getDocs(q);
-        const bookingsData = querySnapshot.docs.map(doc => doc.data() as BookingDocument);
 
+        const querySnapshot = await getDocs(bookingsQuery);
+        const allBookingsForDay = querySnapshot.docs.map(doc => doc.data() as BookingDocument);
 
+        // Filter out cancelled bookings on the client side. This is more robust than complex queries.
+        const validStatuses: BookingDocument['status'][] = ['pending_payment', 'pending_confirmation', 'confirmed', 'completed'];
+        const existingBookings = allBookingsForDay.filter(booking => validStatuses.includes(booking.status));
 
-        // --- 3. Generate All Potential Slots for the Day ---
-        const potentialSlots: Date[] = [];
-        const day = new Date(selectedDate);
+        // 3. Generate all possible slots and filter out conflicts
+        const slots: Date[] = [];
+        const slotInterval = 15; // Generate slots every 15 minutes
 
-        timeSlots.forEach(slotRange => {
-          const openingHour = parseInt(slotRange.start.split(':')[0], 10);
-          const closingHour = parseInt(slotRange.end.split(':')[0], 10);
-          for (let hour = openingHour; hour < closingHour; hour++) {
-            for (let minute = 0; minute < 60; minute += slotInterval) {
-              const slot = new Date(day);
-              slot.setHours(hour, minute, 0, 0);
-              potentialSlots.push(slot);
+        dayTimeSlots.forEach(timeSlot => {
+          const [startHour, startMinute] = timeSlot.start.split(':').map(Number);
+          const [endHour, endMinute] = timeSlot.end.split(':').map(Number);
+
+          let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
+          const endTime = set(selectedDate, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
+
+          while (addMinutes(currentTime, serviceDuration) <= endTime) {
+            const slotStart = currentTime;
+            const slotEnd = addMinutes(slotStart, serviceDuration);
+
+            const isOverlapping = existingBookings.some(booking => {
+              const bookingStart = (booking.dateTime as any).toDate();
+              // Ensure we only check bookings within the selected day
+              if (bookingStart >= endOfSelectedDay) {
+                return false;
+              }
+
+              const bookingEnd = addMinutes(bookingStart, booking.duration);
+              // Check for overlap: (StartA < EndB) and (EndA > StartB)
+              return slotStart < bookingEnd && slotEnd > bookingStart;
+            });
+
+            if (!isOverlapping) {
+              slots.push(slotStart);
             }
+
+            currentTime = addMinutes(currentTime, slotInterval);
           }
-        });
-
-        // --- 4. Filter Out Unavailable Slots ---
-        const slots = potentialSlots.filter(slot => {
-          const slotStart = slot.getTime();
-          const slotEnd = slotStart + serviceDuration * 60 * 1000;
-          
-          // Check if the slot is within any of the defined business hour time slots
-          const isInBusinessHours = timeSlots.some(ts => {
-            const rangeStart = new Date(day);
-            const [startH, startM] = ts.start.split(':');
-            rangeStart.setHours(parseInt(startH), parseInt(startM), 0, 0);
-
-            const rangeEnd = new Date(day);
-            const [endH, endM] = ts.end.split(':');
-            rangeEnd.setHours(parseInt(endH), parseInt(endM), 0, 0);
-
-            return slotStart >= rangeStart.getTime() && slotEnd <= rangeEnd.getTime();
-          });
-
-          if (!isInBusinessHours) {
-            return false;
-          }
-
-          // Check for conflicts with existing bookings
-          return !bookingsData.some(booking => {
-            const bookingStart = booking.dateTime.toDate().getTime();
-            const bookedServiceDuration = booking.duration; // Use the total duration from the booking document
-            const bookingEnd = bookingStart + bookedServiceDuration * 60 * 1000;
-
-            // Conflict if the new slot overlaps with an existing booking
-            // A new slot [slotStart, slotEnd] overlaps with an existing booking [bookingStart, bookingEnd] if:
-            // slotStart is before bookingEnd AND slotEnd is after bookingStart.
-            return slotStart < bookingEnd && slotEnd > bookingStart;
-          });
         });
 
         setAvailableSlots(slots);
       } catch (err) {
-        console.error("Error calculating slots: ", err);
-        setError('Could not load available times. Please try again.');
+        console.error("Error fetching available slots:", err);
+        setError("無法讀取可預約時段，請稍後再試。");
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    fetchAndCalculateSlots();
-  }, [selectedDate, serviceDuration]);
+    fetchSlots();
+  }, [date, serviceDuration]);
 
-  return { availableSlots, isLoading, error };
+  return { availableSlots, loading, error };
 };

@@ -300,6 +300,36 @@
         - **[完成]** **優化預約日曆:** 在預約頁面的日曆 (`CalendarSelector.tsx`) 上標示出公休日，提升使用者體驗。
         - **[完成]** **解決權限變更 400 錯誤:** 更新 Firestore 安全規則，允許管理員修改其他使用者的 `role` 欄位，解決因權限不足導致的寫入失敗問題。
 
+1.  **[核心修正] 同步預約時段與營業時間:**
+    - **目標:** 解決客戶預約時可選時段與管理員設定的營業時間不符的問題。
+    - **根本原因:** `TimeSlotSelector.tsx` 中使用了固定的營業時間（10:00-19:00），且未處理多個不連續的營業時段。
+    - **解決方案:** 將時段計算邏輯抽象化至新的 `useAvailableSlots.ts` Hook。此 Hook 會從 Firestore 讀取指定日期的 `businessHours`，正確處理公休日與多個營業時段，並在沒有特殊設定時套用預設營業時間，確保預約時段與後台設定完全同步。
+
+1.  **[核心修正] 修正預約時段計算邏輯:**
+    - **目標:** 解決 `useAvailableSlots.ts` 因型別錯誤導致無法正確過濾已預約時段的問題。
+    - **根本原因:** Hook 在讀取現有預約時，使用了舊的 `Booking` 型別，未正確處理 Firebase 的 `Timestamp` 物件，導致時間比對邏輯失效。
+    - **解決方案:** 將 `useAvailableSlots.ts` 中使用的型別從 `Booking` 更新為 `BookingDocument`，並在比對時使用 `.toDate()` 方法將 `Timestamp` 轉換為標準 `Date` 物件。同時修正了 `TimeSlotSelector.tsx` 的 props 型別，使其與 Hook 的輸入參數保持一致。
+
+1.  **[核心修正] 解決 Firestore 索引不足錯誤:**
+    - **目標:** 解決 `useAvailableSlots.ts` 中因查詢語法限制導致的 `The query requires an index` 錯誤。
+    - **根本原因:** Firestore 查詢不支援在不同欄位上同時使用「範圍篩選」（如 `dateTime >= ...`）和「不等於篩選」（如 `status != 'cancelled'`）。
+    - **解決方案:** 重構查詢邏輯，將 `where('status', '!=', 'cancelled')` 替換為 `where('status', 'in', ['pending_payment', 'pending_confirmation', 'confirmed', 'completed'])`。這個 `in` 條件可以與範圍篩選結合使用，無需建立額外的複合索引，從根本上解決了問題。
+
+1.  **[核心修正] 強化 Firestore 查詢穩定性:**
+    - **目標:** 徹底解決 `useAvailableSlots.ts` 中偶發的 `The query requires an index` 錯誤。
+    - **根本原因:** 即使使用了 `in` 條件，在某些情況下，對 `dateTime` 欄位同時使用兩個範圍篩選 (`>=` 和 `<`) 仍可能觸發索引要求。
+    - **解決方案:** 將 Firestore 查詢簡化為單一範圍篩選 `where('dateTime', '>=', startOfSelectedDay)`，並在前端程式碼中過濾掉不屬於當天的預約。這種方法更為穩健，完全避免了對複合索引的依賴。
+
+1.  **[核心修正] 最終解決方案：徹底根除 Firestore 索引錯誤:**
+    - **目標:** 採用最穩健的策略，完全避免 `The query requires an index` 錯誤。
+    - **根本原因:** Firestore 對複合查詢的索引要求在某些邊界情況下行為複雜，持續導致問題。
+    - **解決方案:** 將查詢邏輯極度簡化，僅向 Firestore 請求指定日期範圍 (`dateTime >= start` 且 `dateTime < end`) 的所有預約。然後，在前端的 `useAvailableSlots.ts` Hook 中，使用 JavaScript 的 `filter` 方法過濾掉狀態為 `cancelled` 的預約。此方法雖然會多讀取少量數據，但能完全規避對複合索引的依賴，確保功能的絕對穩定。
+
+1.  **[型別修正] 解決 `useAvailableSlots.ts` 中的 `possibly 'null'` 錯誤:**
+    - **目標:** 修正 `useAvailableSlots.ts` Hook 中因 `serviceDuration` 型別可能為 `null` 而導致的 TypeScript 編譯錯誤。
+    - **根本原因:** `useEffect` 中的初始檢查 `serviceDuration <= 0` 不足以讓 TypeScript 推斷出 `serviceDuration` 在後續程式碼中不為 `null`。
+    - **解決方案:** 將條件判斷修改為 `serviceDuration === null || serviceDuration <= 0`，更明確地處理 `null` 情況，使 TypeScript 的控制流分析能夠正確將型別縮小為 `number`，從而解決編譯錯誤。
+
 1.  **服務項目管理頁面優化:**
     - **目標:** 提升服務項目管理頁面的使用者體驗與響應式設計。
     - **任務:**
