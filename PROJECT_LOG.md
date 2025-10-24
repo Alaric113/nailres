@@ -330,6 +330,11 @@
     - **根本原因:** `useEffect` 中的初始檢查 `serviceDuration <= 0` 不足以讓 TypeScript 推斷出 `serviceDuration` 在後續程式碼中不為 `null`。
     - **解決方案:** 將條件判斷修改為 `serviceDuration === null || serviceDuration <= 0`，更明確地處理 `null` 情況，使 TypeScript 的控制流分析能夠正確將型別縮小為 `number`，從而解決編譯錯誤。
 
+1.  **[UI 調整] 簡化登入/註冊選項:**
+    - **目標:** 根據營運需求，暫時隱藏 Google 和帳號密碼的登入/註冊方式，僅保留 LINE 登入。
+    - **任務:**
+        - 在 `src/pages/Login.tsx` 和 `src/pages/Register.tsx` 中，使用 Tailwind CSS 的 `hidden` class 隱藏了對應的表單和按鈕區塊。
+
 1.  **服務項目管理頁面優化:**
     - **目標:** 提升服務項目管理頁面的使用者體驗與響應式設計。
     - **任務:**
