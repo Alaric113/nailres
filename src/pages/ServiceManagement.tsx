@@ -280,7 +280,7 @@ const ServiceManagement = () => {
         />
 
         {/* 現有服務列表 */}
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">現有服務列表</h2>
