@@ -410,7 +410,7 @@ const ServiceManagement = () => {
                         </div>
                         <div className='mt-2 pt-2 border-t flex-1 flex flex-col justify-center items-center'>
                           <p><strong className="font-medium text-gray-700">圖片:</strong></p>
-                          {service.imageUrl && (<img className="h-28 w-28 rounded-md object-cover mr-4" src={service.imageUrl || 'https://via.placeholder.j6/150'} alt={service.name} />)}
+                          {service.imageUrl && (<img className="h-28 w-28 rounded-md object-cover mr-4" src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.name} />)}
                           
                         </div>
                       </div>

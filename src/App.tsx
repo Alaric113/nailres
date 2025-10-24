@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth'; // 確保 useAuth 在這裡被呼叫
 import { useAuthStore } from './store/authStore';
 import Navbar from './components/Navbar'; // 引入新的導覽列
-import MainLayout from './components/MainLayout'; // 引入新的佈局元件
+import Sidebar from './components/common/Sidebar'; // 引入新的側邊選單
+import MainLayout from './components/MainLayout'; // 引入新的佈局元件 (如果還需要的話)
 
 // Public Page Components
 import Home from './pages/Home';
@@ -26,6 +28,12 @@ import AdminRoute from './components/AdminRoute';
 function App() {
   // This hook will run on app startup and handle auth state synchronization.
   const { isCheckingRedirect } = useAuth(); // 確保 useAuth 在這裡被呼叫
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   const { currentUser, userProfile, authIsLoading } = useAuthStore();
 
   // While the initial auth state is being determined, OR we are processing a redirect,
@@ -38,8 +46,9 @@ function App() {
   return (
     // [App Checkpoint 2] App has finished loading (authIsLoading: false). Rendering routes.
     <Router>
-      <Navbar />
-      <Routes>
+      <Navbar onMenuClick={toggleSidebar} />
+      <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
+      <Routes> {/* 這裡的 MainLayout 可能需要根據新 Navbar/Sidebar 調整或移除 */}
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
 

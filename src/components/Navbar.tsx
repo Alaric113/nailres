@@ -1,7 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { Bars3Icon } from '@heroicons/react/24/outline';
 
-const Navbar = () => {
+interface NavbarProps {
+  onMenuClick: () => void;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   const { currentUser, userProfile, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -13,6 +18,14 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 h-[72px] flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 bg-white/80 backdrop-saturate-150 backdrop-blur-lg border-b border-gray-200 z-50">
+      <button
+              onClick={onMenuClick}
+              className="rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-pink-500"
+              aria-label="Open menu"
+            >
+              <Bars3Icon className="h-6 w-6" />
+            </button>
+      
       <Link to="/" className="text-xl font-bold tracking-wide text-gray-800">
         TreeRing
       </Link>
