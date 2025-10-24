@@ -352,7 +352,7 @@ const ServiceManagement = () => {
                               {isToggling === service.id ? '...' : (service.available ? '上架中' : '已下架')}
                             </button>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
+                          <td className="px-6 py-6 whitespace-nowrap text-sm font-medium flex gap-2">
                             <button
                               onClick={() => handleEditClick(service)}
                               className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-300 disabled:cursor-not-allowed"
