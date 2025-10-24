@@ -17,8 +17,6 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { label: '關鍵字搜尋', icon: MagnifyingGlassIcon, link: '#' },
-  { label: '首頁', icon: HomeIcon, link: '/' },
   {
     label: '💫 NEW & POPULAR',
     isCategory: true,
