@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { HomeIcon, MagnifyingGlassIcon, XMarkIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../../store/authStore';
 
 interface SidebarProps {
