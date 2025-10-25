@@ -20,6 +20,8 @@ import CustomerListPage from './pages/CustomerListPage';
 import HoursSettingsPage from './pages/HoursSettingsPage';
 import OrderManagementPage from './pages/OrderManagementPage';
 import CalendarPage from './pages/CalendarPage';
+import SettingsPage from './pages/SettingsPage';
+
 
 // Route Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -92,6 +94,8 @@ function App() {
           <Route path="/admin/hours" element={<MainLayout><HoursSettingsPage /></MainLayout>} />
           <Route path="/admin/orders" element={<MainLayout><OrderManagementPage /></MainLayout>} />
           <Route path="/admin/calendar" element={<MainLayout><CalendarPage /></MainLayout>} />
+          <Route path="/admin/settings" element={<MainLayout><SettingsPage /></MainLayout>} />
+
         </Route>
       </Routes>
     </Router>

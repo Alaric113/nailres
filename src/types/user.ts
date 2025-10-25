@@ -14,6 +14,7 @@ export interface UserDocument {
   lastLogin: Timestamp | FieldValue;
   notes?: string;
   lineUserId?: string;
+  receivesAdminNotifications?: boolean;
 }
 
 // This represents the user document with its ID from the collection

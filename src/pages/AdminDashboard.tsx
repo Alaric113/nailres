@@ -8,7 +8,7 @@ import { useServices } from '../hooks/useServices';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import SummaryCard from '../components/admin/SummaryCard';
 import ImageManagementModal from '../components/admin/ImageManagementModal';
-import { CalendarDaysIcon, UserGroupIcon, CubeIcon, CurrencyDollarIcon, CheckCircleIcon, CheckBadgeIcon, ArchiveBoxIcon, CalendarIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, UserGroupIcon, CubeIcon, CurrencyDollarIcon, CheckCircleIcon, CheckBadgeIcon, ArchiveBoxIcon, CalendarIcon, PhotoIcon, Cog6ToothIcon  } from '@heroicons/react/24/outline';
 
 const AdminDashboard = () => {
   // Fetch all bookings for summary cards
@@ -58,7 +58,7 @@ const AdminDashboard = () => {
               管理員後台
             </h1>
             <Link to="/dashboard" className="text-sm font-medium text-indigo-600 hover:underline mt-2 sm:mt-0">
-              返回使用者儀表板 &rarr;
+              返回使用者頁面 &rarr;
             </Link>
           </div>
           {/* Data Summary Section */}
@@ -134,6 +134,14 @@ const AdminDashboard = () => {
               unit="項"
               linkTo="/admin/services"
               icon={<CubeIcon className="h-6 w-6" />}
+              color="bg-indigo-500"
+            />
+            <SummaryCard
+              title="設定"
+              value=''
+              unit=""
+              linkTo="/admin/settings"
+              icon={<Cog6ToothIcon className="h-6 w-6" />}
               color="bg-indigo-500"
             />
           </div>

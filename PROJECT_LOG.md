@@ -361,11 +361,28 @@
         - **[完成]** **修正預約時長顯示錯誤:** 已根據使用者當前的程式碼版本，更新 `useAllBookings.ts` Hook，使其在組合資料時能正確地將服務時長 (`serviceDuration`) 包含進來，解決了行事曆上所有預約都只顯示一小時的問題。
 
 1.  **[已解決] 啟動錯誤：路徑別名解析失敗**
+
     - **目標:** 解決 `npm run dev` 時出現的 `Failed to resolve import "@/App"` 錯誤。
     - **問題描述:** 專案缺少 `vite.config.ts` 檔案，導致 Vite 無法識別 `@` 路徑別名。
     - **任務:**
         - **[完成]** 建立 `vite.config.ts` 檔案。
         - **[完成]** 在設定檔中新增 `resolve.alias` 選項，將 `@` 指向 `src` 目錄。
+
+1.  **[已解決] 本地開發 API 404 錯誤**
+    - **目標:** 解決在本地開發環境中，前端呼叫後端 Netlify Function API 時出現 `404 Not Found` 的問題。
+    - **問題描述:** `vite.config.ts` 中的代理設定未正確重寫 API 路徑。
+    - **解決方案:** 將 Vite 代理設定從簡寫字串改為詳細物件，並使用 `rewrite` 選項將 `/api` 前綴替換為 Netlify Functions 需要的 `/.netlify/functions` 路徑。
+
+1.  **[已解決] 後端函式環境變數設定錯誤**
+    - **目標:** 解決 Netlify Function 在本地開發時，因讀取不到 `FIREBASE_SERVICE_ACCOUNT` 環境變數而導致 Firebase Admin SDK 初始化失敗的問題。
+    - **問題描述:** 執行 `/api/send-line-message` 時，後端拋出 `Firebase service account is not configured.` 錯誤。
+    - **根本原因:** 後端函式無法讀取 Vite 前端專用的 `VITE_` 前綴環境變數。
+    - **解決方案:** 在專案根目錄的 `.env` 檔案中，新增一個**沒有 `VITE_` 前綴**的 `FIREBASE_SERVICE_ACCOUNT` 變數，並將服務帳戶的 JSON 金鑰內容設定為其值。
+
+1.  **[已解決] 後端函式 TypeScript 型別錯誤**
+    - **目標:** 修正 `send-line-message.ts` 中因 `catch` 區塊的 `error` 變數為 `unknown` 型別而導致的編譯錯誤。
+    - **問題描述:** TypeScript 報錯 `error' is of type 'unknown'.ts(18046)`。
+    - **解決方案:** 在存取 `error.message` 之前，先使用 `instanceof Error` 進行型別檢查，以確保程式碼的型別安全。
 
 1.  **效能優化 (Performance Optimization):**
     - **目標:** 提升首頁載入體驗，避免背景圖片延遲出現。
@@ -380,6 +397,7 @@
         - **[完成]** 全域搜尋並取代所有 `from '@/lib/firebase'` 的引用為 `from '@/firebase'`，確保所有相關檔案路徑一致。
 
 1.  **[已解決] 啟動錯誤：專案結構混亂導致的路徑解析問題**
+
     - **目標:** 徹底解決 `npm run dev` 啟動時所有 `Failed to resolve import` 相關的錯誤。
     - **問題描述:** 專案中存在多個重複的 `firebase.ts` 及其他 hooks/types 檔案，導致 `import` 路徑混亂，Vite 無法正確解析模組。
     - **下一步:**
@@ -388,6 +406,7 @@
         - **[完成]** 全域修正所有 `import` 路徑，使其指向 `src/lib/firebase.ts` 或其他正確的模組位置。
 
 1.  **服務項目管理功能擴充:**
+
     - **目標:** 讓管理員能夠刪除服務項目。
     - **任務:**
         - **[完成]** 在 `ServiceManagement.tsx` 中新增「刪除」按鈕。
@@ -395,6 +414,7 @@
         - **[完成]** 確保刪除操作的載入狀態和錯誤處理。
 
 1.  **擴充使用者角色系統:**
+
     - **目標:** 新增「白金會員」角色，並讓管理員可以自由設定使用者等級。
     - **任務:**
         - **[完成]** 更新 `src/types/user.ts`，在 `UserRole` 型別中加入 `platinum`。
@@ -407,6 +427,7 @@
             - **[完成]** 調整了行動版卡片的整體佈局與樣式，提升了視覺清晰度與專業感。
 
 1.  **首頁服務項目優化:**
+
     - **目標:** 將首頁的服務項目改為三大分類，並移除圖片，使其連結至預約頁面。
     - **任務:**
         - **[完成]** 修改 `src/pages/Home.tsx` 中的 `services` 陣列為 `categories` 陣列，包含「美睫服務」、「霧眉服務」、「美甲服務」三大類。
@@ -414,6 +435,7 @@
         - **[完成]** 更新分類連結，使其導向 `/booking?category=<分類名稱>`。
 
 1.  **擴充服務項目功能 (白金會員價):**
+
     - **目標:** 為服務項目新增「白金會員價」，並在預約時根據使用者角色自動套用。
     - **任務:**
         - **[完成]** **更新管理介面:** 在 `src/pages/admin/ServiceManagement.tsx` 的表單中新增 `platinumPrice` 欄位，並更新儲存邏輯與服務列表的顯示方式。
@@ -424,12 +446,14 @@
         - **[完成]** **更新專案日誌:** 在 `project_log.md` 中記錄本次功能擴充。
 
 1.  **專案整體審閱:**
+
     - **目標:** 確保 AI 協作者對專案的整體狀況有深入的理解。
     - **任務:**
         - **[完成]** **AI 協作者已審閱專案日誌:** Gemini Code Assist 已閱讀並理解所有專案文件，特別是 `project_log.md` 的內容與協作協議。
         - **[下一步]** **處理技術債:** 根據日誌中的 `[技術債]` 標記，下一步的優先任務是解決本地 Tailwind CSS 的設定問題，移除對 CDN 的依賴。
 
 1.  **優化預約流程 (多選服務與分類收合):**
+
     - **目標:** 讓使用者可以一次選擇多個服務項目，並以可收合的分類方式呈現，提升預約體驗。
     - **任務:**
         - **[完成]** **修改資料模型:** 更新 `src/types/booking.ts`，將 `serviceId` 改為 `serviceIds: string[]` 和 `serviceNames: string[]`，並新增 `duration: number` (總時長)。
@@ -442,6 +466,7 @@
         - **[完成]** **修正 `BookingStatus` 型別匯入錯誤:** 在 `src/components/booking/BookingForm.tsx` 中匯入 `BookingStatus` 型別。
 
 1.  **預約狀態流程重構:**
+
     - **目標:** 將 `status` 和 `paymentStatus` 合併為一個統一的 `status` 欄位，並定義 5 種新狀態，根據會員等級設定初始狀態。
     - **任務:**
         - **[完成]** **更新資料模型:** 在 `src/types/booking.ts` 中更新 `BookingStatus` 型別，並移除 `paymentStatus`。
@@ -449,6 +474,7 @@
         - **[完成]** **更新儀表板顯示與取消邏輯:** 在 `src/pages/Dashboard.tsx` 中，更新狀態標籤的樣式與文字，並調整取消預約的條件。
 
 1.  **[新任務] 實施管理員後台綜合優化方案:**
+
     - **目標:** 根據 `10. 核心功能重構與優化藍圖` 中的技術規範，重構管理員後台。
     - **核心任務:**
         - **[完成]** **建立訂單管理頁面:** 建立 `OrderManagementPage.tsx`，取代舊的 `PendingOrdersPage.tsx`，並能根據 URL 參數動態顯示不同狀態的訂單。
@@ -517,20 +543,53 @@
     - **查詢優化：** 實施日期範圍限制查詢，減少資料庫讀取量。
 
 2.  **`useBusinessHoursSummary` Hook 強化**
+
     - 確保此 Hook 提供的公休日資料能夠被 `FullCalendar` 的 `businessHours` 或自訂渲染邏輯正確消費。
 
-## 11. 待討論事項
+## 11. LINE Messaging API 整合藍圖 (LINE Messaging API Integration Blueprint)
 
-## 10. 待討論事項
+**目的:** 整合 LINE Messaging API，實現自動化的預約通知與提醒，提升客戶溝通效率與服務品質。
 
-- **金流串接細節:** 需要獲取綠界 (ECPay) 的測試商店 ID 與 API Key。
-- **LINE Bot 憑證:** 需要申請 LINE Channel Secret 和 Channel Access Token 以進行後續整合。
-- **UI/UX 設計稿:** 目前只有架構，尚無具體的 UI 設計稿，這會是下一步規劃的重點。
+#### 一、 後端架構 (Netlify Functions)
+
+1.  **核心功能函式:**
+    -   **`send-line-message.ts`:** 一個通用的 Netlify Function，負責處理所有發送 LINE 訊息的請求。它將接收 `to` (目標 LINE User ID), `templateName` (要使用的訊息模板), 和 `data` (模板變數) 作為參數。
+    -   **`daily-reminder-check.ts`:** 一個排程函式 (Scheduled Function)，每日固定時間執行，用於檢查隔天的預約並發送提醒訊息。
+
+2.  **觸發機制:**
+    -   **預約完成後通知:**
+        -   **前端觸發:** 在 `BookingForm.tsx` 中，當預約成功寫入 Firestore 後，前端會直接呼叫 `/api/send-line-message` API，並傳遞新預約的相關資訊。
+        -   **後端邏輯:** `send-line-message` 函式會根據收到的資訊，分別向客戶和指定的管理員發送「預約成功」的模板訊息。
+    -   **預約前一日提醒:**
+        -   **排程觸發:** 在 `netlify.toml` 中設定 cron job，例如 `0 2 * * *` (每日 UTC 2:00，即台灣時間上午 10:00)，觸發 `daily-reminder-check` 函式。
+        -   **後端邏輯:** `daily-reminder-check` 函式會查詢 Firestore 中所有「隔天」且狀態為 `confirmed` 的預約，然後遍歷這些預約，呼叫 `send-line-message` 為每位客戶發送「預約提醒」模板訊息。
+
+3.  **設定與密鑰管理:**
+    -   **環境變數 (Netlify):**
+        -   `LINE_CHANNEL_ACCESS_TOKEN`: 用於驗證 Messaging API 請求。
+        -   `LINE_CHANNEL_SECRET`: 用於驗證 Webhook 請求 (初期可暫不設定)。
+    -   **資料庫設定 (Firestore):**
+        -   在 `users` 集合的每個使用者文件中，新增一個 `receivesAdminNotifications` (布林值) 欄位。
+
+#### 二、 前端架構 (React App)
+
+1.  **管理員設定頁面:**
+    -   **目標:** 讓管理員可以勾選哪些管理員帳號要接收 LINE 通知。
+    -   **[完成]** 重構了 `SettingsPage.tsx`，現在會列出所有管理員，並提供開關以設定是否接收 LINE 通知。
+    -   **[完成]** 更新了 `user.ts` 型別，加入了 `receivesAdminNotifications` 欄位。
+
+2.  **觸發點整合:**
+    -   **[進行中]** 在 `src/components/booking/BookingForm.tsx` 的 `onSubmit` 函式中，當預約成功後，新增 `fetch` 呼叫，將預約資訊傳送至 `/api/send-line-message`。
+
+#### 三、 訊息模板 (LINE Developers Console)
+
+需要預先在 LINE Developers Console 中建立至少兩種訊息模板：
+1.  **預約成功通知 (Booking Confirmation):** 包含預約時間、服務項目、金額等資訊。
+2.  **預約提醒 (Booking Reminder):** 包含預約時間、服務項目、店家地址等資訊。
 
 ---
-**日誌結束**
 
-## 10. 待討論事項
+## 12. 待討論事項
 
 - **金流串接細節:** 需要獲取綠界 (ECPay) 的測試商店 ID 與 API Key。
 - **LINE Bot 憑證:** 需要申請 LINE Channel Secret 和 Channel Access Token 以進行後續整合。

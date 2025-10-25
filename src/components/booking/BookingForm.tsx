@@ -48,17 +48,34 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, onBooking
     const initialStatus: BookingStatus = userProfile?.role === 'platinum' ? 'pending_confirmation' : 'pending_payment';
 
     try {
-      await addDoc(collection(db, 'bookings'), {
+      const newBooking = {
         userId: currentUser.uid,
         serviceIds: serviceIds,
         serviceNames: serviceNames,
-        dateTime: dateTime, // Directly pass the JavaScript Date object
+        dateTime: dateTime,
         status: initialStatus,
         amount: totalPrice,
         duration: totalDuration,
         createdAt: serverTimestamp(),
         notes: notes,
-      });
+      };
+      await addDoc(collection(db, 'bookings'), newBooking);
+
+      // Call the Netlify function to send a LINE message
+      fetch('/api/send-line-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: newBooking.userId,
+          serviceNames: newBooking.serviceNames,
+          dateTime: newBooking.dateTime.toISOString(),
+          amount: newBooking.amount,
+          notes: newBooking.notes,
+        }),
+      }).catch(err => console.error('Failed to send LINE notification:', err));
+
       alert('預約成功！');
       onBookingSuccess();
       navigate('/dashboard'); // Or a confirmation page

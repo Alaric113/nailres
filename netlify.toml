@@ -3,6 +3,10 @@
   command = "npm run build" # 執行 build 的指令
   publish = "dist"          # build 後的產出目錄
 
+# Netlify Functions configuration
+[functions]
+  directory = "netlify/functions"
+
   # 告訴 Netlify 在建置環境中可以使用這些環境變數
   # 並在安全掃描時忽略它們
   [build.environment]
