@@ -21,6 +21,13 @@
   to = "https://nail-62ea4.firebaseapp.com/__/auth/:splat"
   status = 200
 
+# API rewrite rule for Netlify Functions
+# This rule must come BEFORE the general SPA redirect rule.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
 # Redirect rule for Single Page Applications (SPA)
 # 這會將所有找不到的路徑都導向 index.html，讓 React Router 接管
 [[redirects]]

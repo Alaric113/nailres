@@ -379,6 +379,12 @@
     - **根本原因:** 後端函式無法讀取 Vite 前端專用的 `VITE_` 前綴環境變數。
     - **解決方案:** 在專案根目錄的 `.env` 檔案中，新增一個**沒有 `VITE_` 前綴**的 `FIREBASE_SERVICE_ACCOUNT` 變數，並將服務帳戶的 JSON 金鑰內容設定為其值。
 
+1.  **[已解決] 生產環境 API 404 錯誤 (Netlify)**
+    - **目標:** 解決部署到 Netlify 後，前端呼叫後端 API 時出現 `404 Not Found` 的問題。
+    - **問題描述:** 前端 `fetch('/api/...')` 請求失敗，並回傳 HTML 404 頁面，導致 JSON 解析錯誤。
+    - **根本原因:** `vite.config.ts` 中的代理設定僅適用於本地開發，生產環境需要額外的重寫規則。
+    - **解決方案:** 在 `netlify.toml` 中，於 SPA 萬用重導向規則之前，新增一條 `[[redirects]]` 規則，將 `/api/*` 的請求重寫至 `/.netlify/functions/:splat`。
+
 1.  **[已解決] 後端函式 TypeScript 型別錯誤**
     - **目標:** 修正 `send-line-message.ts` 中因 `catch` 區塊的 `error` 變數為 `unknown` 型別而導致的編譯錯誤。
     - **問題描述:** TypeScript 報錯 `error' is of type 'unknown'.ts(18046)`。
