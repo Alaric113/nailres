@@ -73,6 +73,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, onBooking
           dateTime: newBooking.dateTime.toISOString(),
           amount: newBooking.amount,
           notes: newBooking.notes,
+          status: newBooking.status,
         }),
       }).catch(err => console.error('Failed to send LINE notification:', err));
 

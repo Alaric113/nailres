@@ -39,11 +39,29 @@ const OrderManagementPage = () => {
       });
   }, [bookings, statusFilter]);
 
-  const handleUpdateStatus = async (bookingId: string, newStatus: BookingStatus) => {
-    setUpdatingId(bookingId);
+  const handleUpdateStatus = async (booking: EnrichedBooking, newStatus: BookingStatus) => {
+    setUpdatingId(booking.id);
     try {
-      const bookingRef = doc(db, 'bookings', bookingId);
+      // 步驟 1: 更新 Firestore 中的訂單狀態
+      const bookingRef = doc(db, 'bookings', booking.id);
       await updateDoc(bookingRef, { status: newStatus });
+
+      // 步驟 2: 呼叫後端 API 發送 LINE 通知給使用者
+      // 我們只在狀態變更為 'confirmed', 'completed', 'cancelled' 時發送通知
+      if (['confirmed', 'completed', 'cancelled'].includes(newStatus)) {
+        fetch('/api/send-line-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: booking.userId,
+            serviceNames: [booking.serviceName], // API 預期是陣列
+            dateTime: booking.dateTime.toISOString(), // 確保是 ISO 格式字串
+            amount: booking.amount,
+            status: newStatus, // 傳遞新的狀態
+          }),
+        }).catch(err => console.error("Failed to send LINE notification:", err));
+      }
+
     } catch (error) {
       console.error("Failed to update booking status:", error);
       alert('更新訂單狀態失敗！');
@@ -56,11 +74,11 @@ const OrderManagementPage = () => {
     const isUpdating = updatingId === booking.id;
     switch (booking.status) {
       case 'pending_confirmation':
-        return (<><button onClick={() => handleUpdateStatus(booking.id, 'confirmed')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-green-500 rounded hover:bg-green-600 disabled:bg-gray-300">{isUpdating ? '...' : '確認'}</button><button onClick={() => handleUpdateStatus(booking.id, 'cancelled')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-red-500 rounded hover:bg-red-600 disabled:bg-gray-300">{isUpdating ? '...' : '取消'}</button></>);
+        return (<><button onClick={() => handleUpdateStatus(booking, 'confirmed')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-green-500 rounded hover:bg-green-600 disabled:bg-gray-300">{isUpdating ? '...' : '確認'}</button><button onClick={() => handleUpdateStatus(booking, 'cancelled')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-red-500 rounded hover:bg-red-600 disabled:bg-gray-300">{isUpdating ? '...' : '取消'}</button></>);
       case 'pending_payment':
-        return <button onClick={() => handleUpdateStatus(booking.id, 'pending_confirmation')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-gray-300">{isUpdating ? '...' : '標記已付'}</button>;
+        return <button onClick={() => handleUpdateStatus(booking, 'confirmed')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-gray-300">{isUpdating ? '...' : '標記已付'}</button>;
       case 'confirmed':
-        return <button onClick={() => handleUpdateStatus(booking.id, 'completed')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-purple-500 rounded hover:bg-purple-600 disabled:bg-gray-300">{isUpdating ? '...' : '標記完成'}</button>;
+        return <button onClick={() => handleUpdateStatus(booking, 'completed')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-purple-500 rounded hover:bg-purple-600 disabled:bg-gray-300">{isUpdating ? '...' : '標記完成'}</button>;
       default:
         return null;
     }
@@ -94,4 +112,3 @@ const OrderManagementPage = () => {
 };
 
 export default OrderManagementPage;
-

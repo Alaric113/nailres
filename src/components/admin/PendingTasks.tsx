@@ -8,7 +8,7 @@ type FilterStatus = BookingStatus | 'all';
 
 interface PendingTasksProps {
   bookings: EnrichedBooking[];
-  onUpdateStatus: (bookingId: string, newStatus: BookingStatus) => Promise<void>;
+  onUpdateStatus: (booking: EnrichedBooking, newStatus: BookingStatus) => Promise<void>;
   activeFilter: FilterStatus;
 }
 
@@ -23,10 +23,10 @@ const statusTextMap: Record<BookingStatus, string> = {
 const PendingTasks: React.FC<PendingTasksProps> = ({ bookings, onUpdateStatus, activeFilter }) => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const handleUpdate = async (bookingId: string, newStatus: BookingStatus) => {
-    setUpdatingId(bookingId);
+  const handleUpdate = async (booking: EnrichedBooking, newStatus: BookingStatus) => {
+    setUpdatingId(booking.id);
     try {
-      await onUpdateStatus(bookingId, newStatus);
+      await onUpdateStatus(booking, newStatus);
     } catch (error) {
       console.error("Failed to update booking status:", error);
       alert('更新訂單狀態失敗！');
@@ -41,14 +41,14 @@ const PendingTasks: React.FC<PendingTasksProps> = ({ bookings, onUpdateStatus, a
       case 'pending_confirmation':
         return (
           <>
-            <button onClick={() => handleUpdate(booking.id, 'confirmed')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-green-500 rounded hover:bg-green-600 disabled:bg-gray-300">{isUpdating ? '...' : '確認'}</button>
-            <button onClick={() => handleUpdate(booking.id, 'cancelled')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-red-500 rounded hover:bg-red-600 disabled:bg-gray-300">{isUpdating ? '...' : '取消'}</button>
+            <button onClick={() => handleUpdate(booking, 'confirmed')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-green-500 rounded hover:bg-green-600 disabled:bg-gray-300">{isUpdating ? '...' : '確認'}</button>
+            <button onClick={() => handleUpdate(booking, 'cancelled')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-red-500 rounded hover:bg-red-600 disabled:bg-gray-300">{isUpdating ? '...' : '取消'}</button>
           </>
         );
       case 'pending_payment':
-        return <button onClick={() => handleUpdate(booking.id, 'pending_confirmation')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-gray-300">{isUpdating ? '...' : '標記已付'}</button>;
+        return <button onClick={() => handleUpdate(booking, 'confirmed')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-gray-300">{isUpdating ? '...' : '標記已付'}</button>;
       case 'confirmed':
-        return <button onClick={() => handleUpdate(booking.id, 'completed')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-purple-500 rounded hover:bg-purple-600 disabled:bg-gray-300">{isUpdating ? '...' : '標記完成'}</button>;
+        return <button onClick={() => handleUpdate(booking, 'completed')} disabled={isUpdating} className="px-2 py-1 text-xs font-semibold text-white bg-purple-500 rounded hover:bg-purple-600 disabled:bg-gray-300">{isUpdating ? '...' : '標記完成'}</button>;
       default:
         return null;
     }
