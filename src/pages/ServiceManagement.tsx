@@ -195,6 +195,7 @@ const ServiceManagement = () => {
           isOpen={isServiceModalOpen}
           onClose={handleCancelEdit} // 使用 handleCancelEdit 統一關閉邏輯
           title={editingService ? '編輯服務項目' : '新增服務項目'}
+          
         >
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>

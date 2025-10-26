@@ -21,24 +21,23 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
     if (!file) return;
 
     setIsUploading(true);
-    // Delete old image if it exists
-    if (imageUrl) {
-      try {
-        const oldImageRef = ref(storage, imageUrl);
-        await deleteObject(oldImageRef);
-      } catch (error: any) {
-        if (error.code !== 'storage/object-not-found') {
-          console.error("Failed to delete old image:", error);
-        }
-      }
-    }
-
+    
+    const oldImageUrl = imageUrl; // Keep track of the old image URL
     const imageRef = ref(storage, `${storagePath}/${uuidv4()}`);
     try {
       const snapshot = await uploadBytes(imageRef, file);
       const url = await getDownloadURL(snapshot.ref);
       
       onImageUrlChange(url);
+
+      // Delete old image only after the new one has been successfully uploaded and URL is updated.
+      if (oldImageUrl) {
+        const oldImageRef = ref(storage, oldImageUrl);
+        await deleteObject(oldImageRef).catch(error => {
+          // Log error if deletion fails, but don't block the user.
+          console.warn("Failed to delete old image, but new image was uploaded successfully:", error);
+        });
+      }
     } catch (error) {
       console.error("Upload failed:", error);
       alert('圖片上傳失敗！');

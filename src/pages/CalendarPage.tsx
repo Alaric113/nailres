@@ -13,6 +13,7 @@ import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
 import type { BookingStatus } from '../types/booking';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import BookingDetailModal from '../components/admin/BookingDetailModal';
+import { ArrowLeftIcon, CalendarDaysIcon, FunnelIcon } from '@heroicons/react/24/outline';
 
 const useWindowSize = () => {
   const [size, setSize] = useState([window.innerWidth]);
@@ -29,7 +30,7 @@ const CalendarPage = () => {
   const { bookings, loading, error } = useAllBookings(dateRange);
   const { closedDays } = useBusinessHoursSummary();
   const calendarRef = useRef<FullCalendar>(null);
-  const [selectedBooking, setSelectedBooking] = useState<EnrichedBooking | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<EnrichedBooking | null>(null);  
   const [width] = useWindowSize();
   const isMobile = width < 768;
 
@@ -45,7 +46,7 @@ const CalendarPage = () => {
   };
 
   const events = useMemo(() => bookings.map((booking) => ({
-    title: `${booking.serviceName}`, // Only show service name
+    title: `${booking.serviceName}`,
     start: booking.dateTime,
     end: addMinutes(booking.dateTime, booking.serviceDuration || 60),
     extendedProps: { booking },
@@ -58,7 +59,7 @@ const CalendarPage = () => {
   const backgroundEvents = useMemo(() => closedDays.map(day => ({
     start: format(day, 'yyyy-MM-dd'),
     display: 'background',
-    backgroundColor: '#fef2f2', // red-50
+    backgroundColor: '#fef2f2',
   })), [closedDays]);
 
   const handleUpdateBookingStatus = async (bookingId: string, newStatus: BookingStatus) => {
@@ -66,70 +67,169 @@ const CalendarPage = () => {
     await updateDoc(bookingRef, { status: newStatus });
   };
 
+  const changeView = (viewName: string) => {
+    calendarRef.current?.getApi().changeView(viewName);
+  };
+
   if (loading && !dateRange) {
-    return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>;
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <div className="text-center">
+          <LoadingSpinner />
+          <p className="mt-4 text-gray-600">載入中...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-            所有行程
-          </h1>
-          <Link to="/admin" className="text-sm font-medium text-indigo-600 hover:underline">
-            &larr; 返回管理員頁面
-          </Link>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+            <div className="flex items-center gap-3">
+              <CalendarDaysIcon className="h-7 w-7 text-pink-600" />
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+                所有行程
+              </h1>
+            </div>
+            <Link 
+              to="/admin" 
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+            >
+              <ArrowLeftIcon className="h-4 w-4" />
+              返回管理員頁面
+            </Link>
+          </div>
         </div>
       </header>
+
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Error Alert */}
         {error && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
-            <p className="font-bold">錯誤</p>
-            <p>讀取預約資料時發生問題: {error}</p>
+          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-6 shadow-sm animate-fade-in">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-red-800">讀取預約資料時發生問題</p>
+                <p className="mt-1 text-sm text-red-700">{error}</p>
+              </div>
+            </div>
           </div>
         )}
-        <div className="bg-white p-1 pt-2 rounded-xl shadow-md" style={{ minHeight: '80vh' }}>
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView={isMobile ? 'timeGridDay' : 'timeGridWeek'}
-            headerToolbar={{
-              left: 'prev,today,next',
-              center: 'title',
-              right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            }}
-            events={[...events, ...backgroundEvents]}
-            locale={zhTwLocale}
-            allDaySlot={false}
-            slotMinTime="09:00:00"
-            slotMaxTime="21:00:00"
-            height="auto"
-            eventContent={(arg) => {
-              const titleParts = arg.event.title.split('\n');
-              return (
-                <div className="fc-event-main-custom">
-                  <div className="fc-event-time">{arg.timeText}</div>
-                  <div className="fc-event-title-container">
-                    {titleParts.map((part, i) => <div key={i} className="fc-event-title-line">{part}</div>)}
+
+       
+        {/* View Toggle - Mobile */}
+        {isMobile && (
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+            {[
+              { view: 'dayGridMonth', label: '月' },
+              { view: 'timeGridWeek', label: '週' },
+              { view: 'timeGridDay', label: '日' },
+              
+              
+            ].map(({ view, label }) => (
+              <button
+                key={view}
+                onClick={() => changeView(view)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+              >
+                {label}視圖
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Legend */}
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200">
+          <div className="flex items-center gap-2 mb-3">
+            <FunnelIcon className="h-5 w-5 text-gray-600" />
+            <h3 className="text-sm font-semibold text-gray-700">圖例</h3>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {(['pending_payment', 'pending_confirmation', 'confirmed', 'completed', 'cancelled'] as BookingStatus[]).map(status => (
+              <div key={status} className="flex items-center gap-2">
+                <div className={`w-4 h-4 rounded ${getStatusColorClass(status)}`}></div>
+                <span className="text-xs sm:text-sm text-gray-700">{
+                  { pending_payment: '待付款', pending_confirmation: '待確認', confirmed: '已確認', completed: '已完成', cancelled: '已取消' }[status]
+                }</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded fc-event-conflicting"></div>
+              <span className="text-xs sm:text-sm text-gray-700">時間衝突</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Calendar */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="p-2 sm:p-4" style={{ minHeight: '70vh' }}>
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView={isMobile ? 'timeGridDay' : 'timeGridWeek'}
+              headerToolbar={{
+                left: isMobile ? 'prev,today,next' : 'prev,today,next',
+                center: 'title',
+                right: isMobile ? '' : 'dayGridMonth,timeGridWeek,timeGridDay'
+              }}
+              events={[...events, ...backgroundEvents]}
+              locale={zhTwLocale}
+              allDaySlot={false}
+              slotMinTime="09:00:00"
+              slotMaxTime="21:00:00"
+              height="auto"
+              eventContent={(arg) => {
+                const booking = arg.event.extendedProps.booking as EnrichedBooking;
+                return (
+                  <div className="fc-event-main-custom p-1">
+                    <div className="fc-event-time text-xs font-semibold">{arg.timeText}</div>
+                    <div className="fc-event-title-container">
+                      <div className="fc-event-title-line text-xs font-medium truncate">
+                        {arg.event.title}
+                      </div>
+                      {!isMobile && booking?.userName && (
+                        <div className="text-xs opacity-75 truncate">
+                          {booking.userName}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            }}
-            eventClick={(info) => {
-              setSelectedBooking(info.event.extendedProps.booking as EnrichedBooking);
-            }}
-            datesSet={(arg) => {
-              setDateRange({ start: arg.start, end: arg.end });
-            }}
-            dayCellDidMount={(arg) => {
-              if (format(arg.date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')) {
-                arg.el.classList.add('fc-today-highlight');
-              }
-            }}
-          />
+                );
+              }}
+              eventClick={(info) => {
+                setSelectedBooking(info.event.extendedProps.booking as EnrichedBooking);
+              }}
+              datesSet={(arg) => {
+                setDateRange({ start: arg.start, end: arg.end });
+              }}
+              dayCellDidMount={(arg) => {
+                if (format(arg.date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')) {
+                  arg.el.classList.add('fc-today-highlight');
+                }
+              }}
+              slotLabelFormat={{
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }}
+              eventTimeFormat={{
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }}
+            />
+          </div>
         </div>
       </main>
+
+      {/* Booking Detail Modal */}
       {selectedBooking && (
         <BookingDetailModal
           booking={selectedBooking}
@@ -137,6 +237,163 @@ const CalendarPage = () => {
           onUpdateStatus={handleUpdateBookingStatus}
         />
       )}
+
+      {/* Custom Styles */}
+      <style>{`
+        /* Calendar customization */
+        .fc {
+          font-family: inherit;
+        }
+
+        .fc-toolbar-title {
+          font-size: 1.25rem !important;
+          font-weight: 700 !important;
+          color: #1f2937;
+        }
+
+        @media (min-width: 640px) {
+          .fc-toolbar-title {
+            font-size: 1.5rem !important;
+          }
+        }
+
+        .fc-button {
+          background-color: #fff !important;
+          border: 1px solid #e5e7eb !important;
+          color: #374151 !important;
+          text-transform: none !important;
+          font-weight: 500 !important;
+          padding: 0.375rem 0.75rem !important;
+          border-radius: 0.5rem !important;
+          transition: all 0.2s !important;
+        }
+
+        .fc-button:hover {
+          background-color: #f9fafb !important;
+          border-color: #d1d5db !important;
+        }
+
+        .fc-button-active {
+          background-color: #ec4899 !important;
+          border-color: #ec4899 !important;
+          color: #fff !important;
+        }
+
+        .fc-button-active:hover {
+          background-color: #db2777 !important;
+          border-color: #db2777 !important;
+        }
+
+        .fc-today-button:disabled {
+          opacity: 0.5 !important;
+        }
+
+        /* Event colors */
+        .fc-event-yellow {
+          background-color: #fef3c7 !important;
+          border-color: #f59e0b !important;
+          color: #92400e !important;
+        }
+
+        .fc-event-blue {
+          background-color: #dbeafe !important;
+          border-color: #3b82f6 !important;
+          color: #1e3a8a !important;
+        }
+
+        .fc-event-green {
+          background-color: #d1fae5 !important;
+          border-color: #10b981 !important;
+          color: #065f46 !important;
+        }
+
+        .fc-event-gray {
+          background-color: #f3f4f6 !important;
+          border-color: #9ca3af !important;
+          color: #374151 !important;
+        }
+
+        .fc-event-red {
+          background-color: #fee2e2 !important;
+          border-color: #ef4444 !important;
+          color: #991b1b !important;
+        }
+
+        .fc-event-conflicting {
+          border: 2px solid #dc2626 !important;
+          box-shadow: 0 0 0 2px #fee2e2 !important;
+        }
+
+        .fc-event {
+          border-radius: 0.375rem !important;
+          cursor: pointer !important;
+          transition: all 0.2s !important;
+        }
+
+        .fc-event:hover {
+          transform: scale(1.02);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Today highlight */
+        .fc-today-highlight {
+          background-color: #fef3c7 !important;
+        }
+
+        .fc-day-today {
+          background-color: rgba(254, 243, 199, 0.3) !important;
+        }
+
+        /* Slot styling */
+        .fc-timegrid-slot {
+          height: 3rem !important;
+        }
+
+        .fc-col-header-cell {
+          background-color: #f9fafb !important;
+          font-weight: 600 !important;
+          color: #374151 !important;
+          padding: 0.75rem 0.5rem !important;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 767px) {
+          .fc-toolbar {
+            flex-direction: column !important;
+            gap: 0.75rem;
+          }
+
+          .fc-toolbar-chunk {
+            display: flex;
+            justify-content: center;
+          }
+
+          .fc-button {
+            font-size: 0.875rem !important;
+            padding: 0.25rem 0.5rem !important;
+          }
+
+          .fc-timegrid-slot {
+            height: 2.5rem !important;
+          }
+        }
+
+        /* Animation */
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

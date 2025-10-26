@@ -1,55 +1,391 @@
-/* Add this to your src/index.css */
-.fc-event-yellow { background-color: #fef9c3; border-color: #fde047; color: #713f12; }
-.fc-event-blue { background-color: #dbeafe; border-color: #93c5fd; color: #1e40af; }
-.fc-event-green { background-color: #dcfce7; border-color: #86efac; color: #166534; }
-.fc-event-gray { background-color: #e5e7eb; border-color: #d1d5db; color: #374151; }
-.fc-event-red { background-color: #fee2e2; border-color: #fca5a5; color: #991b1b; }
-.fc-today-highlight .fc-col-header-cell-cushion, .fc-today-highlight.fc-daygrid-day-number {
-  color: #db2777; /* pink-600 */
-  font-weight: bold;
-  font-size: 14px;
+/* ========================================
+   FullCalendar 基礎樣式設定
+   ======================================== */
+.fc {
+  font-family: inherit;
 }
 
+.fc-toolbar-title {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: #111827 !important; /* 深黑色 - 更好的可讀性 */
+}
+
+@media (min-width: 640px) {
+  .fc-toolbar-title {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* ========================================
+   按鈕樣式 (上一個/下一個/今天/視圖切換)
+   ======================================== */
+.fc-button {
+  background-color: #fff !important;
+  border: 1px solid #e5e7eb !important;
+  color: #111827 !important; /* 按鈕文字黑色 */
+  text-transform: none !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 0.875rem !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.2s !important;
+  font-size: 0.875rem !important;
+}
+
+.fc-button:hover {
+  background-color: #f9fafb !important;
+  border-color: #d1d5db !important;
+}
+
+/* 啟用狀態按鈕 (選中的視圖) */
+.fc-button-active {
+  background-color: #ec4899 !important;
+  border-color: #ec4899 !important;
+  color: #fff !important;
+}
+
+.fc-button-active:hover {
+  background-color: #db2777 !important;
+  border-color: #db2777 !important;
+}
+
+/* 禁用狀態 (今天按鈕) */
+.fc-today-button:disabled {
+  opacity: 0.5 !important;
+}
+
+/* ========================================
+   事件顏色 - 依照預約狀態
+   ======================================== */
+
+/* 待付款 - 黃色 */
+.fc-event-yellow {
+  background-color: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #78350f !important; /* 深棕色文字 */
+}
+
+/* 待確認 - 藍色 */
+.fc-event-blue {
+  background-color: #dbeafe !important;
+  border-color: #3b82f6 !important;
+  color: #1e3a8a !important; /* 深藍色文字 */
+}
+
+/* 已確認 - 綠色 */
+.fc-event-green {
+  background-color: #d1fae5 !important;
+  border-color: #10b981 !important;
+  color: #065f46 !important; /* 深綠色文字 */
+}
+
+/* 已完成 - 灰色 */
+.fc-event-gray {
+  background-color: #f3f4f6 !important;
+  border-color: #9ca3af !important;
+  color: #1f2937 !important; /* 深灰色文字 */
+}
+
+/* 已取消 - 紅色 */
+.fc-event-red {
+  background-color: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #991b1b !important; /* 深紅色文字 */
+}
+
+/* 時間衝突警告 */
 .fc-event-conflicting {
-  border: 2px solid #f97316 !important; /* orange-500 */
-  box-shadow: 0 0 5px rgba(249, 115, 22, 0.7);
+  border: 2px solid #dc2626 !important;
+  box-shadow: 0 0 0 2px #fee2e2 !important;
 }
 
-/* Custom event content for line breaks */
+/* ========================================
+   事件樣式 (預約項目卡片)
+   ======================================== */
+.fc-event {
+  border-radius: 0.5rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  padding: 0.25rem !important;
+}
+
+/* 桌面版 Hover 效果 */
+.fc-event:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 3 !important;
+}
+
+/* 事件內容容器 */
 .fc-event-main-custom {
-  overflow: hidden;
-  white-space: normal;
-  font-size: 12px; /* Allow wrapping */
+  padding: 0.125rem 0.25rem;
+  line-height: 1.3;
 }
 
-.fc-event-title-container {
-  white-space: pre-wrap; /* Respect newlines in the title string */
+/* 事件時間 */
+.fc-event-time {
+  font-weight: 600;
+  margin-bottom: 0.125rem;
 }
 
+/* 事件標題 */
 .fc-event-title-line {
-  display: block; /* Ensure each part is on a new line */
+  line-height: 1.2;
 }
 
-/* 適用於 FullCalendar 的客製化樣式 */
-/* 調整所有按鈕 (例如: '今天', '月', '週', '日') 的樣式 */
-.fc .fc-button {
-    /* 提高選擇器優先級以覆蓋預設樣式 */
-    font-size: 14px !important; /* 使用 !important 確保字體大小被應用 */
-    padding: 0.2em 0.4em !important; /* 增加內距讓按鈕看起來不會太擠 */
-    border-radius: 8px !important; /* 圓角 */
-    border: 1px solid #e5e7eb; /* 加上細邊框 */
-    background-color: #ffffff; /* 白色背景 */
-    color: #374151; /* 深灰色文字 */
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease-in-out;
+/* ========================================
+   今日高亮效果
+   ======================================== */
+.fc-today-highlight {
+  background-color: #fef3c7 !important;
 }
 
+.fc-day-today {
+  background-color: rgba(254, 243, 199, 0.3) !important;
+}
 
+/* ========================================
+   時間格子樣式 (週/日視圖的時間軸)
+   ======================================== */
+.fc-timegrid-slot {
+  height: 3.5rem !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
 
-.fc .fc-toolbar-title {
-    /* 調整日期標題的字體大小 */
-    font-size: 12px; /* 範例：放大標題字體 */
-    
-    /* 調整字體粗細 */
-    font-weight: 500; 
+/* 時間標籤 (09:00, 10:00...) */
+.fc-timegrid-slot-label {
+  color: #6b7280 !important;
+  font-size: 0.875rem !important;
+}
+
+.fc-timegrid-slot-label-cushion {
+  color: #6b7280 !important;
+}
+
+/* ========================================
+   欄位標題 (日期/星期幾的標題列)
+   ======================================== */
+.fc-col-header-cell {
+  background-color: #f9fafb !important;
+  font-weight: 600 !important;
+  color: #111827 !important; /* 黑色文字 */
+  padding: 0.875rem 0.5rem !important;
+  border-bottom: 2px solid #e5e7eb !important;
+}
+
+.fc-col-header-cell-cushion {
+  color: #111827 !important; /* 確保內容也是黑色 */
+}
+
+/* ========================================
+   工具列 (頂部導航區域)
+   ======================================== */
+.fc-toolbar {
+  padding: 0.75rem 0 !important;
+  gap: 0.75rem;
+}
+
+.fc-toolbar-chunk {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ========================================
+   月曆視圖樣式 (Day Grid)
+   ======================================== */
+.fc-daygrid-day {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.fc-daygrid-day:hover {
+  background-color: #f9fafb;
+}
+
+/* 日期數字 (1, 2, 3...) */
+.fc-daygrid-day-number {
+  color: #111827 !important; /* 黑色 */
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  padding: 0.5rem !important;
+}
+
+.fc-daygrid-day-top {
+  flex-direction: row;
+  justify-content: center;
+}
+
+/* 月曆中的事件項目 */
+.fc-daygrid-event {
+  margin: 1px 2px !important;
+  padding: 2px 4px !important;
+  font-size: 0.75rem !important;
+  white-space: normal !important;
+  border-radius: 0.25rem !important;
+}
+
+/* ========================================
+   週視圖時間軸
+   ======================================== */
+.fc-timegrid-axis {
+  color: #6b7280 !important;
+}
+
+/* ========================================
+   網格線顏色
+   ======================================== */
+.fc-scrollgrid {
+  border-color: #e5e7eb !important;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-color: #f3f4f6 !important;
+}
+
+/* ========================================
+   移動端優化 (手機 < 768px)
+   ======================================== */
+@media (max-width: 767px) {
+  /* 工具列改為垂直排列 */
+  .fc-toolbar {
+    flex-direction: column !important;
+    gap: 1rem;
+    padding: 1rem 0.5rem !important;
+  }
+
+  .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* 標題居中且縮小 */
+  .fc-toolbar-title {
+    font-size: 1rem !important;
+    text-align: center;
+  }
+
+  /* 按鈕縮小但保持可點擊大小 */
+  .fc-button {
+    font-size: 0.8125rem !important;
+    padding: 0.375rem 0.625rem !important;
+    min-width: 3rem;
+  }
+
+  /* 時間格子高度 - 手機上稍微縮小 */
+  .fc-timegrid-slot {
+    height: 3rem !important;
+  }
+
+  /* 時間標籤縮小 */
+  .fc-timegrid-slot-label {
+    font-size: 0.75rem !important;
+    padding: 0 0.25rem !important;
+  }
+
+  /* 欄位標題縮小 */
+  .fc-col-header-cell {
+    padding: 0.625rem 0.25rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* 事件內容字體調整 */
+  .fc-event {
+    font-size: 0.75rem !important;
+    padding: 0.125rem !important;
+  }
+
+  .fc-event-main-custom {
+    padding: 0.125rem;
+  }
+
+  .fc-event-time {
+    font-size: 0.6875rem !important;
+  }
+
+  .fc-event-title-line {
+    font-size: 0.6875rem !important;
+  }
+
+  /* 月曆視圖 - 日期數字 */
+  .fc-daygrid-day-number {
+    font-size: 0.8125rem !important;
+    padding: 0.375rem !important;
+  }
+
+  /* 月曆視圖 - 事件項目更緊湊 */
+  .fc-daygrid-event {
+    margin: 1px !important;
+    padding: 1px 3px !important;
+    font-size: 0.6875rem !important;
+  }
+
+  /* 移除觸控裝置的 hover 效果 */
+  .fc-event:hover {
+    transform: none;
+  }
+}
+
+/* ========================================
+   平板優化 (768px - 1024px)
+   ======================================== */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .fc-toolbar-title {
+    font-size: 1.25rem !important;
+  }
+
+  .fc-button {
+    font-size: 0.875rem !important;
+    padding: 0.4375rem 0.75rem !important;
+  }
+
+  .fc-timegrid-slot {
+    height: 3.25rem !important;
+  }
+}
+
+/* ========================================
+   動畫效果
+   ======================================== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* ========================================
+   空狀態提示 (無預約時顯示)
+   ======================================== */
+.fc-timegrid-col-frame:empty::after {
+  content: '無預約';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  height: 100%;
+}
+
+/* ========================================
+   列印樣式優化
+   ======================================== */
+@media print {
+  .fc-toolbar {
+    display: none !important;
+  }
+
+  .fc-event {
+    break-inside: avoid;
+  }
 }

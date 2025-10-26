@@ -5,9 +5,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  maxWidth?: string; // 新增可選的 maxWidth 屬性
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = 'max-w-lg' }) => {
   if (!isOpen) return null;
 
   return (
@@ -16,7 +17,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
       onClick={onClose} // 點擊背景關閉
     >
       <div
-        className="relative w-full mx-4 sm:mx-auto sm:w-auto max-w-3xl my-6"
+        className={`relative w-full mx-4 my-6 sm:mx-auto ${maxWidth}`}
         onClick={(e) => e.stopPropagation()} // 阻止點擊 Modal 內容時關閉
       >
         {/*content*/}
