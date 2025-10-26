@@ -130,7 +130,7 @@ const createBookingConfirmationFlex = (customerName: string, serviceNames: strin
           margin: 'lg',
           spacing: 'sm',
           contents: [
-            { type: 'box', layout: 'baseline', spacing: 'sm', contents: [{ type: 'text', text: '項目', color: '#aaaaaa', size: 'sm', flex: 1 }, { type: 'text', text: serviceNames.join('、'), wrap: true, color: '#666666', size: 'sm', flex: 4 }] },
+            { type: 'box', layout: 'baseline', spacing: 'sm', contents: [{ type: 'text', text: '項目', color: '#aaaaaa', size: 'sm', flex: 1 }, { type: 'text', text: serviceNames.join('\n'), wrap: true, color: '#666666', size: 'sm', flex: 4 }] },
             { type: 'box', layout: 'baseline', spacing: 'sm', contents: [{ type: 'text', text: '時間', color: '#aaaaaa', size: 'sm', flex: 1 }, { type: 'text', text: formattedDateTime, wrap: true, color: '#666666', size: 'sm', flex: 4 }] },
             { type: 'box', layout: 'baseline', spacing: 'sm', contents: [{ type: 'text', text: '金額', color: '#aaaaaa', size: 'sm', flex: 1 }, { type: 'text', text: `$${amount}`, wrap: true, color: '#666666', size: 'sm', flex: 4 }] },
           ],
