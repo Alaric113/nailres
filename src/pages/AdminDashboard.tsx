@@ -108,9 +108,9 @@ const AdminDashboard = () => {
       </header>
 
       {/* Main Content - 彈性填滿剩餘空間 */}
-      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-4 overflow-y-auto">
+      <main className="flex-1 container mx-auto px-4 py-4 overflow-y-auto">
         {/* Grid Layout - 2x5 網格 */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {/* 所有行程 */}
           <SummaryCard
             title="所有行程"
