@@ -24,8 +24,9 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
 
       {/* Center: Logo */}
       <div className="flex-1 flex justify-center">
-        <Link to="/" className="text-2xl font-bold tracking-wide text-gray-800">
-          TreeRing
+        <Link to="/" className="text-2xl font-extrabold tracking-wide text-gray-800"
+        style={{ fontFamily: "'Noto Serif Display', serif", color: '#9F9586' }}>
+          TREERING
         </Link>
       </div>
 

@@ -79,9 +79,11 @@ const Home = () => {
         
         {/* Content */}
         <div className="relative z-10 max-w-4xl px-6 sm:px-8">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-4 sm:mb-6 leading-tight animate-fade-in" 
-              style={{ textShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-            TreeRing美學工作室
+           <h1 
+            className="text-7xl tracking-tight mb-4 sm:mb-6 leading-tight animate-fade-in" 
+            style={{ fontFamily: "'Noto Serif Display', serif", textShadow: '0 4px 12px rgba(0, 0, 0, 0.5)', color: '#9F9586' }}
+          >
+            TREERING
           </h1>
           <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-gray-100 mb-8 sm:mb-10 leading-relaxed px-4" 
              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
