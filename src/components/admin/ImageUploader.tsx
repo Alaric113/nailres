@@ -14,7 +14,7 @@ interface ImageUploaderProps {
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageUrlChange, storagePath }) => {
   const [isUploading, setIsUploading] = useState(false);
-  console.log(storage)
+  
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,6 +37,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
     try {
       const snapshot = await uploadBytes(imageRef, file);
       const url = await getDownloadURL(snapshot.ref);
+      
       onImageUrlChange(url);
     } catch (error) {
       console.error("Upload failed:", error);
@@ -50,8 +51,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
     if (!imageUrl || !window.confirm('您確定要刪除這張圖片嗎？')) return;
     try {
       const imageRef = ref(storage, imageUrl);
-      await deleteObject(imageRef);
       onImageUrlChange('');
+      await deleteObject(imageRef);
+      
     } catch (error) {
       console.error("Delete failed:", error);
       alert('圖片刪除失敗！');

@@ -38,6 +38,7 @@ const ServiceManagement = () => {
         platinumPrice: String(editingService.platinumPrice || ''),
         imageUrl: editingService.imageUrl || '',
       });
+      
     } else {
       resetForm();
     }
@@ -52,6 +53,7 @@ const ServiceManagement = () => {
       setFormError('所有欄位皆為必填');
       return;
     }
+    console.log(formData)
 
     setIsSubmitting(true);
     try {
