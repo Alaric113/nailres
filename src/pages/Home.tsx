@@ -66,7 +66,7 @@ const Home = () => {
     <div className="bg-gray-50 text-gray-800 h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
       {/* Announcement Banner - Fixed below Navbar */}
       <div
-        className="fixed font-serif top-[64px] left-0 right-0 z-40 bg-[#9f9586] text-[#fffffe] py-3 text-sm font-medium shadow-md overflow-hidden flex items-center"
+        className="fixed font-serif top-[64px] left-0 right-0 z-40 bg-[#9f9586] text-[#fffffe] py-3 text-sm font-medium shadow-md overflow-hidden  items-center"
         style={{ height: '48px' }}
       >
         <p className="whitespace-nowrap animate-marquee px-4">
@@ -385,22 +385,21 @@ const Home = () => {
         }
 
         @keyframes marquee {
-          0% {
-            transform: translateX(0%);
-          }
-          10%{
-            transform: translateX(0%);
-            }
-          45%{
-            transform: translateX(-35%);
-          }
-          100%{
-            transform: translateX(0%);
-          }
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
         }
+
         .animate-marquee {
-          animation: marquee 10s linear infinite;
+          animation: marquee 25s linear infinite;
         }
+
+        /* 支援使用者偏好設定 */
+        @media (prefers-reduced-motion: reduce) {
+          .animate-marquee {
+            animation-play-state: paused !important;
+          }
+        }
+
         /* 圖片載入時的淡入效果 */
         img.lazy-loaded {
           animation: fade-in 0.5s ease-in-out;
