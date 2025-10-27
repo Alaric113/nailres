@@ -26,6 +26,7 @@ import SettingsPage from './pages/SettingsPage';
 // Route Components
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 
 function App() {
   // This hook will run on app startup and handle auth state synchronization.
@@ -50,6 +51,7 @@ function App() {
     <Router>
       <Navbar onMenuClick={toggleSidebar} />
       <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
+      <PwaUpdatePrompt />
       <Routes> {/* 這裡的 MainLayout 可能需要根據新 Navbar/Sidebar 調整或移除 */}
         {/* Public Routes */}
         <Route path="/" element={<Home />} />

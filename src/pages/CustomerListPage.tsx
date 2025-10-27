@@ -3,7 +3,6 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db } from '../lib/firebase';
 import { useAllUsers } from "../hooks/useAllUsers";
-import { formatTimestamp } from "../utils/formatTimestamp";
 import type {  UserRole } from '../types/user';
 import UserCard from '../components/admin/UserCard'; // 引入新的元件
 
@@ -143,8 +142,6 @@ const CustomerListPage = () => {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">客戶名稱</th>
                   
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">註冊時間</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上次登入</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">備註</th>
                 </tr>
               </thead>
@@ -176,8 +173,7 @@ const CustomerListPage = () => {
                         <option value="platinum">白金會員</option>
                       </select>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTimestamp(user.createdAt)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTimestamp(user.lastLogin)}</td>
+                    
                     <td className="px-6 py-4 whitespace-normal text-sm text-gray-500 min-w-[250px]">
                       {editingUserId === user.id ? (
                         <div className="flex flex-col gap-2">

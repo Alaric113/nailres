@@ -328,6 +328,7 @@ const CalendarPage = () => {
           border-radius: 0.375rem !important;
           cursor: pointer !important;
           transition: all 0.2s !important;
+          color:#000000;
         }
 
         .fc-event:hover {
