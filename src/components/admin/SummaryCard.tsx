@@ -45,7 +45,7 @@ const SummaryCard = ({
       <div className="p-4 sm:p-5 bg-white">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
-            <p className="text-xl font-medium text-gray-600 mb-1 leading-tight">
+            <p className="text-lg font-medium text-gray-600 mb-1 leading-tight">
               {title}
             </p>
             {value !== '' && (
