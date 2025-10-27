@@ -64,49 +64,60 @@ const Home = () => {
 
   return (
     <div className="bg-gray-50 text-gray-800 h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
-      {/* Hero Section */}
-      <header className="relative min-h-screen flex items-center justify-center text-center text-white overflow-hidden pt-[72px] snap-start snap-always">
-        {/* Background Image with Parallax effect */}
-        <div
-          className="absolute inset-0 bg-cover bg-center lg:bg-fixed"
-          style={{ 
-            backgroundImage: "url('https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/logo.jpg?alt=media&token=37e1e109-cf49-4806-b1fb-7bde26cc4015')",
-            transform: 'scale(1.05)'
-          }}
-        ></div>
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60"></div>
-        
-        {/* Content */}
-        <div className="relative z-10 max-w-4xl px-6 sm:px-8">
-           <h1 
-            className="text-7xl tracking-tight mb-4 sm:mb-6 leading-tight animate-fade-in" 
-            style={{ fontFamily: "'Noto Serif Display', serif", textShadow: '0 4px 12px rgba(0, 0, 0, 0.5)', color: '#9F9586' }}
-          >
-            TREERING
-          </h1>
-          <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-gray-100 mb-8 sm:mb-10 leading-relaxed px-4" 
-             style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-            專業美甲與美睫服務，為您打造專屬的精緻美麗
-          </p>
-          <Link
-            to="/login"
-            className="inline-block bg-gradient-to-r from-[#E97EB5] to-[#D96BA5] text-white font-bold rounded-full py-3 px-8 sm:py-4 sm:px-10 text-base sm:text-lg shadow-2xl hover:shadow-pink-500/50 hover:scale-105 active:scale-95 transition-all duration-300"
-          >
-            立即預約
-          </Link>
-          
-          
-        </div>
-        {/* Scroll indicator */}
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 animate-bounce">
-            <svg className="w-6 h-6 text-white/70" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-              <path d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-            </svg>
-          </div>
-      </header>
+      {/* Announcement Banner - Fixed below Navbar */}
+      <div
+        className="fixed font-serif top-[64px] left-0 right-0 z-40 bg-[#9f9586] text-[#fffffe] py-3 text-sm font-medium shadow-md overflow-hidden flex items-center"
+        style={{ height: '48px' }}
+      >
+        <p className="whitespace-nowrap animate-marquee px-4">
+          歡迎加入 TREERING | 註冊即贈100 元禮金，單筆滿1,000元再贈送一點!!!
+        </p>
+      </div>
 
-      <main>
+      <div className="pt-[112px]">
+        {/* Hero Section */}
+        <header className="relative min-h-screen flex items-center justify-center text-center text-white overflow-hidden snap-start snap-always">
+          {/* Background Image with Parallax effect */}
+          <div
+            className="absolute inset-0 bg-cover bg-center lg:bg-fixed"
+            style={{ 
+              backgroundImage: "url('https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/logo.jpg?alt=media&token=37e1e109-cf49-4806-b1fb-7bde26cc4015')",
+              transform: 'scale(1.05)'
+            }}
+          ></div>
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60"></div>
+          
+          {/* Content */}
+          <div className="relative z-10 max-w-4xl px-6 sm:px-8">
+             <h1 
+              className="text-7xl tracking-tight mb-4 sm:mb-6 leading-tight animate-fade-in" 
+              style={{ fontFamily: "'Noto Serif Display', serif", textShadow: '0 4px 12px rgba(0, 0, 0, 0.5)', color: '#9F9586' }}
+            >
+              TREERING
+            </h1>
+            <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-gray-100 mb-8 sm:mb-10 leading-relaxed px-4" 
+               style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+              專業美甲與美睫服務，為您打造專屬的精緻美麗
+            </p>
+            <Link
+              to="/login"
+              className="inline-block bg-gradient-to-r from-[#E97EB5] to-[#D96BA5] text-white font-bold rounded-full py-3 px-8 sm:py-4 sm:px-10 text-base sm:text-lg shadow-2xl hover:shadow-pink-500/50 hover:scale-105 active:scale-95 transition-all duration-300"
+            >
+              立即預約
+            </Link>
+            
+            
+          </div>
+          {/* Scroll indicator */}
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 animate-bounce">
+              <svg className="w-6 h-6 text-white/70" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+              </svg>
+            </div>
+        </header>
+
+        <main>
         {/* Services Section */}
         <section id="services" className="min-h-screen flex items-center py-16 sm:py-20 bg-white snap-start snap-always">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -126,7 +137,7 @@ const Home = () => {
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   {/* Icon header */}
-                  <div className="bg-gradient-to-br from-pink-50 to-purple-50 p-6 sm:p-8 text-center border-b border-gray-100">
+                  <div className="bg-gradient-to-br from-pink-50 to-purple-50 p-6 text-center border-b border-gray-100">
                     <div className="text-5xl sm:text-6xl mb-3 transform group-hover:scale-110 transition-transform duration-300">
                       {category.emoji}
                     </div>
@@ -134,8 +145,8 @@ const Home = () => {
                   </div>
                   
                   {/* Content */}
-                  <div className="p-5 sm:p-6">
-                    <p className="text-gray-600 text-sm sm:text-base mb-4 text-center leading-relaxed">
+                  <div className="p-4 flex flex-col items-center justify-between">
+                    <p className="text-gray-600 text-sm sm:text-base mb-2 text-center leading-relaxed">
                       {category.description}
                     </p>
                     
@@ -280,7 +291,8 @@ const Home = () => {
             )}
           </div>
         </section>
-      </main>
+        </main>
+      </div>
 
       {/* Footer */}
       <footer id="contact" className="bg-gradient-to-b from-gray-900 to-gray-950 text-white snap-start">
@@ -370,6 +382,28 @@ const Home = () => {
         .swiper-pagination-bullet-active {
           opacity: 1;
           background: #E97EB5;
+        }
+
+        @keyframes marquee {
+          0% {
+            transform: translateX(0%);
+          }
+          10%{
+            transform: translateX(0%);
+            }
+          45%{
+            transform: translateX(-35%);
+          }
+          100%{
+            transform: translateX(0%);
+          }
+        }
+        .animate-marquee {
+          animation: marquee 10s linear infinite;
+        }
+        /* 圖片載入時的淡入效果 */
+        img.lazy-loaded {
+          animation: fade-in 0.5s ease-in-out;
         }
       `}</style>
     </div>

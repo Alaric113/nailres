@@ -10,7 +10,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   
 
   return (
-    <nav className="fixed top-0 left-0 right-0 h-[72px] flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-white/80 backdrop-saturate-150 backdrop-blur-lg border-b border-gray-200 z-50">
+    <nav className="fixed top-0 left-0 right-0 h-[64px] flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-white backdrop-saturate-150 backdrop-blur-lg border-b border-gray-200 z-50">
       {/* Left: Menu Button */}
       <div className="flex-1 flex justify-start">
         <button

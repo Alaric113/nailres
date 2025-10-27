@@ -456,8 +456,8 @@
 
     - **目標:** 確保 AI 協作者對專案的整體狀況有深入的理解。
     - **任務:**
-        - **[完成]** **AI 協作者已審閱專案日誌:** Gemini Code Assist 已閱讀並理解所有專案文件，特別是 `project_log.md` 的內容與協作協議。
-        - **[下一步]** **處理技術債:** 根據日誌中的 `[技術債]` 標記，下一步的優先任務是解決本地 Tailwind CSS 的設定問題，移除對 CDN 的依賴。
+        - **[完成]** **AI 協作者已再次審閱專案日誌:** Gemini Code Assist 已閱讀並理解所有專案文件與當前任務，準備好處理下一步的技術債。
+        - **[下一步]** **處理技術債 (Tailwind CSS):** 根據日誌中的 `[技術債]` 標記，下一步的優先任務是解決本地 Tailwind CSS 的設定問題，移除對 CDN 的依賴。
 
 1.  **優化預約流程 (多選服務與分類收合):**
 
@@ -601,6 +601,95 @@
 - **金流串接細節:** 需要獲取綠界 (ECPay) 的測試商店 ID 與 API Key。
 - **LINE Bot 憑證:** 需要申請 LINE Channel Secret 和 Channel Access Token 以進行後續整合。
 - **UI/UX 設計稿:** 目前只有架構，尚無具體的 UI 設計稿，這會是下一步規劃的重點。
+
+---
+
+## 13. 未來功能藍圖 (Future Feature Blueprint)
+
+本章節規劃未來預計開發的核心功能，作為後續開發的技術指引。
+
+### 🎟️ 優惠券系統 (Coupon System)
+
+**目的:** 建立一個靈活的優惠券系統，允許管理員創建、發放及管理優惠券，並讓客戶在預約時使用，以提升行銷活動的彈性。
+
+#### 一、 資料模型 (Data Model - Firestore)
+
+1.  **`coupons` 集合:**
+    -   `code`: `string` (優惠券代碼，e.g., "SUMMER2024"，需唯一)
+    -   `type`: `'fixed' | 'percentage'` (折扣類型：固定金額或百分比)
+    -   `value`: `number` (折扣數值，例如 100 或 15)
+    -   `description`: `string` (優惠券描述，e.g., "夏季新品折 100 元")
+    -   `minSpend`: `number` (最低消費金額)
+    -   `validFrom`: `Timestamp` (生效日期)
+    -   `validUntil`: `Timestamp` (過期日期)
+    -   `usageLimit`: `number` (總使用次數限制)
+    -   `usageCount`: `number` (已使用次數)
+    -   `isActive`: `boolean` (是否啟用)
+
+2.  **`userCoupons` 子集合 (在 `users/{userId}` 下):**
+    -   `couponId`: `string` (對應 `coupons` 集合的 ID)
+    -   `isUsed`: `boolean` (該使用者是否已使用)
+    -   `receivedAt`: `Timestamp` (領取時間)
+
+#### 二、 後端功能 (Admin Backend)
+
+-   **優惠券管理頁面:**
+    -   列表顯示所有優惠券 (代碼、類型、狀態、使用狀況)。
+    -   提供新增/編輯優惠券的表單。
+    -   提供手動發送優惠券給特定使用者的功能。
+
+#### 三、 前端整合 (Client Frontend)
+
+-   **預約流程:**
+    -   在 `BookingForm.tsx` 中新增優惠券輸入框或選擇器。
+    -   後端驗證優惠券代碼的有效性 (是否存在、是否過期、是否達到使用上限、是否符合低消)。
+    -   在確認預約時，重新計算最終結帳金額。
+-   **使用者中心:**
+    -   新增「我的優惠券」頁面，顯示使用者持有的有效、已過期、已使用的優惠券。
+
+### 💳 集點卡功能 (Loyalty/Stamp Card System)
+
+**目的:** 透過消費集點與兌換獎勵，提升客戶回訪率與忠誠度。
+
+#### 一、 資料模型 (Data Model - Firestore)
+
+1.  **`users/{userId}` 文件:**
+    -   新增 `loyaltyPoints`: `number` (目前的點數)。
+2.  **`loyaltyPointLogs` 集合:** (用於追蹤點數變動歷史)
+    -   `userId`: `string`
+    -   `pointsChange`: `number` (正數為獲得，負數為兌換)
+    -   `reason`: `string` (e.g., "完成預約 #BOOKING123", "兌換獎勵")
+    -   `createdAt`: `Timestamp`
+
+#### 二、 核心邏輯
+
+-   **點數累積:** 預約狀態變更為 `completed` 時，透過 Cloud Function 觸發，根據消費金額計算並增加使用者的 `loyaltyPoints`。
+-   **點數兌換:** 在服務項目管理中，新增可使用點數兌換的特殊服務項目。使用者在預約時若選擇此類項目，則扣除相應點數。
+
+### 🖼️ 首頁 Banner 管理 (Homepage Banner Management)
+
+**目的:** 讓管理員可以彈性更換首頁的活動 Banner，用於宣傳最新活動或主打服務。
+
+#### 一、 資料模型 (Data Model - Firestore)
+
+1.  **`banners` 集合:**
+    -   `imageUrl`: `string` (圖片 URL，需上傳至 Firebase Storage)
+    -   `linkUrl`: `string` (點擊後導向的連結，e.g., `/booking?category=霧眉服務`)
+    -   `title`: `string` (Banner 標題，供後台管理辨識)
+    -   `order`: `number` (排序)
+    -   `isActive`: `boolean` (是否顯示)
+
+#### 二、 後端功能 (Admin Backend)
+
+-   **Banner 管理頁面:**
+    -   列表顯示所有 Banner 預覽圖。
+    -   提供上傳圖片、設定連結、排序與啟用/停用的功能。
+
+#### 三、 前端整合 (Client Frontend)
+
+-   **首頁 (`Home.tsx`):**
+    -   建立 `useBanners` Hook 讀取 `banners` 集合中所有 `isActive` 為 `true` 的文件。
+    -   使用 `Swiper.js` 或類似的輪播元件，將讀取到的 Banner 顯示在首頁頂部。
 
 ---
 **日誌結束**
