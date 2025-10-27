@@ -24,7 +24,7 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/192x192.jpg?alt=media&token=c3dea845-f717-4300-b5ab-90286a50f248',
+            src: 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/192x192.png?alt=media&token=318122f9-9192-4893-89e0-7497346b8adb',
             sizes: '192x192',
             type: 'image/png',
           },
