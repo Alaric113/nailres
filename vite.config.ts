@@ -24,17 +24,17 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/192x192.jpg?alt=media&token=c3dea845-f717-4300-b5ab-90286a50f248',
             sizes: '192x192',
             type: 'image/png',
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/512x512.png?alt=media&token=4772339c-c07c-4d9e-b391-81b78e710d61',
             sizes: '512x512',
             type: 'image/png',
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/512x512.png?alt=media&token=4772339c-c07c-4d9e-b391-81b78e710d61',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable',

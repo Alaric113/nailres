@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './lib/firebase';
 import { useAuthStore } from './store/authStore';
@@ -12,11 +12,9 @@ import type { UserDocument } from './types/user';
  * and updates the Zustand store.
  */
 export const useAuth = () => {
-  // Get the state-setting functions once from the store.
-  const { setAuthState } = useAuthStore.getState();
-
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      const { setAuthState } = useAuthStore.getState();
       if (firebaseUser) {
         // User is signed in, now fetch their profile from Firestore.
         try {
