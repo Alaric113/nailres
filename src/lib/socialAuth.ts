@@ -3,7 +3,6 @@ import {
   signInWithRedirect,
   GoogleAuthProvider,
   OAuthProvider,
-  type AuthError,
 } from 'firebase/auth';
 import { auth } from './firebase';
 
