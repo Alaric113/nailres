@@ -28,39 +28,48 @@ const handler: Handler = async (event: HandlerEvent) => {
     //   return { statusCode: 403, body: JSON.stringify({ message: 'Forbidden: Not an admin.' }) };
     // }
 
-    const { couponId, targetType, targetIds } = JSON.parse(event.body || '{}');
+    const { couponId, targets } = JSON.parse(event.body || '{}');
 
-    if (!couponId || !targetType) {
-      return { statusCode: 400, body: JSON.stringify({ message: 'Missing couponId or targetType.' }) };
+    if (!couponId || !targets || !Array.isArray(targets) || targets.length === 0) {
+      return { statusCode: 400, body: JSON.stringify({ message: 'Missing couponId or targets.' }) };
     }
 
-    let userIds: string[] = [];
+    const allUserIds = new Set<string>();
 
-    // 2. 根據發送類型獲取目標使用者 ID
-    switch (targetType) {
-      case 'all': {
-        const usersSnapshot = await db.collection('users').select().get();
-        userIds = usersSnapshot.docs.map(doc => doc.id);
-        break;
-      }
-      case 'role': {
-        if (!targetIds || targetIds.length === 0) {
-          return { statusCode: 400, body: JSON.stringify({ message: 'Missing targetIds for role type.' }) };
+    // 2. 根據發送類型獲取目標使用者 ID，並合併
+    for (const target of targets) {
+      switch (target.type) {
+        case 'all': {
+          const usersSnapshot = await db.collection('users').select().get();
+          usersSnapshot.docs.forEach(doc => allUserIds.add(doc.id));
+          break; // If 'all' is present, we can stop processing other targets
         }
-        const usersSnapshot = await db.collection('users').where('role', 'in', targetIds).select().get();
-        userIds = usersSnapshot.docs.map(doc => doc.id);
-        break;
-      }
-      case 'specific': {
-        if (!targetIds || targetIds.length === 0) {
-          return { statusCode: 400, body: JSON.stringify({ message: 'Missing targetIds for specific type.' }) };
+        case 'new': {
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          const usersSnapshot = await db.collection('users').where('createdAt', '>=', sevenDaysAgo).select().get();
+          usersSnapshot.docs.forEach(doc => allUserIds.add(doc.id));
+          break;
         }
-        userIds = targetIds;
-        break;
+        case 'role': {
+          if (target.ids && target.ids.length > 0) {
+            const usersSnapshot = await db.collection('users').where('role', 'in', target.ids).select().get();
+            usersSnapshot.docs.forEach(doc => allUserIds.add(doc.id));
+          }
+          break;
+        }
+        case 'specific': {
+          if (target.ids && target.ids.length > 0) {
+            target.ids.forEach((id: string) => allUserIds.add(id));
+          }
+          break;
+        }
       }
-      default:
-        return { statusCode: 400, body: JSON.stringify({ message: 'Invalid targetType.' }) };
+      // If 'all' was one of the targets, no need to process further.
+      if (target.type === 'all') break;
     }
+
+    const userIds = Array.from(allUserIds);
 
     if (userIds.length === 0) {
       return { statusCode: 200, body: JSON.stringify({ message: 'No users found for the specified target.', distributedCount: 0 }) };
@@ -69,6 +78,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     // 3. 使用批次寫入來發送優惠券
     const MAX_BATCH_SIZE = 500;
     const batches = [];
+
     for (let i = 0; i < userIds.length; i += MAX_BATCH_SIZE) {
       const batch = db.batch();
       const chunk = userIds.slice(i, i + MAX_BATCH_SIZE);

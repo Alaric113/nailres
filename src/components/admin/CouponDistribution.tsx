@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useCoupons } from '../../hooks/useCoupons';
 import { useAllUsers } from '../../hooks/useAllUsers';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { useAuthStore } from '../../store/authStore';
 import type { UserRole } from '../../types/user';
 
-type TargetType = 'all' | 'role' | 'specific';
+type TargetType = 'all' | 'role' | 'specific' | 'new';
 
 const CouponDistribution = () => {
   const { coupons, isLoading: isLoadingCoupons } = useCoupons();
@@ -13,9 +13,12 @@ const CouponDistribution = () => {
   const { currentUser } = useAuthStore();
 
   const [selectedCoupon, setSelectedCoupon] = useState<string>('');
-  const [targetType, setTargetType] = useState<TargetType>('all');
+  const [targetTypes, setTargetTypes] = useState<Set<TargetType>>(new Set(['all']));
   const [selectedRoles, setSelectedRoles] = useState<UserRole[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const userSearchRef = useRef<HTMLDivElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -27,9 +30,43 @@ const CouponDistribution = () => {
     setSelectedRoles(selectedOptions);
   };
 
-  const handleUserChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-    setSelectedUsers(selectedOptions);
+  const handleUserSelect = (userId: string) => {
+    setSelectedUsers(prev => {
+      if (prev.includes(userId)) {
+        return prev.filter(id => id !== userId);
+      } else {
+        return [...prev, userId];
+      }
+    });
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userSearchRef.current && !userSearchRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredUsers = useMemo(() => {
+    if (!userSearch) return users;
+    return users.filter(user => (user.profile.displayName || '').toLowerCase().includes(userSearch.toLowerCase()) || user.email.toLowerCase().includes(userSearch.toLowerCase()));
+  }, [users, userSearch]);
+
+  const handleTargetTypeChange = (type: TargetType, checked: boolean) => {
+    setTargetTypes(prev => {
+      const newTypes = new Set(prev);
+      if (checked) {
+        if (type === 'all') return new Set(['all']); // 'all' is exclusive
+        newTypes.add(type);
+        newTypes.delete('all'); // Remove 'all' if other specific types are selected
+      } else {
+        newTypes.delete(type);
+      }
+      return newTypes.size === 0 ? new Set(['all']) : newTypes; // Default to 'all' if empty
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,8 +89,10 @@ const CouponDistribution = () => {
         },
         body: JSON.stringify({
           couponId: selectedCoupon,
-          targetType,
-          targetIds: targetType === 'role' ? selectedRoles : selectedUsers,
+          targets: Array.from(targetTypes).map(type => ({
+            type,
+            ids: type === 'role' ? selectedRoles : type === 'specific' ? selectedUsers : [],
+          })),
         }),
       });
 
@@ -97,13 +136,14 @@ const CouponDistribution = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700">發送對象</label>
           <div className="mt-2 space-y-2">
-            <div className="flex items-center"><input type="radio" id="target-all" name="target" value="all" checked={targetType === 'all'} onChange={() => setTargetType('all')} className="h-4 w-4 radio-style" /><label htmlFor="target-all" className="ml-2">全體會員</label></div>
-            <div className="flex items-center"><input type="radio" id="target-role" name="target" value="role" checked={targetType === 'role'} onChange={() => setTargetType('role')} className="h-4 w-4 radio-style" /><label htmlFor="target-role" className="ml-2">依會員等級</label></div>
-            <div className="flex items-center"><input type="radio" id="target-specific" name="target" value="specific" checked={targetType === 'specific'} onChange={() => setTargetType('specific')} className="h-4 w-4 radio-style" /><label htmlFor="target-specific" className="ml-2">指定會員</label></div>
+            <div className="flex items-center"><input type="checkbox" id="target-all" checked={targetTypes.has('all')} onChange={(e) => handleTargetTypeChange('all', e.target.checked)} className="h-4 w-4 checkbox-style" /><label htmlFor="target-all" className="ml-2">全體會員 (勾選此項將覆蓋其他選項)</label></div>
+            <div className="flex items-center"><input type="checkbox" id="target-new" checked={targetTypes.has('new')} onChange={(e) => handleTargetTypeChange('new', e.target.checked)} className="h-4 w-4 checkbox-style" /><label htmlFor="target-new" className="ml-2">新註冊會員 (過去7天內)</label></div>
+            <div className="flex items-center"><input type="checkbox" id="target-role" checked={targetTypes.has('role')} onChange={(e) => handleTargetTypeChange('role', e.target.checked)} className="h-4 w-4 checkbox-style" /><label htmlFor="target-role" className="ml-2">依會員等級</label></div>
+            <div className="flex items-center"><input type="checkbox" id="target-specific" checked={targetTypes.has('specific')} onChange={(e) => handleTargetTypeChange('specific', e.target.checked)} className="h-4 w-4 checkbox-style" /><label htmlFor="target-specific" className="ml-2">指定會員</label></div>
           </div>
         </div>
 
-        {targetType === 'role' && (
+        {targetTypes.has('role') && (
           <div>
             <label htmlFor="roles" className="block text-sm font-medium text-gray-700">選擇會員等級</label>
             <select id="roles" multiple value={selectedRoles} onChange={handleRoleChange} className="mt-1 w-full input-style h-24">
@@ -114,14 +154,35 @@ const CouponDistribution = () => {
           </div>
         )}
 
-        {targetType === 'specific' && (
-          <div>
+        {targetTypes.has('specific') && (
+          <div ref={userSearchRef}>
             <label htmlFor="users" className="block text-sm font-medium text-gray-700">選擇會員</label>
-            <select id="users" multiple value={selectedUsers} onChange={handleUserChange} className="mt-1 w-full input-style h-48">
-              {users.map(user => (
-                <option key={user.id} value={user.id}>{user.profile.displayName || user.email}</option>
-              ))}
-            </select>
+            <div className="mt-1 relative">
+              <input
+                type="text"
+                placeholder="搜尋會員名稱或 Email..."
+                value={userSearch}
+                onChange={e => setUserSearch(e.target.value)}
+                onFocus={() => setIsUserDropdownOpen(true)}
+                className="w-full input-style"
+              />
+              {isUserDropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredUsers.map(user => (
+                    <div key={user.id} onClick={() => handleUserSelect(user.id)} className="px-4 py-2 cursor-pointer hover:bg-gray-100 flex items-center justify-between">
+                      <span>{user.profile.displayName || user.email}</span>
+                      {selectedUsers.includes(user.id) && <span className="text-pink-500">✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {selectedUsers.map(userId => {
+                const user = users.find(u => u.id === userId);
+                return user ? <span key={userId} className="px-2 py-1 bg-pink-100 text-pink-700 text-xs font-medium rounded-full">{user.profile.displayName || user.email}</span> : null;
+              })}
+            </div>
           </div>
         )}
 
