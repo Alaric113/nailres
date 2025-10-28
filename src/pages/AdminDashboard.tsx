@@ -20,7 +20,8 @@ import {
   PhotoIcon, 
   Cog6ToothIcon,
   ArrowRightIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  TicketIcon
 } from '@heroicons/react/24/outline';
 
 const AdminDashboard = () => {
@@ -212,6 +213,16 @@ const AdminDashboard = () => {
             linkTo="/admin/settings"
             icon={<Cog6ToothIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
             color="bg-gray-600"
+          />
+
+          {/* 優惠與集點 */}
+          <SummaryCard
+            title="優惠與集點"
+            value=""
+            unit=""
+            linkTo="/admin/promotions"
+            icon={<TicketIcon className="h-5 w-5 sm:h-6 sm-w-6" />}
+            color="bg-amber-500"
           />
         </div>
       </main>

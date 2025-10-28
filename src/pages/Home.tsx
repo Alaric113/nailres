@@ -102,7 +102,7 @@ const Home = () => {
             </p>
             <Link
               to="/login"
-              className="inline-block bg-gradient-to-r from-[#E97EB5] to-[#D96BA5] text-white font-bold rounded-full py-3 px-8 sm:py-4 sm:px-10 text-base sm:text-lg shadow-2xl hover:shadow-pink-500/50 hover:scale-105 active:scale-95 transition-all duration-300"
+              className="inline-block bg-[#9f9586] text-white font-bold rounded-full py-3 px-8 sm:py-4 sm:px-10 text-base sm:text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300"
             >
               立即預約
             </Link>

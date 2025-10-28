@@ -9,6 +9,7 @@ export interface UserDocument {
     displayName: string | null;
     avatarUrl?: string | null;
   };
+  loyaltyPoints?: number;
   role: UserRole; // Use the UserRole union type
   createdAt: Timestamp | FieldValue;
   lastLogin: Timestamp | FieldValue;

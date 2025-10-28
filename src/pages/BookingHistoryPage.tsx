@@ -4,6 +4,7 @@ import { db } from '../lib/firebase';
 import { useBookings } from '../hooks/useBookings';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { format } from 'date-fns';
+import { getBookingStatusChipClass, translateBookingStatus } from '../utils/bookingUtils';
 import { zhTW } from 'date-fns/locale';
 
 const BookingHistoryPage = () => {
@@ -46,24 +47,6 @@ const BookingHistoryPage = () => {
             const isFutureBooking = booking.dateTime.getTime() > new Date().getTime();
             const canCancel = isFutureBooking && booking.status === 'confirmed';
 
-            const getStatusChipClass = (status: string) => {
-              switch (status) {
-                case 'confirmed': return 'bg-green-100 text-green-800';
-                case 'completed': return 'bg-blue-100 text-blue-800';
-                case 'cancelled': return 'bg-red-100 text-red-800';
-                default: return 'bg-gray-100 text-gray-800';
-              }
-            };
-
-            const translateStatus = (status: string) => {
-              switch (status) {
-                case 'confirmed': return '已確認';
-                case 'completed': return '已完成';
-                case 'cancelled': return '已取消';
-                default: return status;
-              }
-            };
-
             return (
               <div key={booking.id} className="p-6 bg-white rounded-lg shadow-lg border border-gray-200">
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -78,8 +61,8 @@ const BookingHistoryPage = () => {
                   <div className="flex flex-col items-stretch gap-3 sm:items-end sm:flex-row sm:gap-4">
                     <div className="flex items-center gap-4">
                       <p className="text-lg font-bold text-gray-800">${booking.amount}</p>
-                      <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusChipClass(booking.status)}`}>
-                        {translateStatus(booking.status)}
+                      <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getBookingStatusChipClass(booking.status)}`}>
+                        {translateBookingStatus(booking.status)}
                       </span>
                     </div>
                     {canCancel && (

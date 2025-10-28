@@ -21,6 +21,7 @@ import HoursSettingsPage from './pages/HoursSettingsPage';
 import OrderManagementPage from './pages/OrderManagementPage';
 import CalendarPage from './pages/CalendarPage';
 import SettingsPage from './pages/SettingsPage';
+import PromotionsPage from './pages/PromotionsPage';
 
 
 // Route Components
@@ -97,6 +98,7 @@ function App() {
           <Route path="/admin/orders" element={<MainLayout><OrderManagementPage /></MainLayout>} />
           <Route path="/admin/calendar" element={<MainLayout><CalendarPage /></MainLayout>} />
           <Route path="/admin/settings" element={<MainLayout><SettingsPage /></MainLayout>} />
+          <Route path="/admin/promotions" element={<PromotionsPage />} />
 
         </Route>
       </Routes>

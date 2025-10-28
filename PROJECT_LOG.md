@@ -492,12 +492,96 @@
             - 更新所有看板的連結，使其指向對應的功能頁面 (`/admin/calendar`, `/admin/orders?status=...` 等)。
         - **[完成]** **更新路由:** 在 `App.tsx` 中新增 `/admin/calendar` 和 `/admin/orders` 的路由，並移除舊路由。
 
+1.  **[新任務] 建立「優惠與集點」管理頁面:**
+    - **目標:** 為優惠券與集點卡功能建立一個統一的管理入口頁面。
+    - **任務:**
+        - **[已完成]** 在管理員儀表板 (`AdminDashboard.tsx`) 新增一個「優惠與集點」的入口按鈕，連結至 `/admin/promotions`。
+        - **[已完成]** 建立 `src/pages/admin/PromotionsPage.tsx` 頁面骨架，並包含頁籤結構。
+        - **[已完成]** 在 `App.tsx` 中新增 `/admin/promotions` 路由。
+        - **[下一步]** 開始實作「優惠券管理」頁籤的功能，包括顯示優惠券列表及新增優惠券的表單。
+
+
 
 ## 10. 核心功能重構與優化藍圖 (Core Feature Refactoring & Optimization Blueprint)
 
 ### 📄 管理員後台 (AdminDashboard) 綜合優化方案 (技術規範)
 
 **目的:** 將核心操作介面從 `react-big-calendar` 遷移至功能更強大的 `FullCalendar`，並新增「待處理任務概覽區」與「數據微觀顯示」，以提升管理員的操作效率和數據洞察力。
+
+
+### 🎟️ 優惠券系統 (Coupon System)
+
+**目的:** 建立一個靈活的優惠券系統，允許管理員創建、發放及管理優惠券，並讓客戶在預約時使用，以提升行銷活動的彈性。
+
+#### 一、 資料模型 (Data Model - Firestore)
+
+1.  **`coupons` 集合:**
+    -   `code`: `string` (優惠券代碼，e.g., "SUMMER2024"，需唯一)
+    -   `title`: `string` (優惠券標題，e.g., "夏季新品折 100 元")
+    -   `details`: `string` (詳細說明)
+    -   `rules`: `string` (使用規定)
+    -   `type`: `'fixed' | 'percentage'` (折扣類型：固定金額或百分比)
+    -   `value`: `number` (折扣數值，例如 100 或 15)
+    -   `minSpend`: `number` (最低消費金額)
+    -   `scopeType`: `'all' | 'category' | 'service'` (適用範圍：全體、特定分類、特定服務)
+    -   `scopeIds`: `string[]` (適用範圍的 ID 列表。若 `scopeType` 為 `category`，則存放分類名稱；若為 `service`，則存放服務 ID)
+    -   `validFrom`: `Timestamp` (生效日期)
+    -   `validUntil`: `Timestamp` (過期日期)
+    -   `usageLimit`: `number` (總使用次數限制)
+    -   `usageCount`: `number` (已使用次數)
+    -   `isActive`: `boolean` (是否啟用)
+
+2.  **`userCoupons` 子集合 (在 `users/{userId}` 下):**
+    -   `couponId`: `string` (對應 `coupons` 集合的 ID)
+    -   `isUsed`: `boolean` (該使用者是否已使用)
+    -   `receivedAt`: `Timestamp` (領取時間)
+
+#### 二、 後端功能 (Admin Backend)
+
+-   **優惠券管理頁面:**
+    -   列表顯示所有優惠券 (代碼、類型、狀態、使用狀況)。
+    -   提供新增/編輯優惠券的表單 (需包含適用範圍的設定選項)。
+    -   提供發送優惠券給特定使用者、特定會員等級或全體會員的功能。
+
+#### 三、 前端整合 (Client Frontend)
+
+-   **預約流程:**
+    -   在 `BookingForm.tsx` 中新增優惠券輸入框或選擇器。
+    -   後端驗證優惠券代碼的有效性 (是否存在、是否過期、是否達到使用上限、是否符合低消、**是否適用於所選服務**)。
+    -   在確認預約時，重新計算最終結帳金額。
+-   **使用者中心:**
+    -   新增「我的優惠券」頁面，顯示使用者持有的有效、已過期、已使用的優惠券。
+
+### 💳 集點卡功能 (Loyalty/Stamp Card System)
+
+**目的:** 透過消費集點與兌換獎勵，提升客戶回訪率與忠誠度。
+
+#### 一、 資料模型 (Data Model - Firestore)
+
+1.  **`globals/settings` 文件:**
+    -   新增 `loyaltySettings`: `object`
+        -   `pointsPerAmount`: `number` (每消費多少金額贈送一點)
+        -   `rules`: `string` (集點相關規定)
+
+2.  **`users/{userId}` 文件:**
+    -   新增 `loyaltyPoints`: `number` (目前的點數)。
+
+3.  **`loyaltyPointLogs` 集合:** (用於追蹤點數變動歷史)
+    -   `userId`: `string`
+    -   `pointsChange`: `number` (正數為獲得，負數為兌換)
+    -   `reason`: `string` (e.g., "完成預約 #BOOKING123", "兌換獎勵")
+    -   `createdAt`: `Timestamp`
+
+#### 二、 核心邏輯
+
+-   **點數累積:** 預約狀態變更為 `completed` 時，透過 Cloud Function 觸發，根據消費金額計算並增加使用者的 `loyaltyPoints`。
+-   **點數兌換:** 在服務項目管理中，新增可使用點數兌換的特殊服務項目。使用者在預約時若選擇此類項目，則扣除相應點數。
+
+### 🖼️ 首頁 Banner 管理 (Homepage Banner Management)
+
+**目的:** 讓管理員可以彈性更換首頁的活動 Banner，用於宣傳最新活動或主打服務。
+
+
 
 #### 一、 UI 介面設計與佈局調整
 

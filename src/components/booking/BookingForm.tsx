@@ -1,40 +1,27 @@
-import React, { useState, useMemo } from 'react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import React, { useState } from 'react';
+import { collection,  serverTimestamp, writeBatch, doc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuthStore } from '../../store/authStore';
 import type { Service } from '../../types/service';
 import type { BookingStatus } from '../../types/booking';
 import { useNavigate } from 'react-router-dom';
+import type { Coupon } from '../../types/coupon';
 
 interface BookingFormProps {
   services: Service[];
   dateTime: Date;
+  totalPrice: number;
+  coupon: Coupon | null;
   onBookingSuccess: () => void;
 }
 
-const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, onBookingSuccess }) => {
+const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, totalPrice, coupon, onBookingSuccess }:BookingFormProps) => {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currentUser = useAuthStore((state) => state.currentUser);
   const userProfile = useAuthStore((state) => state.userProfile);
   const navigate = useNavigate();
-
-  const { totalDuration, totalPrice, serviceNames, serviceIds } = useMemo(() => {
-    const isPlatinum = userProfile?.role === 'platinum';
-    return services.reduce(
-      (acc, service) => {
-        const price = isPlatinum && service.platinumPrice ? service.platinumPrice : service.price;
-        acc.totalDuration += service.duration;
-        acc.totalPrice += price;
-        acc.serviceNames.push(service.name);
-        acc.serviceIds.push(service.id);
-        return acc;
-      },
-      { totalDuration: 0, totalPrice: 0, serviceNames: [] as string[], serviceIds: [] as string[] }
-    );
-  }, [services, userProfile]);
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,32 +35,52 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, onBooking
     const initialStatus: BookingStatus = userProfile?.role === 'platinum' ? 'pending_confirmation' : 'pending_payment';
 
     try {
-      const newBooking = {
+      const batch = writeBatch(db);
+      const newBookingRef = doc(collection(db, 'bookings'));
+
+      const serviceIds = services.map(s => s.id);
+      const serviceNames = services.map(s => s.name);
+      const totalDuration = services.reduce((acc, service) => acc + service.duration, 0);
+
+      // 1. Create new booking document
+      batch.set(newBookingRef, {
         userId: currentUser.uid,
-        serviceIds: serviceIds,
-        serviceNames: serviceNames,
+        serviceIds,
+        serviceNames,
         dateTime: dateTime,
         status: initialStatus,
         amount: totalPrice,
         duration: totalDuration,
+        couponId: coupon ? coupon.id : null,
+        couponName: coupon ? coupon.title : null,
         createdAt: serverTimestamp(),
         notes: notes,
-      };
-      await addDoc(collection(db, 'bookings'), newBooking);
+      });
 
-      // Call the Netlify function to send a LINE message
+      // 2. If a coupon was used, update its usage count and mark as used for the user
+      if (coupon) {
+        const couponRef = doc(db, 'coupons', coupon.id);
+        batch.update(couponRef, { usageCount: coupon.usageCount + 1 });
+
+        const userCouponRef = doc(db, 'users', currentUser.uid, 'userCoupons', coupon.id);
+        batch.set(userCouponRef, { isUsed: true, usedAt: serverTimestamp() }, { merge: true });
+      }
+
+      await batch.commit();
+
+      // 3. Call the Netlify function to send a LINE message
       fetch('/api/send-line-message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: newBooking.userId,
-          serviceNames: newBooking.serviceNames,
-          dateTime: newBooking.dateTime.toISOString(),
-          amount: newBooking.amount,
-          notes: newBooking.notes,
-          status: newBooking.status,
+          userId: currentUser.uid,
+          serviceNames: serviceNames,
+          dateTime: dateTime.toISOString(),
+          amount: totalPrice,
+          notes: notes,
+          status: initialStatus,
         }),
       }).catch(err => console.error('Failed to send LINE notification:', err));
 
@@ -89,15 +96,18 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, onBooking
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
+    <div className="p-6 border-t border-gray-200">
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div>
-            <h3 className="text-lg font-semibold">預約詳情</h3>
-            <p>服務項目: {serviceNames.join('、')}</p>
-            <p>總時長: {totalDuration} 分鐘</p>
-            <p>總金額: ${totalPrice}</p>
-            <p>時間: {dateTime.toLocaleString('zh-TW')}</p>
+            <h3 className="font-semibold text-gray-700">預約項目:</h3>
+            <ul className="list-disc list-inside text-gray-600">
+              {services.map(s => <li key={s.id}>{s.name}</li>)}
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-700">最終費用:</h3>
+            <p className="text-2xl font-bold text-pink-600">${totalPrice}</p>
           </div>
           <div>
             <label htmlFor="notes" className="block text-sm font-medium text-gray-700">

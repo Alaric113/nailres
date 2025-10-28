@@ -4,7 +4,8 @@ import { useBookings } from '../hooks/useBookings';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-
+import { getBookingStatusChipClass, bookingStatusTextMap } from '../utils/bookingUtils';
+import { StarIcon } from '@heroicons/react/24/outline';
 const Dashboard = () => {
   const { userProfile } = useAuthStore();
   const { bookings, isLoading, error, cancelBooking } = useBookings();
@@ -19,31 +20,6 @@ const Dashboard = () => {
         alert('取消預約失敗，請稍後再試。');
       }
     }
-  };
-
-  const getStatusChipClass = (status: string) => {
-    switch (status) {
-      case 'pending_payment':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'pending_confirmation':
-        return 'bg-blue-100 text-blue-800';
-      case 'confirmed':
-        return 'bg-green-100 text-green-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const statusTextMap: Record<string, string> = {
-    pending_payment: '訂金待付',
-    pending_confirmation: '確認中',
-    confirmed: '已確認',
-    completed: '已完成',
-    cancelled: '已取消',
   };
 
   return (
@@ -70,13 +46,26 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <Link
-                to="/booking"
-                className="w-full inline-block text-center bg-pink-500 text-white font-bold rounded-md py-3 px-4 shadow-md hover:bg-pink-600 transition-colors"
-              >
-                + 新增預約
-              </Link>
+            <div className="space-y-6">
+              {/* New Booking Button */}
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <Link
+                  to="/booking"
+                  className="w-full inline-block text-center bg-pink-500 text-white font-bold rounded-md py-3 px-4 shadow-md hover:bg-pink-600 transition-colors"
+                >
+                  + 新增預約
+                </Link>
+              </div>
+
+              {/* Loyalty Points Card */}
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center mb-4">
+                  <StarIcon className="h-6 w-6 text-yellow-500 mr-3" />
+                  <h2 className="text-xl font-bold text-gray-800">我的點數</h2>
+                </div>
+                <p className="text-4xl font-bold text-gray-900 text-center">{userProfile?.loyaltyPoints || 0} <span className="text-lg font-medium text-gray-500">點</span></p>
+                <p className="text-xs text-gray-500 text-center mt-2">消費滿額即可累積點數，兌換專屬好禮！</p>
+              </div>
             </div>
           </div>
           {/* Left Column: My Bookings */}
@@ -98,8 +87,8 @@ const Dashboard = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusChipClass(booking.status)}`}>
-                        {statusTextMap[booking.status] || '未知狀態'}
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getBookingStatusChipClass(booking.status)}`}>
+                        {bookingStatusTextMap[booking.status] || '未知狀態'}
                       </span>
                       {/* Allow cancellation if the booking is not completed or already cancelled */}
                       {!['completed', 'cancelled'].includes(booking.status) && (

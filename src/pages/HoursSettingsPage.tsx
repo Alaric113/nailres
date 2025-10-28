@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import { DayPicker } from 'react-day-picker';
 import { format, isValid } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { BusinessHours, TimeSlot } from '../types/businessHours';
 import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
+import { useGlobalSettings } from '../hooks/useGlobalSettings';
 
 import 'react-day-picker/dist/style.css';
 
@@ -18,10 +19,17 @@ const HoursSettingsPage = () => {
   const [isClosed, setIsClosed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [bookingDeadline, setBookingDeadline] = useState<Date | undefined>();
+  const { settings: globalSettings, isLoading: isLoadingGlobalSettings } = useGlobalSettings();
+  const [localBookingDeadline, setLocalBookingDeadline] = useState<Date | undefined>();
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const { closedDays, customSettingDays } = useBusinessHoursSummary() as { closedDays: Date[], customSettingDays: Date[] };
   const [activeTab, setActiveTab] = useState<Tab>('daily');
+
+  useEffect(() => {
+    if (globalSettings.bookingDeadline) {
+      setLocalBookingDeadline(globalSettings.bookingDeadline);
+    }
+  }, [globalSettings.bookingDeadline]);
 
   // Fetch settings when a new date is selected
   useEffect(() => {
@@ -57,21 +65,6 @@ const HoursSettingsPage = () => {
     fetchSettings();
   }, [selectedDate]);
 
-  // Fetch global settings
-  useEffect(() => {
-    const fetchGlobalSettings = async () => {
-      const globalSettingsRef = doc(db, 'globals', 'settings');
-      const docSnap = await getDoc(globalSettingsRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.bookingDeadline) {
-          setBookingDeadline(data.bookingDeadline.toDate());
-        }
-      }
-    };
-    fetchGlobalSettings();
-  }, []);
-
   const handleSave = async () => {
     if (!selectedDate || !isValid(selectedDate)) {
       setMessage({ type: 'error', text: '請先選擇一個有效的日期。' });
@@ -101,15 +94,15 @@ const HoursSettingsPage = () => {
   };
 
   const handleSaveGlobalSettings = async () => {
-    if (!bookingDeadline) {
+    if (!localBookingDeadline) {
       setMessage({ type: 'error', text: '請選擇一個有效的最終預約日。' });
       return;
     }
     setIsSaving(true);
     setMessage(null);
     try {
-      const globalSettingsRef = doc(db, 'globals', 'settings');
-      await setDoc(globalSettingsRef, { bookingDeadline }, { merge: true });
+      const globalSettingsRef = doc(db, 'globals', 'settings');      
+      await setDoc(globalSettingsRef, { bookingDeadline: Timestamp.fromDate(localBookingDeadline) }, { merge: true });
       setMessage({ type: 'success', text: '全域設定已成功儲存！' });
     } catch (error) {
       setMessage({ type: 'error', text: '儲存全域設定失敗！' });
@@ -238,10 +231,12 @@ const HoursSettingsPage = () => {
             <h2 className="text-lg font-bold mb-4">全域預約設定</h2>
             <div className="max-w-sm space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">最晚可預約日期</label>
-                <DayPicker mode="single" selected={bookingDeadline} onSelect={setBookingDeadline} locale={zhTW} disabled={{ before: new Date() }} footer={<p className="text-xs text-gray-500 mt-2">顧客只能預約此日期（含）之前的時段。</p>} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">最晚可預約日期</label>                
+                {isLoadingGlobalSettings ? <p>載入中...</p> : (
+                  <DayPicker mode="single" selected={localBookingDeadline} onSelect={setLocalBookingDeadline} locale={zhTW} disabled={{ before: new Date() }} footer={<p className="text-xs text-gray-500 mt-2">顧客只能預約此日期（含）之前的時段。</p>} />
+                )}
               </div>
-              <button onClick={handleSaveGlobalSettings} disabled={isSaving} className="px-4 py-2 font-semibold text-white bg-green-500 rounded-md hover:bg-green-600 disabled:bg-gray-400">{isSaving ? '儲存中...' : '儲存全域設定'}</button>
+              <button onClick={handleSaveGlobalSettings} disabled={isSaving || isLoadingGlobalSettings} className="px-4 py-2 font-semibold text-white bg-green-500 rounded-md hover:bg-green-600 disabled:bg-gray-400">{isSaving ? '儲存中...' : '儲存全域設定'}</button>
             </div>
           </div>
         )}

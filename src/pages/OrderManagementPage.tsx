@@ -2,10 +2,9 @@ import{ useState, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { useAllBookings } from '../hooks/useAllBookings';
-import type { EnrichedBooking } from '../hooks/useAllBookings';
+import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
 import type { BookingStatus } from '../types/booking';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -42,11 +41,42 @@ const OrderManagementPage = () => {
   const handleUpdateStatus = async (booking: EnrichedBooking, newStatus: BookingStatus) => {
     setUpdatingId(booking.id);
     try {
-      // 步驟 1: 更新 Firestore 中的訂單狀態
-      const bookingRef = doc(db, 'bookings', booking.id);
-      await updateDoc(bookingRef, { status: newStatus });
+      const batch = writeBatch(db);
 
-      // 步驟 2: 呼叫後端 API 發送 LINE 通知給使用者
+      // 步驟 1: 更新訂單狀態
+      const bookingRef = doc(db, 'bookings', booking.id);
+      batch.update(bookingRef, { status: newStatus });
+
+      // 步驟 2: 如果是「已完成」，則發放點數
+      if (newStatus === 'completed' && booking.userId && booking.amount > 0) {
+        const settingsRef = doc(db, 'globals', 'settings');
+        const settingsSnap = await getDoc(settingsRef);
+        const loyaltySettings = settingsSnap.data()?.loyaltySettings;
+
+        if (loyaltySettings && loyaltySettings.pointsPerAmount > 0) {
+          const pointsEarned = Math.floor(booking.amount / loyaltySettings.pointsPerAmount);
+
+          if (pointsEarned > 0) {
+            const userRef = doc(db, 'users', booking.userId);
+            const userSnap = await getDoc(userRef);
+            const currentPoints = userSnap.data()?.loyaltyPoints || 0;
+            batch.update(userRef, { loyaltyPoints: currentPoints + pointsEarned });
+
+            const logRef = doc(db, 'loyaltyPointLogs', `${booking.id}_${Date.now()}`);
+            batch.set(logRef, {
+              userId: booking.userId,
+              pointsChange: pointsEarned,
+              reason: `完成預約 #${booking.id.substring(0, 6)}`,
+              createdAt: new Date(),
+            });
+          }
+        }
+      }
+
+      // 步驟 3: 提交所有資料庫更新
+      await batch.commit();
+
+      // 步驟 4: 呼叫後端 API 發送 LINE 通知給使用者
       // 我們只在狀態變更為 'confirmed', 'completed', 'cancelled' 時發送通知
       if (['confirmed', 'completed', 'cancelled'].includes(newStatus)) {
         fetch('/api/send-line-message', {
@@ -54,7 +84,7 @@ const OrderManagementPage = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: booking.userId,
-            serviceNames: [booking.serviceName], // API 預期是陣列
+            serviceNames: booking.serviceNames, // API 預期是陣列
             dateTime: booking.dateTime.toISOString(), // 確保是 ISO 格式字串
             amount: booking.amount,
             status: newStatus, // 傳遞新的狀態
@@ -98,7 +128,7 @@ const OrderManagementPage = () => {
             {filteredBookings.length > 0 ? filteredBookings.map(b => (
               <div key={b.id} className="p-3 bg-gray-50 rounded-md flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                 <div>
-                  <p className="font-semibold text-sm">{b.userName} - {b.serviceName}</p>
+                  <p className="font-semibold text-sm">{b.userName} - {b.serviceNames.join(', ')}</p>
                   <p className="text-xs text-gray-500">{format(b.dateTime, 'yyyy/MM/dd HH:mm', { locale: zhTW })}</p>
                 </div>
                 <div className="flex gap-2 self-end sm:self-center">{renderButtons(b)}</div>
