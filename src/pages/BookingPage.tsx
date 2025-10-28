@@ -80,7 +80,7 @@ const BookingPage = () => {
     const final = Math.max(0, basePrice - discount);
 
     return { totalDuration: duration, originalPrice: basePrice, finalPrice: final, discountAmount: discount };
-  }, [selectedServices, userProfile]);
+  }, [selectedServices, userProfile, selectedCoupon]);
 
   return (
     <div className="min-h-screen bg-gray-100">

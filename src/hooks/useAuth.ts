@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, getRedirectResult, type User } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, collection, query, where, limit, getDocs, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 import type { UserDocument } from '../types/user';
@@ -35,6 +35,25 @@ export const useAuth = () => {
         } else {
           // New user (e.g., via social sign-in). Create their profile.
           console.log('User profile not found, creating a new one...');
+          
+          const batch = writeBatch(db);
+
+          // Find the new user coupon
+          const couponsRef = collection(db, 'coupons');
+          const q = query(couponsRef, where('isNewUserCoupon', '==', true), where('isActive', '==', true), limit(1));
+          const couponSnapshot = await getDocs(q);
+          const newUserCoupon = couponSnapshot.docs.length > 0 ? couponSnapshot.docs[0] : null;
+
+          // If a new user coupon is found, prepare to assign it
+          if (newUserCoupon) {
+            const userCouponRef = doc(db, 'users', firebaseUser.uid, 'userCoupons', newUserCoupon.id);
+            batch.set(userCouponRef, {
+              couponId: newUserCoupon.id,
+              isUsed: false,
+              receivedAt: serverTimestamp(),
+            });
+          }
+
           const socialProviderData = firebaseUser.providerData[0];
           const isLineLogin = socialProviderData?.providerId.includes('line');
 
@@ -49,8 +68,11 @@ export const useAuth = () => {
             lastLogin: serverTimestamp(),
             ...(isLineLogin && { lineUserId: socialProviderData.uid }),
           };
-          await setDoc(userDocRef, newUserProfile);
+
+          batch.set(userDocRef, newUserProfile);
+          await batch.commit();
           setAuthState(firebaseUser, newUserProfile);
+          console.log(`[Auth] New user document created for ${firebaseUser.uid}. ${newUserCoupon ? `Assigned new user coupon: ${newUserCoupon.id}` : 'No new user coupon found.'}`);
         }
       } catch (error) {
         console.error('Error handling user state:', error);

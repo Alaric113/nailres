@@ -50,7 +50,9 @@ const CouponList = ({ onEdit }: CouponListProps) => {
                       {coupon.isActive ? '啟用中' : '已停用'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{coupon.usageCount} / {coupon.usageLimit}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {coupon.usageCount} / {coupon.usageLimit === -1 ? '無限制' : coupon.usageLimit}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{format(coupon.validUntil.toDate(), 'yyyy-MM-dd')}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button onClick={() => onEdit(coupon)} className="text-indigo-600 hover:text-indigo-900">編輯</button>

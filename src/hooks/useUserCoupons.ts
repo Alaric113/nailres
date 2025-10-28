@@ -42,7 +42,9 @@ export const useUserCoupons = () => {
           .filter(coupon => 
             coupon.isActive &&
             coupon.validFrom.seconds <= now.seconds &&
-            coupon.validUntil.seconds >= now.seconds
+            coupon.validUntil.seconds >= now.seconds &&
+            // Add check for usage limit
+            (coupon.usageLimit === -1 || coupon.usageCount < coupon.usageLimit)
           );
 
         setUserCoupons(validCoupons);

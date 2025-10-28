@@ -128,7 +128,7 @@ const OrderManagementPage = () => {
             {filteredBookings.length > 0 ? filteredBookings.map(b => (
               <div key={b.id} className="p-3 bg-gray-50 rounded-md flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                 <div>
-                  <p className="font-semibold text-sm">{b.userName} - {b.serviceNames.join(', ')}</p>
+                  <p className="font-semibold text-sm">{b.userName} - {b.serviceNames.join(', ')} - <span className="text-blue-600">${b.amount}</span></p>
                   <p className="text-xs text-gray-500">{format(b.dateTime, 'yyyy/MM/dd HH:mm', { locale: zhTW })}</p>
                 </div>
                 <div className="flex gap-2 self-end sm:self-center">{renderButtons(b)}</div>

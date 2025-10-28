@@ -68,7 +68,11 @@ const PendingTasks: React.FC<PendingTasksProps> = ({ bookings, onUpdateStatus, a
           bookings.map(b => (
             <div key={b.id} className="p-3 bg-gray-50 rounded-md flex flex-col sm:flex-row justify-between sm:items-center gap-2">
               <div>
-                <p className="font-semibold text-sm">{b.userName} - {b.serviceName}</p>
+                {activeFilter === 'pending_payment' ? (
+                  <p className="font-semibold text-sm">{b.userName} - {b.serviceName}</p>
+                ) : (
+                  <p className="font-semibold text-sm">{b.userName} - {b.serviceName}</p>
+                )}
                 <p className="text-xs text-gray-500">{format(b.dateTime, 'MM/dd HH:mm', { locale: zhTW })}</p>
               </div>
               <div className="flex gap-2 self-end sm:self-center">{renderButtons(b)}</div>
