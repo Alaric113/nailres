@@ -22,7 +22,7 @@ import OrderManagementPage from './pages/OrderManagementPage';
 import CalendarPage from './pages/CalendarPage';
 import SettingsPage from './pages/SettingsPage';
 import PromotionsPage from './pages/PromotionsPage';
-
+import LoadingSpinner from './components/common/LoadingSpinner';
 
 // Route Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -44,7 +44,7 @@ function App() {
   // show a global loading indicator. This is the key to preventing UI flashes and race conditions.
   if (authIsLoading || isCheckingRedirect) {
     console.log('[App Checkpoint 1] App is in loading state (authIsLoading: true).');
-    return <div className="flex items-center justify-center h-screen">正在載入應用程式...</div>;
+    return <LoadingSpinner size='lg' text='正在載入中...' fullScreen />;
   }
 
   return (
