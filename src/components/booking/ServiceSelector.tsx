@@ -93,7 +93,7 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onServiceToggle, sele
                     selectedServiceIds.includes(service.id) ? 'border-pink-500 ring-2 ring-pink-500' : 'border-gray-200 hover:border-pink-300'
                   }`}
                 >
-                  <img className="h-16 w-16 rounded-md object-cover mr-2" src={service.imageUrl || 'https://via.placeholder.j6/150'} alt={service.name} />
+                  <img className= {` h-16 w-16 rounded-md object-cover mr-2 ${service.imageUrl === '' ? 'hidden' : ''}`} src={service.imageUrl || ''} alt={service.name} />
                   <div>
                     <h4 className="font-semibold text-lg flex-grow">{service.name}</h4>
                     <div className="text-sm text-gray-600 flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
