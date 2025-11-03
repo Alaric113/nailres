@@ -25,7 +25,7 @@ const SummaryCard = ({
   subtext
 }: SummaryCardProps) => {
   const cardContent = (
-    <div className="overflow-hidden group">
+    <div className="overflow-hidden group h-full flex flex-col">
       {/* Urgent Badge */}
       {urgent && (
         <div className="absolute top-2 right-2 z-10">
@@ -42,7 +42,7 @@ const SummaryCard = ({
       <div className={`h-1.5 ${color} rounded-t-xl`}></div>
       
       {/* Card Body */}
-      <div className="p-4 sm:p-5 bg-white">
+      <div className="p-4 sm:p-5 bg-white flex-grow flex flex-col justify-between">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <p className="text-lg font-medium text-gray-600 mb-1 leading-tight">
@@ -99,7 +99,7 @@ const SummaryCard = ({
     return (
       <button
         onClick={onClick}
-        className="block w-full text-left rounded-xl shadow-md hover:shadow-xl border-2 border-gray-100 hover:border-gray-200 transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+        className="block w-full h-full text-left rounded-xl shadow-md hover:shadow-xl border-2 border-gray-100 hover:border-gray-200 transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
       >
         {cardContent}
       </button>
@@ -110,7 +110,7 @@ const SummaryCard = ({
     return (
       <Link
         to={linkTo}
-        className="block rounded-xl shadow-md hover:shadow-xl border-2 border-gray-100 hover:border-gray-200 transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+        className="block h-full rounded-xl shadow-md hover:shadow-xl border-2 border-gray-100 hover:border-gray-200 transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
       >
         {cardContent}
       </Link>
@@ -118,7 +118,7 @@ const SummaryCard = ({
   }
 
   return (
-    <div className="rounded-xl shadow-md border-2 border-gray-100">
+    <div className="h-full rounded-xl shadow-md border-2 border-gray-100">
       {cardContent}
     </div>
   );
