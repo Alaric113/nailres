@@ -125,12 +125,12 @@ const Home = () => {
         {/* Services Section */}
         <section id="services" className="min-h-screen flex items-center py-16 sm:py-20 bg-white snap-start snap-always">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
-            <div className="text-center mb-2 sm:mb-4">
+            <div className="text-center mb-3 sm:mb-4">
               <h2 className="text-3xl sm:text-4xl font-bold mb-1 sm:mb-2"
                   style={{ fontFamily: "'Noto Serif Display', serif", color: '#9f9586' }}>
                 Our Services
               </h2>
-              <div className="w-[80%] h-[2px] bg-[#9f9586] mx-auto mb-1"></div>
+              <div className="w-[80%] h-[1px] bg-[#9f9586] mx-auto mb-1"></div>
               
             </div>
             
