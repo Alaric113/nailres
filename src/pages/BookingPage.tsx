@@ -21,7 +21,6 @@ const BookingPage = () => {
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
-  const [activeStep, setActiveStep] = useState<'service' | 'date' | 'time' | 'confirm'>('service');
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const { userProfile } = useAuthStore();
@@ -43,12 +42,10 @@ const BookingPage = () => {
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
     setSelectedTime(null); // Reset time when date changes
-    setActiveStep('time');
   };
 
   const handleTimeSelect = (time: Date) => {
     setSelectedTime(time);
-    setActiveStep('confirm');
   };
 
   const handleCouponSelect = (coupon: Coupon | null) => {
@@ -60,8 +57,7 @@ const BookingPage = () => {
     setSelectedServices([]);
     setSelectedDate(new Date());
     setSelectedTime(null);
-    setSelectedCoupon(null);
-    setActiveStep('service');
+    setSelectedCoupon(null); // activeStep 會自動重置
   };
 
   const { totalDuration, originalPrice, finalPrice, discountAmount } = useMemo(() => {
@@ -101,18 +97,18 @@ const BookingPage = () => {
 
         <div className="space-y-8">
           {/* --- Step 1: Service Selection --- */}
-          <div className={`p-6 bg-white rounded-lg shadow-md transition-all ${selectedServices.length > 0 && activeStep !== 'service' ? 'cursor-pointer hover:bg-gray-50' : ''}`} onClick={() => selectedServices.length > 0 && activeStep !== 'service' && setActiveStep('service')}>
+          <div className={`p-6 bg-white rounded-lg shadow-md transition-all`}>
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-800">1. 選擇服務項目</h2>
             </div>
-            {selectedServices.length > 0 && activeStep !== 'service' && (
+            {selectedServices.length > 0 && (
               <div className="mt-4 p-4 bg-pink-50 rounded-md">
                 <p><strong>已選服務:</strong> {selectedServices.map(s => s.name).join('、')}</p>
                 <p><strong>總計:</strong> {totalDuration} 分鐘 / ${originalPrice} 元</p>
               </div>
             )}
-            {activeStep === 'service' && (
-              <div className="mt-4">
+            <div className="mt-4">
+              {/* 服務選擇器始終可見，但可能被禁用 */}
                 <ServiceSelector 
                   onServiceToggle={handleServiceToggle} 
                   selectedServiceIds={selectedServices.map(s => s.id)}
@@ -121,62 +117,45 @@ const BookingPage = () => {
                 {selectedServices.length > 0 && (
                   <div className="mt-6 p-4 bg-pink-50 rounded-lg text-center">
                     <p className="font-semibold">總計: {totalDuration} 分鐘 / ${originalPrice} 元</p>
-                    <button 
-                      onClick={() => setActiveStep('date')}
-                      className="mt-4 px-6 py-2 bg-pink-500 text-white font-bold rounded-md shadow-md hover:bg-pink-600 transition-colors"
-                    >
-                      下一步
-                    </button>
                   </div>
                 )}
-              </div>
-            )}
+            </div>
           </div>
 
-          {/* --- Step 2: Date Selection --- */}
-          <div className={`p-6 bg-white rounded-lg shadow-md transition-all ${selectedServices.length === 0 ? 'opacity-50 cursor-not-allowed' : ''} ${selectedDate && activeStep !== 'date' ? 'cursor-pointer hover:bg-gray-50' : ''}`} onClick={() => selectedDate && activeStep !== 'date' && setActiveStep('date')}>
-            <div className="flex justify-between items-center">
-              <h2 className={`text-2xl font-bold ${activeStep === 'date' ? 'text-gray-800' : 'text-gray-400'}`}>2. 選擇預約日期</h2>
-            </div>
-            {selectedDate && activeStep !== 'date' && (
-              <div className="mt-4 p-4 bg-pink-50 rounded-md">
-                <p><strong>已選日期:</strong> {format(selectedDate, 'yyyy-MM-dd')}</p>
-              </div>
-            )}
-              {activeStep === 'date' && selectedServices.length > 0 && (
-                <div className="mt-4">
-                  <CalendarSelector 
-                    selectedDate={selectedDate} 
-                    onDateSelect={handleDateSelect} 
+          {/* --- Step 2: Date & Time Selection --- */}
+          <div className={`p-6 bg-white rounded-lg shadow-md transition-all ${selectedServices.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <h2 className={`text-2xl font-bold ${selectedServices.length > 0 ? 'text-gray-800' : 'text-gray-400'}`}>2. 選擇日期與時段</h2>
+            {selectedServices.length > 0 && (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Calendar */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 text-center">選擇日期</h3>
+                  <CalendarSelector
+                    selectedDate={selectedDate}
+                    onDateSelect={handleDateSelect}
                     closedDays={closedDays}
                     isLoading={isLoadingClosedDays || isLoadingGlobalSettings}
                     bookingDeadline={globalSettings.bookingDeadline}
                   />
                 </div>
-              )}
-          </div>
-
-          {/* --- Step 3: Time Selection --- */}
-          <div className={`p-6 bg-white rounded-lg shadow-md transition-all ${!selectedDate ? 'opacity-50 cursor-not-allowed' : ''} ${selectedTime && activeStep !== 'time' ? 'cursor-pointer hover:bg-gray-50' : ''}`} onClick={() => selectedTime && activeStep !== 'time' && setActiveStep('time')}>
-            <div className="flex justify-between items-center">
-              <h2 className={`text-2xl font-bold ${activeStep === 'time' ? 'text-gray-800' : 'text-gray-400'}`}>3. 選擇預約時段</h2>
-            </div>
-            {activeStep === 'time' && selectedDate && (
-              <div className="mt-4">
+                {/* Time Slots */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 text-center">選擇時段</h3>
                 <TimeSlotSelector
                   selectedDate={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
                   serviceDuration={totalDuration}
                   onTimeSelect={handleTimeSelect}
                   selectedTime={selectedTime}
                 />
+                </div>
               </div>
             )}
           </div>
 
           {/* --- Step 4: Confirmation --- */}
-          <div className={`p-6 bg-white rounded-lg shadow-md transition-all ${!selectedTime ? 'opacity-50' : ''}`}>
-            <h2 className={`text-2xl font-bold mb-4 ${activeStep === 'confirm' ? 'text-gray-800' : 'text-gray-400'}`}>4. 確認預約資訊</h2>
-            {activeStep === 'confirm' && selectedServices.length > 0 && selectedTime && (
+          <div className={`p-6 bg-white rounded-lg shadow-md transition-all ${!selectedTime ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <h2 className={`text-2xl font-bold mb-4 ${selectedTime ? 'text-gray-800' : 'text-gray-400'}`}>3. 確認預約資訊</h2>
+            {selectedTime && (
               <div className="space-y-6">
                 {/* Coupon Selector Bar */}
                 <button 

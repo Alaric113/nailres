@@ -38,6 +38,46 @@ const OrderManagementPage = () => {
       });
   }, [bookings, statusFilter]);
 
+  // 輔助函式：發放點數
+  const grantLoyaltyPoints = async (batch: ReturnType<typeof writeBatch>, booking: EnrichedBooking) => {
+    if (!booking.userId || booking.amount <= 0) return;
+
+    const settingsRef = doc(db, 'globals', 'settings');
+    const settingsSnap = await getDoc(settingsRef);
+    const loyaltySettings = settingsSnap.data()?.loyaltySettings;
+
+    if (loyaltySettings && loyaltySettings.pointsPerAmount > 0) {
+      const pointsEarned = Math.floor(booking.amount / loyaltySettings.pointsPerAmount);
+
+      if (pointsEarned > 0) {
+        const userRef = doc(db, 'users', booking.userId);
+        const userSnap = await getDoc(userRef);
+        const currentPoints = userSnap.data()?.loyaltyPoints || 0;
+        batch.update(userRef, { loyaltyPoints: currentPoints + pointsEarned });
+
+        const logRef = doc(db, 'loyaltyPointLogs', `${booking.id}_${Date.now()}`);
+        batch.set(logRef, {
+          userId: booking.userId,
+          pointsChange: pointsEarned,
+          reason: `完成預約 #${booking.id.substring(0, 6)}`,
+          createdAt: new Date(),
+        });
+      }
+    }
+  };
+
+  // 輔助函式：發送 LINE 通知
+  const sendLineNotification = (booking: EnrichedBooking, status: BookingStatus) => {
+    fetch('/api/send-line-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bookingId: booking.id, // 傳遞 bookingId 可能更有用
+        status: status,
+      }),
+    }).catch(err => console.error("Failed to send LINE notification:", err));
+  };
+
   const handleUpdateStatus = async (booking: EnrichedBooking, newStatus: BookingStatus) => {
     setUpdatingId(booking.id);
     try {
@@ -49,47 +89,17 @@ const OrderManagementPage = () => {
 
       // 步驟 2: 如果是「已完成」，則發放點數
       if (newStatus === 'completed' && booking.userId && booking.amount > 0) {
-        const settingsRef = doc(db, 'globals', 'settings');
-        const settingsSnap = await getDoc(settingsRef);
-        const loyaltySettings = settingsSnap.data()?.loyaltySettings;
-
-        if (loyaltySettings && loyaltySettings.pointsPerAmount > 0) {
-          const pointsEarned = Math.floor(booking.amount / loyaltySettings.pointsPerAmount);
-
-          if (pointsEarned > 0) {
-            const userRef = doc(db, 'users', booking.userId);
-            const userSnap = await getDoc(userRef);
-            const currentPoints = userSnap.data()?.loyaltyPoints || 0;
-            batch.update(userRef, { loyaltyPoints: currentPoints + pointsEarned });
-
-            const logRef = doc(db, 'loyaltyPointLogs', `${booking.id}_${Date.now()}`);
-            batch.set(logRef, {
-              userId: booking.userId,
-              pointsChange: pointsEarned,
-              reason: `完成預約 #${booking.id.substring(0, 6)}`,
-              createdAt: new Date(),
-            });
-          }
-        }
+        await grantLoyaltyPoints(batch, booking);
       }
 
       // 步驟 3: 提交所有資料庫更新
       await batch.commit();
 
       // 步驟 4: 呼叫後端 API 發送 LINE 通知給使用者
-      // 我們只在狀態變更為 'confirmed', 'completed', 'cancelled' 時發送通知
       if (['confirmed', 'completed', 'cancelled'].includes(newStatus)) {
-        fetch('/api/send-line-message', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: booking.userId,
-            serviceNames: booking.serviceNames, // API 預期是陣列
-            dateTime: booking.dateTime.toISOString(), // 確保是 ISO 格式字串
-            amount: booking.amount,
-            status: newStatus, // 傳遞新的狀態
-          }),
-        }).catch(err => console.error("Failed to send LINE notification:", err));
+        // 注意：這裡的 fetch 是非同步的，但我們不需要等待它完成 (fire and forget)
+        // 所以不需要加 await，這樣可以讓 UI 更快地解除鎖定狀態
+        sendLineNotification(booking, newStatus);
       }
 
     } catch (error) {

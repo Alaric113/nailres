@@ -12,30 +12,6 @@ import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import 'swiper/css';
 import 'swiper/css/pagination';
 
-// 服務項目資料
-const categories = [
-  {
-    title: '美睫服務',
-    emoji: '👁️',
-    description: '打造迷人電眼，多種款式與材質選擇。',
-    highlights: ['日式嫁接', '自然濃密', '持久舒適'],
-    link: '/booking?category=美睫',
-  },
-  {
-    title: '霧眉服務',
-    emoji: '✨',
-    description: '專業霧眉技術，讓您擁有自然持久的完美眉型。',
-    highlights: ['韓式霧眉', '客製設計', '自然妝感'],
-    link: '/booking?category=霧眉',
-  },
-  {
-    title: '美甲服務',
-    emoji: '💅',
-    description: '從基礎保養到精緻設計，讓您的指尖綻放光彩。',
-    highlights: ['凝膠指甲', '手繪設計', '保養護理'],
-    link: '/booking?category=美甲',
-  },
-];
 
 const Home = () => {
   const [homepageImages, setHomepageImages] = useState({
@@ -44,6 +20,7 @@ const Home = () => {
     nailImages: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [heroImage, setHeroImage] = useState('');
 
   useEffect(() => {
     const fetchImages = async () => {
@@ -51,7 +28,12 @@ const Home = () => {
         const docRef = doc(db, 'globals', 'homepageImages');
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setHomepageImages(docSnap.data() as any);
+          const data = docSnap.data() as any; // 建議定義一個強型別
+          setHomepageImages(data);
+          // 在這裡只設定一次 Hero 圖片
+          if (data.lashImages && data.lashImages.length > 0) {
+            setHeroImage(data.lashImages[Math.floor(Math.random() * data.lashImages.length)]);
+          }
         }
       } catch (error) {
         console.error("Error fetching homepage images:", error);
@@ -61,6 +43,34 @@ const Home = () => {
     };
     fetchImages();
   }, []);
+
+  // 服務項目資料
+  const categories = [
+    {
+      title: '韓式霧眉',
+      price:5500,
+      description: 'POWDER BROWS',
+      highlights: ['日式嫁接', '自然濃密', '持久舒適'],
+      link: '/booking?category=美睫',
+      imglink:homepageImages.lashImages[0]
+    },
+    {
+      title: '日式美睫',
+      price:1000,
+      description: 'ELELASH',
+      highlights: ['韓式霧眉', '客製設計', '自然妝感'],
+      link: '/booking?category=霧眉',
+      imglink:homepageImages.lashImages[0]
+    },
+    {
+      title: '質感美甲',
+      price:1000,
+      description: 'NAILS',
+      highlights: ['凝膠指甲', '手繪設計', '保養護理'],
+      link: '/booking?category=美甲',
+      imglink:homepageImages.nailImages[0]
+    },
+  ];
 
   return (
     <div className="bg-gray-50 text-gray-800 h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
@@ -76,12 +86,14 @@ const Home = () => {
 
       <div className="pt-[112px]">
         {/* Hero Section */}
-        <header className="relative min-h-screen flex items-center justify-center text-center text-white overflow-hidden snap-start snap-always">
+        <header className="relative min-h-screen flex items-end justify-start text-center text-white overflow-hidden snap-start snap-always">
           {/* Background Image with Parallax effect */}
           <div
             className="absolute inset-0 bg-cover bg-center lg:bg-fixed"
             style={{ 
-              backgroundImage: "url('https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/logo.jpg?alt=media&token=37e1e109-cf49-4806-b1fb-7bde26cc4015')",
+              backgroundImage: heroImage ? `url(${heroImage})` : "url('/default-hero.jpg')",
+              filter: 'brightness(0.7)',
+              transition: 'transform 0.5s ease-out',
               transform: 'scale(1.05)'
             }}
           ></div>
@@ -89,20 +101,20 @@ const Home = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60"></div>
           
           {/* Content */}
-          <div className="relative z-10 max-w-4xl px-6 sm:px-8">
+          <div className="relative z-10 mb-4 max-w-4xl px-6 sm:px-8">
              <h1 
-              className="text-7xl tracking-tight mb-4 sm:mb-6 leading-tight animate-fade-in" 
-              style={{ fontFamily: "'Noto Serif Display', serif", textShadow: '0 4px 12px rgba(0, 0, 0, 0.5)', color: '#9F9586' }}
-            >
-              TREERING
+              className="text-7xl tracking-tight mb-4 sm:mb-6 leading-tight animate-fade-in text-left" 
+              style={{ fontFamily: "'Noto Serif Display', serif", textShadow: '0 4px 12px rgba(0, 0, 0, 0.5)', color: '#fff' }}
+            > 
+              HELLO <br></br>TREERING
             </h1>
             <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-gray-100 mb-8 sm:mb-10 leading-relaxed px-4" 
                style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-              專業美甲與美睫服務，為您打造專屬的精緻美麗
+              EYELASH EXTENSION & BEAUTY SALON
             </p>
             <Link
               to="/login"
-              className="inline-block bg-[#9f9586] text-white font-bold rounded-full py-3 px-8 sm:py-4 sm:px-10 text-base sm:text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300"
+              className="inline-block hidden bg-[#9f9586] text-white font-bold rounded-full py-3 px-8 sm:py-4 sm:px-10 text-base sm:text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300"
             >
               立即預約
             </Link>
@@ -122,50 +134,48 @@ const Home = () => {
         <section id="services" className="min-h-screen flex items-center py-16 sm:py-20 bg-white snap-start snap-always">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="text-center mb-10 sm:mb-14">
-              <h2 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">服務項目</h2>
-              <div className="w-20 h-1 bg-gradient-to-r from-pink-400 to-purple-500 mx-auto mb-4"></div>
-              <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto px-4">
-                我們提供多樣化的專業服務，滿足您對美的所有想像
-              </p>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-2 sm:mb-4"
+                  style={{ fontFamily: "'Noto Serif Display', serif", color: '#9f9586' }}>
+                Our Services
+              </h2>
+              <div className="w-[80%] h-[2px] bg-[#9f9586] mx-auto mb-4"></div>
+              
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
+            {/* 使用 flex 佈局來更好地控制最後一行的對齊 */}
+            <div className="flex flex-wrap justify-center gap-6 sm:gap-8 max-w-6xl mx-auto">
               {categories.map((category, index) => (
                 <div 
                   key={category.title} 
-                  className="group bg-white border-2 border-gray-100 rounded-2xl shadow-md hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all duration-300"
+                  // 設定在不同斷點下的寬度，模擬 grid 效果
+                  className="group w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)] overflow-hidden transform hover:-translate-y-2 transition-all duration-300"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  {/* Icon header */}
-                  <div className="bg-gradient-to-br from-pink-50 to-purple-50 p-6 text-center border-b border-gray-100">
-                    <div className="text-5xl sm:text-6xl mb-3 transform group-hover:scale-110 transition-transform duration-300">
-                      {category.emoji}
-                    </div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-gray-800">{category.title}</h3>
+                  {/* 圖片容器，使用 aspect-square 強制為正方形 */}
+                  <div className="aspect-square w-full overflow-hidden rounded-lg">
+                    <img src={category.imglink} alt={category.title} className="w-full h-full object-cover" />
                   </div>
                   
                   {/* Content */}
                   <div className="p-4 flex flex-col items-center justify-between">
-                    <p className="text-gray-600 text-sm sm:text-base mb-2 text-center leading-relaxed">
+                    <p className="text-xs sm:text-base mb-2 text-center leading-none tracking-wide font-black text-gray-800">
                       {category.description}
                     </p>
+                    <div className="w-[100%] h-[2px] bg-[#9f9586] mx-auto mb-4"></div>
                     
-                    {/* Highlights */}
-                    <div className="flex flex-wrap justify-center gap-2 mb-5">
-                      {category.highlights.map((highlight) => (
-                        <span 
-                          key={highlight}
-                          className="text-xs px-3 py-1 bg-pink-50 text-pink-600 rounded-full border border-pink-200"
-                        >
-                          {highlight}
-                        </span>
-                      ))}
+                    <div className="flex flex-col flex-wrap justify-center gap-2 mb-5">
+                      <p className=" text-lg sm:text-xl text-center leading-none tracking-wide font-black text-gray-800">
+                      {category.title}
+                    </p>
+                    <p className=" text-lg sm:text-xl  text-center leading-none tracking-wide font-black text-gray-800">
+                      {`NT$ ${category.price}起`}
+                    </p>
                     </div>
                     
                     {/* CTA Button */}
                     <Link 
                       to={category.link} 
-                      className="block w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-xl py-3 text-sm sm:text-base hover:from-pink-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] text-center"
+                      className="block hidden w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-xl py-3 text-sm sm:text-base hover:from-pink-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] text-center"
                     >
                       立即預約
                     </Link>
@@ -181,7 +191,7 @@ const Home = () => {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="text-center mb-10 sm:mb-14">
               <h2 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">作品集</h2>
-              <div className="w-20 h-1 bg-gradient-to-r from-pink-400 to-purple-500 mx-auto mb-4"></div>
+              <div className="w-[80%] h-[2px] bg-[#9f9586] mx-auto mb-4"></div>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto px-4">
                 拖曳中間的滑桿，查看我們為顧客帶來的驚喜改變
               </p>
@@ -208,7 +218,7 @@ const Home = () => {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="text-center mb-10 sm:mb-14">
               <h2 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">更多作品展示</h2>
-              <div className="w-20 h-1 bg-gradient-to-r from-pink-400 to-purple-500 mx-auto mb-4"></div>
+              <div className="w-[80%] h-[2px] bg-[#9f9586] mx-auto mb-4"></div>
               <p className="text-gray-600 text-sm sm:text-base px-4">
                 滑動瀏覽我們的精選作品
               </p>
@@ -291,8 +301,22 @@ const Home = () => {
             )}
           </div>
         </section>
+
+        <section id="about" className="min-h-screen flex items-center py-16 sm:py-20 bg-gradient-to-b from-white to-pink-50/30 snap-start snap-always">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
+            <div className="text-center mb-10 sm:mb-14">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">關於我們</h2>
+              <div className="w-[80%] h-[2px] bg-[#9f9586] mx-auto mb-4"></div>
+  
+            </div>
+            
+            PlaceHolder for About Us content
+          </div>
+        </section>
         </main>
       </div>
+
+
 
       {/* Footer */}
       <footer id="contact" className="bg-gradient-to-b from-gray-900 to-gray-950 text-white snap-start">
