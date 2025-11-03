@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth'; // 確保 useAuth 在這裡被呼叫
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
 import { useAuthStore } from './store/authStore';
+
 import Navbar from './components/Navbar'; // 引入新的導覽列
 import Sidebar from './components/common/Sidebar'; // 引入新的側邊選單
 import MainLayout from './components/MainLayout'; // 引入新的佈局元件 (如果還需要的話)
+import AnnouncementBanner from './components/common/AnnouncementBanner';
 
 // Public Page Components
 import Home from './pages/Home';
@@ -30,7 +32,6 @@ import AdminRoute from './components/AdminRoute';
 import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 
 function App() {
-  // This hook will run on app startup and handle auth state synchronization.
   const { isCheckingRedirect } = useAuth(); // 確保 useAuth 在這裡被呼叫
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -40,8 +41,7 @@ function App() {
 
   const { currentUser, userProfile, authIsLoading } = useAuthStore();
 
-  // While the initial auth state is being determined, OR we are processing a redirect,
-  // show a global loading indicator. This is the key to preventing UI flashes and race conditions.
+
   if (authIsLoading || isCheckingRedirect) {
     console.log('[App Checkpoint 1] App is in loading state (authIsLoading: true).');
     return <LoadingSpinner size='lg' text='正在載入中...' fullScreen />;
@@ -50,56 +50,67 @@ function App() {
   return (
     // [App Checkpoint 2] App has finished loading (authIsLoading: false). Rendering routes.
     <Router>
-      <Navbar onMenuClick={toggleSidebar} />
-      <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
       <PwaUpdatePrompt />
-      <Routes> {/* 這裡的 MainLayout 可能需要根據新 Navbar/Sidebar 調整或移除 */}
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
+      <Routes>
+        {/* Public layout with Navbar */}
+        <Route
+          element={
+            <>
+              <Navbar onMenuClick={toggleSidebar} />
+              <AnnouncementBanner />
+              <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
+              {/* Outlet for public pages like Home */}
+              <Outlet /> 
+            </>
+          }
+        >
+          <Route path="/" element={<Home />} />
+        </Route>
 
-        {/* Redirect logged-in users from login/register to their dashboard */}
+        {/* Auth routes without Navbar */}
         <Route
           path="/login"
-          element={
-            !currentUser ? (
-              <MainLayout>
-                <Login />
-              </MainLayout>
-            ) : (
-              <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />
-            )
-          }
+          element={!currentUser ? <Login /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />}
         />
         <Route
           path="/register"
-          element={
-            !currentUser ? (
-              <MainLayout>
-                <Register />
-              </MainLayout>
-            ) : (
-              <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />
-            )
-          }
+          element={!currentUser ? <Register /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />}
         />
 
-        {/* Protected Routes for regular users */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
-          <Route path="/booking" element={<MainLayout><BookingPage /></MainLayout>} />
+        {/* Main layout for protected routes */}
+        <Route
+          element={
+            <>
+              <Navbar onMenuClick={toggleSidebar} />
+              <AnnouncementBanner />
+              <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
+              <MainLayout>
+                <Outlet /> {/* Nested routes will render here */}
+              </MainLayout>
+            </>
+          }
+        >
+          {/* Protected Routes for regular users */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/booking" element={<BookingPage />} />
+          </Route>
+
+          {/* Protected Routes for admins */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/services" element={<ServiceManagement />} />
+            <Route path="/admin/customers" element={<CustomerListPage />} />
+            <Route path="/admin/hours" element={<HoursSettingsPage />} />
+            <Route path="/admin/orders" element={<OrderManagementPage />} />
+            <Route path="/admin/calendar" element={<CalendarPage />} />
+            <Route path="/admin/settings" element={<SettingsPage />} />
+          </Route>
         </Route>
 
-        {/* Protected Routes for admins */}
+        {/* Routes without the main layout, like PromotionsPage */}
         <Route element={<AdminRoute />}>
-          <Route path="/admin" element={<MainLayout><AdminDashboard /></MainLayout>} />
-          <Route path="/admin/services" element={<MainLayout><ServiceManagement /></MainLayout>} />
-          <Route path="/admin/customers" element={<MainLayout><CustomerListPage /></MainLayout>} />
-          <Route path="/admin/hours" element={<MainLayout><HoursSettingsPage /></MainLayout>} />
-          <Route path="/admin/orders" element={<MainLayout><OrderManagementPage /></MainLayout>} />
-          <Route path="/admin/calendar" element={<MainLayout><CalendarPage /></MainLayout>} />
-          <Route path="/admin/settings" element={<MainLayout><SettingsPage /></MainLayout>} />
           <Route path="/admin/promotions" element={<PromotionsPage />} />
-
         </Route>
       </Routes>
     </Router>

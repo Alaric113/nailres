@@ -151,7 +151,13 @@ const CustomerListPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <img className="h-10 w-10 rounded-full object-cover" src={user.profile.avatarUrl || DEFAULT_AVATAR} alt="" />
+                          <img 
+                            className="h-10 w-10 rounded-full object-cover" 
+                            src={user.profile.avatarUrl || DEFAULT_AVATAR} 
+                            alt="" 
+                            crossOrigin="anonymous"
+                            referrerPolicy="no-referrer"
+                          />
                         </div>
                         <div className="ml-4">{user.profile.displayName || 'N/A'}</div>
                       </div>

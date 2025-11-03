@@ -74,17 +74,8 @@ const Home = () => {
 
   return (
     <div className="bg-gray-50 text-gray-800 h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
-      {/* Announcement Banner - Fixed below Navbar */}
-      <div
-        className="fixed font-serif top-[64px] left-0 right-0 z-40 bg-[#9f9586] text-[#fffffe] py-3 text-sm font-medium shadow-md overflow-hidden  items-center"
-        style={{ height: '48px' }}
-      >
-        <p className="whitespace-nowrap animate-marquee px-4">
-          歡迎加入 TREERING | 註冊即贈100 元禮金，單筆滿1,000元再贈送一點!!!
-        </p>
-      </div>
-
-      <div className="pt-[112px]">
+      {/* pt-[112px] = Navbar(64px) + Banner(48px) */}
+      <div className="pt-[112px]"> 
         {/* Hero Section */}
         <header className="relative min-h-screen flex items-end justify-start text-center text-white overflow-hidden snap-start snap-always">
           {/* Background Image with Parallax effect */}
@@ -92,7 +83,7 @@ const Home = () => {
             className="absolute inset-0 bg-cover bg-center lg:bg-fixed"
             style={{ 
               backgroundImage: heroImage ? `url(${heroImage})` : "url('/default-hero.jpg')",
-              filter: 'brightness(0.7)',
+              
               transition: 'transform 0.5s ease-out',
               transform: 'scale(1.05)'
             }}
@@ -101,7 +92,7 @@ const Home = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60"></div>
           
           {/* Content */}
-          <div className="relative z-10 mb-4 max-w-4xl px-6 sm:px-8">
+          <div className="relative z-10 mb-4 max-w-4xl px-4 sm:px-8">
              <h1 
               className="text-7xl tracking-tight mb-4 sm:mb-6 leading-tight animate-fade-in text-left" 
               style={{ fontFamily: "'Noto Serif Display', serif", textShadow: '0 4px 12px rgba(0, 0, 0, 0.5)', color: '#fff' }}
@@ -143,7 +134,7 @@ const Home = () => {
             </div>
             
             {/* 使用 flex 佈局來更好地控制最後一行的對齊 */}
-            <div className="flex flex-wrap justify-center gap-6 sm:gap-8 max-w-6xl mx-auto">
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-8 max-w-6xl mx-auto">
               {categories.map((category, index) => (
                 <div 
                   key={category.title} 
@@ -161,9 +152,9 @@ const Home = () => {
                     <p className="text-xs sm:text-base mb-2 text-center leading-none tracking-wide font-black text-gray-800">
                       {category.description}
                     </p>
-                    <div className="w-[100%] h-[2px] bg-[#9f9586] mx-auto mb-4"></div>
+                    <div className="w-[100%] h-[2px] bg-[#9f9586] mx-auto mb-2"></div>
                     
-                    <div className="flex flex-col flex-wrap justify-center gap-2 mb-5">
+                    <div className="flex flex-col flex-wrap justify-center gap-2 mb-2">
                       <p className=" text-lg sm:text-xl text-center leading-none tracking-wide font-black text-gray-800">
                       {category.title}
                     </p>
@@ -396,25 +387,6 @@ const Home = () => {
         }
         .animate-fade-in {
           animation: fade-in 1s ease-out;
-        }
-        
-        /* Swiper pagination customization */
-        .swiper-pagination-bullet {
-          background: #E97EB5;
-          opacity: 0.5;
-        }
-        .swiper-pagination-bullet-active {
-          opacity: 1;
-          background: #E97EB5;
-        }
-
-        @keyframes marquee {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
-
-        .animate-marquee {
-          animation: marquee 25s linear infinite;
         }
 
         /* 支援使用者偏好設定 */

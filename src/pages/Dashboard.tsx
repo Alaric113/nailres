@@ -46,6 +46,8 @@ const Dashboard = () => {
               <img
                 src={userProfile?.profile.avatarUrl || 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63'}
                 alt="User Avatar"
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover ring-4 ring-[#9f9586] shadow-lg"
               />
               

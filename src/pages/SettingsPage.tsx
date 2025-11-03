@@ -103,8 +103,14 @@ const SettingsPage: React.FC = () => {
             <ul className="divide-y divide-gray-200">
               {admins.map(admin => (
                 <li key={admin.id} className="py-4 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <img className="h-10 w-10 rounded-full mr-3 object-cover" src={admin.profile.avatarUrl || `https://ui-avatars.com/api/?name=${admin.profile.displayName}&background=random`} alt="" />
+                  <div className="flex items-center">                    
+                    <img 
+                      className="h-10 w-10 rounded-full mr-3 object-cover" 
+                      src={admin.profile.avatarUrl || `https://ui-avatars.com/api/?name=${admin.profile.displayName}&background=random`} 
+                      alt="" 
+                      crossOrigin="anonymous"
+                      referrerPolicy="no-referrer"
+                    />
                     <div>
                       <p className="text-sm font-medium text-gray-900">{admin.profile.displayName}</p>
                      

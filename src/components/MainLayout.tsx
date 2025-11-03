@@ -5,8 +5,8 @@ interface MainLayoutProps {
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  // This adds top padding equal to the navbar's height (72px)
-  return <main className="pt-[72px]">{children}</main>;
+  // pt-[112px] = Navbar(64px) + Banner(48px)
+  return <main className="pt-[112px]">{children}</main>;
 };
 
 export default MainLayout;
