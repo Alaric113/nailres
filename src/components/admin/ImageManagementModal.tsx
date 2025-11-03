@@ -9,12 +9,13 @@ interface ImageManagementModalProps {
   onClose: () => void;
 }
 
-type Tab = 'beforeAfter' | 'lash' | 'nail';
+type Tab = 'beforeAfter' | 'lash' | 'nail' | 'brow';
 
 interface HomepageImages {
   beforeAfter: { before: string; after: string; };
   lashImages: string[];
   nailImages: string[];
+  browImages: string[];
 }
 
 const ImageManagementModal: React.FC<ImageManagementModalProps> = ({ onClose }) => {
@@ -23,6 +24,7 @@ const ImageManagementModal: React.FC<ImageManagementModalProps> = ({ onClose }) 
     beforeAfter: { before: '', after: '' },
     lashImages: [],
     nailImages: [],
+    browImages: [],
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -33,7 +35,13 @@ const ImageManagementModal: React.FC<ImageManagementModalProps> = ({ onClose }) 
       const docRef = doc(db, 'globals', 'homepageImages');
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setImages(docSnap.data() as HomepageImages);
+        const data = docSnap.data();
+        setImages({
+          beforeAfter: data.beforeAfter || { before: '', after: '' },
+          lashImages: data.lashImages || [],
+          nailImages: data.nailImages || [],
+          browImages: data.browImages || [], // 確保 browImages 至少是一個空陣列
+        });
       }
       setIsLoading(false);
     };
@@ -59,14 +67,14 @@ const ImageManagementModal: React.FC<ImageManagementModalProps> = ({ onClose }) 
     setImages(prev => ({ ...prev, [category]: value }));
   };
 
-  const addImageSlot = (category: 'lashImages' | 'nailImages') => {
+  const addImageSlot = (category: 'lashImages' | 'nailImages' | 'browImages') => {
     setImages(prev => ({
       ...prev,
       [category]: [...prev[category], '']
     }));
   };
 
-  const removeImageSlot = (category: 'lashImages' | 'nailImages', index: number) => {
+  const removeImageSlot = (category: 'lashImages' | 'nailImages' | 'browImages', index: number) => {
     setImages(prev => ({
       ...prev,
       [category]: prev[category].filter((_, i) => i !== index)
@@ -97,7 +105,8 @@ const ImageManagementModal: React.FC<ImageManagementModalProps> = ({ onClose }) 
         );
       case 'lash':
       case 'nail':
-        const categoryKey = activeTab === 'lash' ? 'lashImages' : 'nailImages';
+      case 'brow':
+        const categoryKey = activeTab === 'lash' ? 'lashImages' : activeTab === 'nail' ? 'nailImages' : 'browImages';
         return (
           <div className="space-y-4">
             {images[categoryKey].map((url, index) => (
@@ -133,6 +142,7 @@ const ImageManagementModal: React.FC<ImageManagementModalProps> = ({ onClose }) 
     { key: 'beforeAfter', label: 'Before & After' },
     { key: 'lash', label: '美睫作品' },
     { key: 'nail', label: '美甲作品' },
+    { key: 'brow', label: '霧眉作品' },
   ];
 
   return (

@@ -18,6 +18,7 @@ const Home = () => {
     beforeAfter: { before: '', after: '' },
     lashImages: [],
     nailImages: [],
+    browImages: [],
   });
   const [isLoading, setIsLoading] = useState(true);
   const [heroImage, setHeroImage] = useState('');
@@ -52,7 +53,7 @@ const Home = () => {
       description: 'POWDER BROWS',
       highlights: ['日式嫁接', '自然濃密', '持久舒適'],
       link: '/booking?category=美睫',
-      imglink:homepageImages.lashImages[0]
+      imglink:homepageImages.browImages[0]
     },
     {
       title: '日式美睫',
@@ -83,7 +84,7 @@ const Home = () => {
             className="absolute inset-0 bg-cover bg-center lg:bg-fixed"
             style={{ 
               backgroundImage: heroImage ? `url(${heroImage})` : "url('/default-hero.jpg')",
-              
+              filter: 'brightness(1.1)',
               transition: 'transform 0.5s ease-out',
               transform: 'scale(1.05)'
             }}

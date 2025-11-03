@@ -83,7 +83,7 @@ const AdminDashboard = () => {
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
       {/* Header - 固定高度 */}
-      <header className="bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
+      <header className="bg-white shadow-sm border-b border-gray-200 flex-shrink-0 ">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <div className="flex items-center gap-3">
@@ -110,120 +110,144 @@ const AdminDashboard = () => {
 
       {/* Main Content - 彈性填滿剩餘空間 */}
       <main className="flex-1 container mx-auto px-4 py-4 overflow-y-auto">
-        {/* Grid Layout - 2x5 網格 */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        {/* Flex Layout */}
+        <div className="flex flex-wrap gap-3">
           {/* 所有行程 */}
-          <SummaryCard
-            title="所有行程"
-            value=""
-            unit=""
-            linkTo="/admin/calendar"
-            icon={<CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-            color="bg-purple-500"
-          />
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="所有行程"
+              value=""
+              unit=""
+              linkTo="/admin/calendar"
+              icon={<CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-purple-500"
+            />
+          </div>
 
           {/* 營業時間 */}
-          <SummaryCard
-            title="營業時間"
-            value=""
-            unit=""
-            linkTo="/admin/hours"
-            icon={<CalendarDaysIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-            color="bg-red-500"
-          />
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="營業時間"
+              value=""
+              unit=""
+              linkTo="/admin/hours"
+              icon={<CalendarDaysIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-red-500"
+            />
+          </div>
 
           {/* 首頁圖片 */}
-          <SummaryCard
-            title="首頁圖片"
-            value=""
-            unit=""
-            onClick={() => setIsImageModalOpen(true)}
-            icon={<PhotoIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-            color="bg-orange-500"
-          />
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="首頁圖片"
+              value=" "
+              unit=" "
+              onClick={() => setIsImageModalOpen(true)}
+              icon={<PhotoIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-orange-500"
+            />
+          </div>
 
           {/* 客戶管理 */}
-          <SummaryCard
-            title="客戶管理"
-            value={users.length}
-            unit="位"
-            linkTo="/admin/customers"
-            icon={<UserGroupIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-            color="bg-teal-500"
-            subtext=''
-          />
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="客戶管理"
+              value={users.length}
+              unit="位"
+              linkTo="/admin/customers"
+              icon={<UserGroupIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-teal-500"
+              subtext=''
+            />
+          </div>
 
           {/* 待確認訂單 */}
-          <SummaryCard
-            title="待確認訂單"
-            value={summaryData.pendingConfirmation}
-            unit="筆"
-            linkTo="/admin/orders?status=pending_confirmation"
-            icon={<CheckCircleIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-            color="bg-blue-500"
-            urgent={summaryData.pendingConfirmation > 0}
-          />
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="待確認訂單"
+              value={summaryData.pendingConfirmation}
+              unit="筆"
+              linkTo="/admin/orders?status=pending_confirmation"
+              icon={<CheckCircleIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-blue-500"
+              urgent={summaryData.pendingConfirmation > 0}
+            />
+          </div>
 
           {/* 待付款訂單 */}
-          <SummaryCard
-            title="待付款訂單"
-            value={summaryData.pendingPaymentCount}
-            unit="筆"
-            linkTo="/admin/orders?status=pending_payment"
-            icon={<CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-            color="bg-yellow-500"
-            urgent={summaryData.pendingPaymentCount > 0}
-          />
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="待付款訂單"
+              value={summaryData.pendingPaymentCount}
+              unit="筆"
+              linkTo="/admin/orders?status=pending_payment"
+              icon={<CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-yellow-500"
+              urgent={summaryData.pendingPaymentCount > 0}
+            />
+          </div>
 
           {/* 已確認訂單 */}
-          <SummaryCard
-            title="已確認訂單"
-            value={summaryData.confirmedCount}
-            unit="筆"
-            linkTo="/admin/orders?status=confirmed"
-            icon={<CheckBadgeIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-            color="bg-green-500"
-          />
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="已確認訂單"
+              value={summaryData.confirmedCount}
+              unit="筆"
+              linkTo="/admin/orders?status=confirmed"
+              icon={<CheckBadgeIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-green-500"
+            />
+          </div>
 
           {/* 已完成訂單 */}
-          <SummaryCard
-            title="已完成訂單"
-            value={summaryData.completedCount}
-            unit="筆"
-            linkTo="/admin/orders?status=completed"
-            icon={<ArchiveBoxIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-            color="bg-gray-500"
-          />
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="已完成訂單"
+              value={summaryData.completedCount}
+              unit="筆"
+              linkTo="/admin/orders?status=completed"
+              icon={<ArchiveBoxIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-gray-500"
+            />
+          </div>
 
           {/* 上架中服務 */}
-          <SummaryCard
-            title="上架中服務"
-            value={summaryData.activeServices}
-            unit="項"
-            linkTo="/admin/services"
-            icon={<CubeIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-            color="bg-indigo-500"
-          />
-
-          {/* 設定 */}
-          <SummaryCard
-            title="設定"
-            value=""
-            unit=""
-            linkTo="/admin/settings"
-            icon={<Cog6ToothIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-            color="bg-gray-600"
-          />
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="上架中服務"
+              value={summaryData.activeServices}
+              unit="項"
+              linkTo="/admin/services"
+              icon={<CubeIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-indigo-500"
+            />
+          </div>
 
           {/* 優惠與集點 */}
-          <SummaryCard
-            title="優惠與集點"
-            value=""
-            unit=""
-            linkTo="/admin/promotions"
-            icon={<TicketIcon className="h-5 w-5 sm:h-6 sm-w-6" />}
-            color="bg-amber-500"
-          />
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="優惠與集點"
+              value=""
+              unit=""
+              linkTo="/admin/promotions"
+              icon={<TicketIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-amber-500"
+            />
+          </div>
+
+          {/* 設定 */}
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="設定"
+              value=""
+              unit=""
+              linkTo="/admin/settings"
+              icon={<Cog6ToothIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-gray-600"
+            />
+          </div>
+
+          
         </div>
       </main>
 
