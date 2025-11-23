@@ -148,6 +148,18 @@ const AdminDashboard = () => {
             />
           </div>
 
+          {/* 作品集管理 */}
+          <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
+            <SummaryCard
+              title="作品集管理"
+              value=""
+              unit=""
+              linkTo="/admin/portfolio"
+              icon={<PhotoIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-sky-500"
+            />
+          </div>
+
           {/* 客戶管理 */}
           <div className="w-full w-[calc(50%-0.375rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] xl:w-[calc(20%-0.6rem)]">
             <SummaryCard

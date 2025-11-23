@@ -12,6 +12,7 @@ import AnnouncementBanner from './components/common/AnnouncementBanner';
 import Home from './pages/Home';
 import Login from './components/auth/Login';
 import Register from './pages/Register';
+import PortfolioGalleryPage from './pages/PortfolioGalleryPage';
 
 // Page Components
 import Dashboard from './pages/Dashboard';
@@ -24,6 +25,7 @@ import OrderManagementPage from './pages/OrderManagementPage';
 import CalendarPage from './pages/CalendarPage';
 import SettingsPage from './pages/SettingsPage';
 import PromotionsPage from './pages/PromotionsPage';
+import PortfolioManagementPage from './pages/PortfolioManagementPage';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 // Route Components
@@ -65,6 +67,7 @@ function App() {
           }
         >
           <Route path="/" element={<Home />} />
+          <Route path="/portfolio" element={<PortfolioGalleryPage />} />
         </Route>
 
         {/* Auth routes without Navbar */}
@@ -105,6 +108,7 @@ function App() {
             <Route path="/admin/orders" element={<OrderManagementPage />} />
             <Route path="/admin/calendar" element={<CalendarPage />} />
             <Route path="/admin/settings" element={<SettingsPage />} />
+            <Route path="/admin/portfolio" element={<PortfolioManagementPage />} />
           </Route>
         </Route>
 

@@ -39,6 +39,7 @@ const menuItems: MenuItem[] = [
     label: 'PORTFOLIO 作品集',
     isCategory: true,
     subItems: [
+      { label: '所有作品集', link: '/portfolio' },
       { label: 'Before & After', link: '#' },
       { label: '風格特輯Style Look', link: '#' },
       { label: '客人回饋 Real Reviews', link: '#' },
