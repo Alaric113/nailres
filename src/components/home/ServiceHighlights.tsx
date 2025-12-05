@@ -32,7 +32,7 @@ const ServiceHighlights: React.FC<ServiceHighlightsProps> = ({ categories }) => 
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 max-w-6xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 lg:gap-12 max-w-6xl mx-auto">
           {categories.map((category) => (
             <Link
               to={category.link}

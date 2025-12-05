@@ -12,11 +12,7 @@ const Footer: React.FC = () => {
             <p className="text-secondary/60 text-sm leading-relaxed max-w-xs">
               我們致力於提供最專業、最細緻的美甲與美睫服務，讓每一位顧客都能帶著滿意的微笑離開。自然、舒適、原生之美。
             </p>
-            <div className="pt-4">
-              <p className="text-xs text-secondary/40">
-                &copy; {new Date().getFullYear()} TreeRing Studio. <br/>All Rights Reserved.
-              </p>
-            </div>
+            
           </div>
 
           {/* Info Column */}
@@ -44,12 +40,12 @@ const Footer: React.FC = () => {
           {/* Social Column */}
           <div className="md:col-span-4 flex flex-col md:items-end space-y-6">
             <h3 className="text-lg font-serif text-primary mb-4 md:text-right">Follow Us</h3>
-            <div className="flex flex-col gap-3 md:items-end">
+            <div className="grid grid-cols-2 md:flex  md:flex-col gap-3 md:items-end">
               {[
                 { name: 'Instagram', url: 'https://www.instagram.com/treering_83/', icon: '📷' },
                 { name: 'Facebook', url: 'https://www.facebook.com/share/19Z1mqXuKG/?mibextid=wwXIfr', icon: '👍' },
                 { name: 'TikTok', url: 'https://www.tiktok.com/@treering_83?is_from_webapp=1&sender_device=pc', icon: '🎵' },
-                { name: 'LINE Official', url: 'https://page.line.me/985jirte', icon: '💬' },
+                { name: 'LINE', url: 'https://page.line.me/985jirte', icon: '💬' },
               ].map((social) => (
                 <a 
                   key={social.name}
@@ -66,9 +62,16 @@ const Footer: React.FC = () => {
               ))}
             </div>
           </div>
+          
 
         </div>
+        
       </div>
+      <div >
+              <p className="text-xs text-secondary/40 text-center pb-4">
+                &copy; {new Date().getFullYear()} TreeRing Studio. All Rights Reserved.
+              </p>
+            </div>
     </footer>
   );
 };
