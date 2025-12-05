@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
-import { ArrowUturnLeftIcon } from '@heroicons/react/24/solid';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import type { EnrichedUser } from '../types/user';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
