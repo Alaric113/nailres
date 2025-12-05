@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/jpg" href="/src/assets/icon.jpg" />
-     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <meta name="theme-color" content="#ec4899" />
+    <meta name="theme-color" content="#9F9586" />
   
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- 
       預先載入首頁背景圖 (來自外部 URL)，提升使用者體驗。
       請將 href 的值替換成您實際的背景圖片網址。
@@ -16,6 +16,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TreeRing</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                DEFAULT: '#9F9586', // The requested Olive/Taupe
+                light: '#B7AD9E',
+                dark: '#8A8173',
+              },
+              secondary: {
+                DEFAULT: '#EFECE5', // Cream/Beige for backgrounds
+                light: '#FDFBF7',
+                dark: '#DCD8CF',
+              },
+              text: {
+                main: '#5C5548', // Deep Earth Tone
+                light: '#9F9586',
+                inverse: '#FDFBF7',
+              },
+              accent: {
+                DEFAULT: '#A67C52', // Warm wood/brown accent
+                hover: '#8C6842',
+              }
+            },
+            fontFamily: {
+              sans: ['"Noto Sans TC"', 'sans-serif'],
+              serif: ['"Playfair Display"', 'serif'],
+            },
+          },
+        },
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

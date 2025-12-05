@@ -8,6 +8,7 @@ import { db } from '../lib/firebase';
 import type { BusinessHours, TimeSlot } from '../types/businessHours';
 import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
 import { useGlobalSettings } from '../hooks/useGlobalSettings';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 import 'react-day-picker/dist/style.css';
 
@@ -138,35 +139,36 @@ const HoursSettingsPage = () => {
     },
     custom: {
       fontWeight: 'bold',
-      border: '2px solid #f9a8d4', // pink-300
+      border: '2px solid #B7AD9E', // primary-light
     },
   };
 
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-secondary-light text-text-main">
+      <header className="bg-white/80 backdrop-blur-md border-b border-secondary-dark sticky top-0 z-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+          <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main">
             營業時間設定
           </h1>
-          <Link to="/admin" className="text-sm font-medium text-indigo-600 hover:underline">
-            &larr; 返回管理員頁面
+          <Link to="/admin" className="flex items-center text-sm font-medium text-primary hover:text-primary-dark transition-colors">
+            <ArrowLeftIcon className="h-4 w-4 mr-1" />
+            返回管理員頁面
           </Link>
         </div>
       </header>
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         {message && (
-          <div className={`p-4 mb-4 rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          <div className={`p-4 mb-6 rounded-lg border ${message.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
             {message.text}
           </div>
         )}
-        <div className="border-b border-gray-200 mb-6">
+        <div className="border-b border-secondary-dark/30 mb-8">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            <button onClick={() => setActiveTab('daily')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'daily' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+            <button onClick={() => setActiveTab('daily')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'daily' ? 'border-primary text-primary font-bold' : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'}`}>
               每日設定
             </button>
-            <button onClick={() => setActiveTab('global')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'global' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+            <button onClick={() => setActiveTab('global')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'global' ? 'border-primary text-primary font-bold' : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'}`}>
               全域設定
             </button>
           </nav>
@@ -175,50 +177,80 @@ const HoursSettingsPage = () => {
         {activeTab === 'daily' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="md:col-span-1 flex justify-center">
-              <DayPicker
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                locale={zhTW}
-                className="bg-white p-4 rounded-lg shadow-md"
-                modifiers={modifiers}
-                modifiersStyles={modifierStyles}
-                disabled={{ before: new Date() }}
-              />
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-secondary-dark/50">
+                <style>{`
+                  .rdp {
+                    --rdp-cell-size: 40px;
+                    --rdp-accent-color: #9F9586;
+                    --rdp-background-color: #FDFBF7;
+                    margin: 0;
+                  }
+                  .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+                    background-color: #EFECE5;
+                    color: #5C5548;
+                  }
+                  .rdp-day_selected {
+                    font-weight: bold;
+                  }
+                  .rdp-caption_label {
+                    font-family: "Noto Serif Display", serif;
+                    color: #5C5548;
+                    font-size: 1.1rem;
+                  }
+                `}</style>
+                <DayPicker
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  locale={zhTW}
+                  modifiers={modifiers}
+                  modifiersStyles={modifierStyles}
+                  disabled={{ before: new Date() }}
+                />
+              </div>
             </div>
-            <div className="md:col-span-2 bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-lg font-bold mb-4">
+            <div className="md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-secondary-dark/50">
+              <h2 className="text-lg font-serif font-bold text-text-main mb-6 border-b border-secondary-light pb-2">
                 設定日期：{selectedDate ? format(selectedDate, 'yyyy年MM月dd日') : '請選擇日期'}
               </h2>
               {isLoading ? (
-                <p>正在載入設定...</p>
+                <div className="flex justify-center py-10 text-text-light">正在載入設定...</div>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <input id="is-closed" type="checkbox" checked={isClosed} onChange={(e) => setIsClosed(e.target.checked)} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
-                    <label htmlFor="is-closed" className="ml-2 block text-sm font-medium text-gray-900">設為公休日</label>
+                <div className="space-y-6">
+                  <div className="flex items-center p-4 bg-secondary-light/30 rounded-lg">
+                    <input id="is-closed" type="checkbox" checked={isClosed} onChange={(e) => setIsClosed(e.target.checked)} className="h-5 w-5 text-primary border-secondary-dark/50 rounded focus:ring-primary" />
+                    <label htmlFor="is-closed" className="ml-3 block text-sm font-medium text-text-main">設為公休日 (不開放預約)</label>
                   </div>
+                  
                   {!isClosed && timeSlots.map((slot, index) => (
-                    <div key={index} className="p-4 border border-gray-200 rounded-md space-y-4">
+                    <div key={index} className="p-5 border border-secondary-dark/30 rounded-xl space-y-4 bg-white hover:border-primary/50 transition-colors">
                       <div className="flex justify-between items-center">
-                        <p className="font-medium text-gray-700">時段 {index + 1}</p>
-                        {timeSlots.length > 1 && (<button type="button" onClick={() => removeTimeSlot(index)} className="text-red-500 hover:text-red-700 text-sm font-medium">移除</button>)}
+                        <p className="font-serif font-medium text-primary">時段 {index + 1}</p>
+                        {timeSlots.length > 1 && (<button type="button" onClick={() => removeTimeSlot(index)} className="text-red-500 hover:text-red-700 text-sm font-medium transition-colors">移除</button>)}
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
-                          <label htmlFor={`start-time-${index}`} className="block text-sm font-medium text-gray-700">開始時間</label>
-                          <input type="time" id={`start-time-${index}`} value={slot.start} onChange={(e) => handleTimeSlotChange(index, 'start', e.target.value)} disabled={isClosed} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-50" />
+                          <label htmlFor={`start-time-${index}`} className="block text-xs font-medium text-text-light mb-1">開始時間</label>
+                          <input type="time" id={`start-time-${index}`} value={slot.start} onChange={(e) => handleTimeSlotChange(index, 'start', e.target.value)} disabled={isClosed} className="block w-full px-3 py-2 bg-secondary-light/20 border border-secondary-dark/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary sm:text-sm transition-shadow" />
                         </div>
                         <div>
-                          <label htmlFor={`end-time-${index}`} className="block text-sm font-medium text-gray-700">結束時間</label>
-                          <input type="time" id={`end-time-${index}`} value={slot.end} onChange={(e) => handleTimeSlotChange(index, 'end', e.target.value)} disabled={isClosed} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-50" />
+                          <label htmlFor={`end-time-${index}`} className="block text-xs font-medium text-text-light mb-1">結束時間</label>
+                          <input type="time" id={`end-time-${index}`} value={slot.end} onChange={(e) => handleTimeSlotChange(index, 'end', e.target.value)} disabled={isClosed} className="block w-full px-3 py-2 bg-secondary-light/20 border border-secondary-dark/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary sm:text-sm transition-shadow" />
                         </div>
                       </div>
                     </div>
                   ))}
-                  {!isClosed && (<button type="button" onClick={addTimeSlot} className="w-full mt-4 px-4 py-2 border border-dashed border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">+ 新增營業時段</button>)}
-                  <div className="flex items-center justify-end pt-4">
-                    <button onClick={handleSave} disabled={isSaving} className="px-6 py-2 font-semibold text-white bg-pink-500 rounded-md hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:bg-gray-400 transition-colors">{isSaving ? '儲存中...' : '儲存當日設定'}</button>
+                  
+                  {!isClosed && (
+                    <button type="button" onClick={addTimeSlot} className="w-full mt-4 px-4 py-3 border border-dashed border-primary/40 text-sm font-medium rounded-xl text-primary bg-white hover:bg-secondary-light/50 transition-colors flex justify-center items-center gap-2">
+                      <span>+ 新增營業時段</span>
+                    </button>
+                  )}
+                  
+                  <div className="flex items-center justify-end pt-6 border-t border-secondary-light">
+                    <button onClick={handleSave} disabled={isSaving} className="px-6 py-2.5 font-medium text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-300 transition-all shadow-sm hover:shadow-md">
+                      {isSaving ? '儲存中...' : '儲存當日設定'}
+                    </button>
                   </div>
                 </div>
               )}
@@ -227,16 +259,28 @@ const HoursSettingsPage = () => {
         )}
 
         {activeTab === 'global' && (
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-lg font-bold mb-4">全域預約設定</h2>
-            <div className="max-w-sm space-y-4">
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-secondary-dark/50 max-w-2xl mx-auto">
+            <h2 className="text-lg font-serif font-bold text-text-main mb-6 border-b border-secondary-light pb-2">全域預約設定</h2>
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">最晚可預約日期</label>                
-                {isLoadingGlobalSettings ? <p>載入中...</p> : (
-                  <DayPicker mode="single" selected={localBookingDeadline} onSelect={setLocalBookingDeadline} locale={zhTW} disabled={{ before: new Date() }} footer={<p className="text-xs text-gray-500 mt-2">顧客只能預約此日期（含）之前的時段。</p>} />
+                <label className="block text-sm font-medium text-text-main mb-2">最晚可預約日期</label>                
+                {isLoadingGlobalSettings ? <p className="text-text-light">載入中...</p> : (
+                  <div className="bg-secondary-light/20 p-4 rounded-xl inline-block border border-secondary-dark/30">
+                     <style>{`
+                      .rdp {
+                        --rdp-accent-color: #9F9586;
+                        --rdp-background-color: #FDFBF7;
+                      }
+                    `}</style>
+                    <DayPicker mode="single" selected={localBookingDeadline} onSelect={setLocalBookingDeadline} locale={zhTW} disabled={{ before: new Date() }} footer={<p className="text-xs text-text-light mt-4 text-center">顧客只能預約此日期（含）之前的時段。</p>} />
+                  </div>
                 )}
               </div>
-              <button onClick={handleSaveGlobalSettings} disabled={isSaving || isLoadingGlobalSettings} className="px-4 py-2 font-semibold text-white bg-green-500 rounded-md hover:bg-green-600 disabled:bg-gray-400">{isSaving ? '儲存中...' : '儲存全域設定'}</button>
+              <div className="flex justify-end pt-4">
+                <button onClick={handleSaveGlobalSettings} disabled={isSaving || isLoadingGlobalSettings} className="px-6 py-2.5 font-medium text-white bg-accent rounded-lg hover:bg-accent-hover disabled:bg-gray-300 transition-all shadow-sm hover:shadow-md">
+                  {isSaving ? '儲存中...' : '儲存全域設定'}
+                </button>
+              </div>
             </div>
           </div>
         )}

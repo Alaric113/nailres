@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useAuthStore } from './store/authStore';
 
-import Navbar from './components/Navbar'; // 引入新的導覽列
-import Sidebar from './components/common/Sidebar'; // 引入新的側邊選單
-import MainLayout from './components/MainLayout'; // 引入新的佈局元件 (如果還需要的話)
+import Navbar from './components/Navbar';
+import Sidebar from './components/common/Sidebar';
+import MainLayout from './components/MainLayout';
 import AnnouncementBanner from './components/common/AnnouncementBanner';
 
 // Public Page Components
@@ -33,9 +33,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 
-function App() {
-  const { isCheckingRedirect } = useAuth(); // 確保 useAuth 在這裡被呼叫
+function AppContent() {
+  const { isCheckingRedirect } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const location = useLocation(); // Use useLocation hook
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -43,15 +44,16 @@ function App() {
 
   const { currentUser, userProfile, authIsLoading } = useAuthStore();
 
-
   if (authIsLoading || isCheckingRedirect) {
     console.log('[App Checkpoint 1] App is in loading state (authIsLoading: true).');
     return <LoadingSpinner size='lg' text='正在載入中...' fullScreen />;
   }
 
+  // Determine if the announcement banner should be shown
+  const showAnnouncementBanner = location.pathname !== '/booking';
+
   return (
-    // [App Checkpoint 2] App has finished loading (authIsLoading: false). Rendering routes.
-    <Router>
+    <>
       <PwaUpdatePrompt />
       <Routes>
         {/* Public layout with Navbar */}
@@ -59,7 +61,7 @@ function App() {
           element={
             <>
               <Navbar onMenuClick={toggleSidebar} />
-              <AnnouncementBanner />
+              {showAnnouncementBanner && <AnnouncementBanner />}
               <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
               {/* Outlet for public pages like Home */}
               <Outlet /> 
@@ -85,7 +87,7 @@ function App() {
           element={
             <>
               <Navbar onMenuClick={toggleSidebar} />
-              <AnnouncementBanner />
+              {showAnnouncementBanner && <AnnouncementBanner />}
               <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
               <MainLayout>
                 <Outlet /> {/* Nested routes will render here */}
@@ -117,6 +119,14 @@ function App() {
           <Route path="/admin/promotions" element={<PromotionsPage />} />
         </Route>
       </Routes>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }

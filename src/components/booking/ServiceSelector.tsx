@@ -3,6 +3,7 @@ import { useServices } from '../../hooks/useServices';
 import type { Service } from '../../types/service';
 import { useAuthStore } from '../../store/authStore';
 import LoadingSpinner from '../common/LoadingSpinner';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
 interface ServiceSelectorProps {
   onServiceToggle: (service: Service) => void;
@@ -65,47 +66,56 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onServiceToggle, sele
   return (
     <div className="space-y-4">
       {sortedCategories.map((category) => (
-        <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
+        <div key={category} className="border border-secondary-dark/30 rounded-xl overflow-hidden transition-all duration-300">
           <button
             onClick={() => handleCategoryClick(category)}
-            className="w-full p-4 text-left flex justify-between items-center bg-white hover:bg-gray-50 transition-colors"
+            className="w-full p-4 text-left flex justify-between items-center bg-white hover:bg-secondary-light transition-colors"
           >
-            <h3 className="text-xl font-bold text-gray-700">{category}</h3>
-            <svg
-              className={`w-6 h-6 text-gray-500 transition-transform duration-300 ${
-                openCategory === category ? 'rotate-180' : ''
+            <h3 className="text-lg font-serif font-bold text-text-main tracking-wide">{category}</h3>
+            <ChevronDownIcon
+              className={`w-5 h-5 text-text-light transition-transform duration-300 ${
+                openCategory === category ? 'rotate-180 text-primary' : ''
               }`}
-              fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            />
           </button>
           <div
             className="transition-all duration-500 ease-in-out overflow-hidden"
             style={{ maxHeight: openCategory === category ? '1000px' : '0px' }}
           >
-            <div className="p-4 bg-gray-50/50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="p-4 bg-secondary-light/30 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3  gap-4">
               {groupedServices[category].map((service) => (
                 <div
                   key={service.id}
                   onClick={() => onServiceToggle(service)}
-                  className={`p-2 border rounded-lg cursor-pointer transition-all flex flex-row items-center bg-white ${
-                    selectedServiceIds.includes(service.id) ? 'border-pink-500 ring-2 ring-pink-500' : 'border-gray-200 hover:border-pink-300'
+                  className={`p-3 border rounded-xl cursor-pointer transition-all flex flex-row items-center bg-white relative overflow-hidden group ${
+                    selectedServiceIds.includes(service.id) 
+                      ? 'border-primary ring-1 ring-primary bg-primary/5' 
+                      : 'border-secondary-dark/30 hover:border-primary/50 hover:shadow-sm'
                   }`}
                 >
-                  <img className= {` h-16 w-16 rounded-md object-cover mr-2 ${service.imageUrl === '' ? 'hidden' : ''}`} src={service.imageUrl || ''} alt={service.name} />
-                  <div>
-                    <h4 className="font-semibold text-lg flex-grow">{service.name}</h4>
-                    <div className="text-sm text-gray-600 flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+                  {/* Selection Indicator */}
+                  <div className={`absolute top-0 right-0 p-1 rounded-bl-lg transition-all ${selectedServiceIds.includes(service.id) ? 'bg-primary' : 'bg-transparent'}`}>
+                     {selectedServiceIds.includes(service.id) && (
+                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                       </svg>
+                     )}
+                  </div>
+
+                  <img className= {`h-16 w-16 rounded-lg object-cover mr-3 shadow-sm ${service.imageUrl === '' ? 'hidden' : ''}`} src={service.imageUrl || ''} alt={service.name} />
+                  <div className="flex-grow">
+                    <h4 className={`font-medium text-base mb-1 ${selectedServiceIds.includes(service.id) ? 'text-primary-dark' : 'text-text-main'}`}>{service.name}</h4>
+                    <div className="text-sm text-text-light flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 border-t border-dashed border-secondary-dark/30">
                       {(() => {
                         const { price, isPlatinum, originalPrice } = getPriceForUser(service);
                         return (
                           <>
-                            <span>價格:</span>
-                            {isPlatinum && <span className="line-through text-gray-400">${originalPrice}</span>}
-                            <span className={`font-bold ${isPlatinum ? 'text-yellow-600' : 'text-gray-800'}`}>${price}</span>
-                            <span>|</span>
-                            <span>時長: {service.duration} 分鐘</span>
+                            <div className="flex items-baseline gap-1">
+                              {isPlatinum && <span className="line-through text-xs text-gray-400">NT${originalPrice}</span>}
+                              <span className={`font-bold ${isPlatinum ? 'text-accent' : 'text-text-main'}`}>NT${price}</span>
+                            </div>
+                            <span className="text-xs text-gray-300">|</span>
+                            <span className="text-xs">{service.duration} min</span>
                           </>
                         );
                       })()}

@@ -73,30 +73,30 @@ const CalendarPage = () => {
 
   if (loading && !dateRange) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <div className="text-center">
+      <div className="flex justify-center items-center h-screen bg-secondary-light">
+        <div className="text-center text-text-light">
           <LoadingSpinner />
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4">載入中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-secondary-light text-text-main">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
+      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-secondary-dark">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <div className="flex items-center gap-3">
-              <CalendarDaysIcon className="h-7 w-7 text-pink-600" />
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+              <CalendarDaysIcon className="h-7 w-7 text-primary" />
+              <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main tracking-wide">
                 所有行程
               </h1>
             </div>
             <Link 
               to="/admin" 
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary hover:text-primary-dark hover:bg-secondary-light rounded-lg transition-colors"
             >
               <ArrowLeftIcon className="h-4 w-4" />
               返回管理員頁面
@@ -137,7 +137,7 @@ const CalendarPage = () => {
               <button
                 key={view}
                 onClick={() => changeView(view)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+                className="px-4 py-2 text-sm font-medium text-text-main bg-white border border-secondary-dark rounded-lg hover:bg-secondary-light transition-colors whitespace-nowrap"
               >
                 {label}視圖
               </button>
@@ -146,29 +146,29 @@ const CalendarPage = () => {
         )}
 
         {/* Legend */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-secondary-dark/50">
           <div className="flex items-center gap-2 mb-3">
-            <FunnelIcon className="h-5 w-5 text-gray-600" />
-            <h3 className="text-sm font-semibold text-gray-700">圖例</h3>
+            <FunnelIcon className="h-5 w-5 text-text-light" />
+            <h3 className="text-sm font-serif font-semibold text-text-main">圖例</h3>
           </div>
           <div className="flex flex-wrap gap-3">
             {(['pending_payment', 'pending_confirmation', 'confirmed', 'completed', 'cancelled'] as BookingStatus[]).map(status => (
               <div key={status} className="flex items-center gap-2">
                 <div className={`w-4 h-4 rounded ${getStatusColorClass(status)}`}></div>
-                <span className="text-xs sm:text-sm text-gray-700">{
+                <span className="text-xs sm:text-sm text-text-light">{
                   { pending_payment: '待付款', pending_confirmation: '待確認', confirmed: '已確認', completed: '已完成', cancelled: '已取消' }[status]
                 }</span>
               </div>
             ))}
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded fc-event-conflicting"></div>
-              <span className="text-xs sm:text-sm text-gray-700">時間衝突</span>
+              <span className="text-xs sm:text-sm text-text-light">時間衝突</span>
             </div>
           </div>
         </div>
 
         {/* Calendar */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-secondary-dark/50 overflow-hidden">
           <div className="p-2 sm:p-4" style={{ minHeight: '70vh' }}>
             <FullCalendar
               ref={calendarRef}
@@ -248,7 +248,8 @@ const CalendarPage = () => {
         .fc-toolbar-title {
           font-size: 1.25rem !important;
           font-weight: 700 !important;
-          color: #1f2937;
+          color: #5C5548; /* text-main */
+          font-family: "Playfair Display", serif;
         }
 
         @media (min-width: 640px) {
@@ -259,8 +260,8 @@ const CalendarPage = () => {
 
         .fc-button {
           background-color: #fff !important;
-          border: 1px solid #e5e7eb !important;
-          color: #374151 !important;
+          border: 1px solid #DCD8CF !important; /* secondary-dark */
+          color: #5C5548 !important; /* text-main */
           text-transform: none !important;
           font-weight: 500 !important;
           padding: 0.375rem 0.75rem !important;
@@ -269,19 +270,19 @@ const CalendarPage = () => {
         }
 
         .fc-button:hover {
-          background-color: #f9fafb !important;
-          border-color: #d1d5db !important;
+          background-color: #EFECE5 !important; /* secondary */
+          border-color: #B7AD9E !important; /* primary-light */
         }
 
         .fc-button-active {
-          background-color: #ec4899 !important;
-          border-color: #ec4899 !important;
+          background-color: #9F9586 !important; /* primary */
+          border-color: #9F9586 !important;
           color: #fff !important;
         }
 
         .fc-button-active:hover {
-          background-color: #db2777 !important;
-          border-color: #db2777 !important;
+          background-color: #8A8173 !important; /* primary-dark */
+          border-color: #8A8173 !important;
         }
 
         .fc-today-button:disabled {
@@ -338,23 +339,29 @@ const CalendarPage = () => {
 
         /* Today highlight */
         .fc-today-highlight {
-          background-color: #fef3c7 !important;
+          background-color: rgba(159, 149, 134, 0.1) !important; /* primary with opacity */
         }
 
         .fc-day-today {
-          background-color: rgba(254, 243, 199, 0.3) !important;
+          background-color: rgba(159, 149, 134, 0.05) !important;
         }
 
         /* Slot styling */
         .fc-timegrid-slot {
           height: 3rem !important;
+          border-bottom: 1px solid #EFECE5 !important; /* secondary */
         }
 
         .fc-col-header-cell {
-          background-color: #f9fafb !important;
+          background-color: #FDFBF7 !important; /* secondary-light */
           font-weight: 600 !important;
-          color: #374151 !important;
+          color: #5C5548 !important; /* text-main */
           padding: 0.75rem 0.5rem !important;
+          border-bottom: 1px solid #DCD8CF !important; /* secondary-dark */
+        }
+        
+        .fc-theme-standard td, .fc-theme-standard th {
+            border-color: #EFECE5 !important; /* secondary */
         }
 
         /* Mobile adjustments */

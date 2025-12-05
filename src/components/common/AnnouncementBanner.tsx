@@ -6,7 +6,7 @@ const AnnouncementBanner: React.FC = () => {
   return (
     <>
       <div
-        className="fixed font-serif top-[64px] left-0 right-0 z-40 bg-[#9f9586] text-[#fffffe] text-sm font-medium shadow-md overflow-hidden flex items-center"
+        className="fixed font-serif top-[64px] left-0 right-0 z-40 bg-primary text-text-inverse text-sm font-medium shadow-sm overflow-hidden flex items-center tracking-wide"
         style={{ height: '48px' }}
       >
         {/* Marquee container with animation */}

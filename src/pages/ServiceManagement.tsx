@@ -9,7 +9,7 @@ import CategoryManagementModal from '../components/admin/CategoryManagementModal
 import type { Service } from '../types/service';
 import ImageUploader from '../components/admin/ImageUploader'; // 引入圖片上傳元件
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { PencilSquareIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 const ServiceManagement = () => {
   const [formData, setFormData] = useState({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '' });
@@ -163,14 +163,15 @@ const ServiceManagement = () => {
     }
   }, [categories, activeCategoryTab]);
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-secondary-light text-text-main">
+      <header className="bg-white/80 backdrop-blur-md border-b border-secondary-dark sticky top-0 z-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+          <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main">
             服務項目管理
           </h1>
-          <Link to="/admin" className="text-sm font-medium text-indigo-600 hover:underline">
-            &larr; 返回管理員頁面
+          <Link to="/admin" className="flex items-center text-sm font-medium text-primary hover:text-primary-dark transition-colors">
+            <ArrowLeftIcon className="h-4 w-4 mr-1" />
+            返回管理員頁面
           </Link>
         </div>
       </header>
@@ -182,7 +183,7 @@ const ServiceManagement = () => {
             resetForm(); // Clear form fields
             setIsServiceModalOpen(true);
           }}
-          className="fixed bottom-8 right-8 bg-pink-500 text-white p-4 rounded-full shadow-lg hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300 z-50"
+          className="fixed bottom-8 right-8 bg-primary text-white p-4 rounded-full shadow-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-300 z-50"
           aria-label="新增服務項目"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -199,15 +200,15 @@ const ServiceManagement = () => {
         >
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label htmlFor="serviceName" className="block text-sm font-medium text-gray-700">服務名稱</label>
-              <input type="text" id="name" value={formData.name} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+              <label htmlFor="serviceName" className="block text-sm font-medium text-text-main">服務名稱</label>
+              <input type="text" id="name" value={formData.name} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
             </div>
             <div>
-              <label htmlFor="price" className="block text-sm font-medium text-gray-700">一般價格 (NT$)</label>
-              <input type="number" id="price" value={formData.price} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+              <label htmlFor="price" className="block text-sm font-medium text-text-main">一般價格 (NT$)</label>
+              <input type="number" id="price" value={formData.price} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
             </div>
             <div>
-              <label htmlFor="platinumPrice" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="platinumPrice" className="block text-sm font-medium text-text-main">
                 白金會員價 (選填)
               </label>
               <input
@@ -216,20 +217,20 @@ const ServiceManagement = () => {
                 id="platinumPrice"
                 value={formData.platinumPrice || ''}
                 onChange={handleFieldChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-pink-500 focus:border-pink-500 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent sm:text-sm"
               />
             </div>
             <div>
-              <label htmlFor="duration" className="block text-sm font-medium text-gray-700">服務時長 (分鐘)</label>
-              <input type="number" id="duration" value={formData.duration} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+              <label htmlFor="duration" className="block text-sm font-medium text-text-main">服務時長 (分鐘)</label>
+              <input type="number" id="duration" value={formData.duration} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
             </div>
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700">分類</label>
+              <label htmlFor="category" className="block text-sm font-medium text-text-main">分類</label>
               <select
                 id="category"
                 value={formData.category}
                 onChange={handleFieldChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
               >
                 <option value="" disabled>請選擇分類</option>
                 {/* 動態載入分類 */}
@@ -257,7 +258,7 @@ const ServiceManagement = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full px-4 py-3 font-semibold text-white bg-pink-500 rounded-md hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="w-full px-4 py-3 font-semibold text-white bg-primary rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
                 {isSubmitting ? '處理中...' : (editingService ? '確認更新' : '確認新增')}
               </button>
@@ -265,7 +266,7 @@ const ServiceManagement = () => {
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="w-full px-4 py-3 font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                  className="w-full px-4 py-3 font-semibold text-text-main bg-secondary rounded-md hover:bg-secondary-dark transition-colors"
                 >
                   取消編輯
                 </button>
@@ -286,7 +287,7 @@ const ServiceManagement = () => {
         <div className="max-w-4xl mx-auto">
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">現有服務列表</h2>
+              <h2 className="text-2xl font-bold text-gray-800 font-serif">現有服務列表</h2>
               <div className="flex items-center gap-2">
                 {categoriesError && <p className="text-xs text-red-500 hidden sm:block">分類載入失敗</p>}
                 <button 
@@ -300,13 +301,17 @@ const ServiceManagement = () => {
             
             {/* Category Tabs */}
             <div className="mb-6">
-              <div className="border-b border-gray-200">
+              <div className="border-b border-secondary-dark/30">
                 <nav className="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
                   {categoryTabs.map((tabName) => (
                     <button
                       key={tabName}
                       onClick={() => setActiveCategoryTab(tabName)}
-                      className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeCategoryTab === tabName ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                      className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        activeCategoryTab === tabName 
+                          ? 'border-primary text-primary font-bold' 
+                          : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'
+                      }`}
                     >
                       {tabName === 'all' ? '全部' : tabName}
                     </button>
@@ -319,37 +324,37 @@ const ServiceManagement = () => {
             {!servicesLoading && !servicesError && (
               <>
                 {/* Desktop Table View */}
-                <div className="hidden md:block bg-white shadow-md rounded-lg overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                <div className="hidden md:block bg-white shadow-sm border border-secondary-dark rounded-xl overflow-hidden">
+                  <table className="min-w-full divide-y divide-secondary-light">
+                    <thead className="bg-secondary">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">服務名稱</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">價格 (一般/白金)</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">時長(分)</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分類</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">服務名稱</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">價格 (一般/白金)</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">時長(分)</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">分類</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">狀態</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">操作</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-secondary-light">
                       {filteredServices.map((service) => (
-                        <tr key={service.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <tr key={service.id} className="hover:bg-secondary-light/20 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-text-main">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 h-10 w-10">
-                                <img className="h-10 w-10 rounded-md object-cover" src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.name} />
+                                <img className="h-10 w-10 rounded-md object-cover border border-secondary-dark/20" src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.name} />
                               </div>
                               <div className="ml-4">{service.name}</div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">
                             ${service.price}
                             {service.platinumPrice && (
-                              <span className="ml-2 text-yellow-600 font-bold">${service.platinumPrice}</span>
+                              <span className="ml-2 text-accent font-bold">${service.platinumPrice}</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.duration}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.category}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">{service.duration}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">{service.category}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <button onClick={() => handleToggleAvailability(service)} disabled={isToggling === service.id} className={`px-3 py-1 text-xs font-semibold rounded-full ${service.available ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} disabled:opacity-50`}>
                               {isToggling === service.id ? '...' : (service.available ? '上架中' : '已下架')}
@@ -358,12 +363,12 @@ const ServiceManagement = () => {
                           <td className="px-6 py-6 whitespace-nowrap text-sm font-medium flex gap-2">
                             <button
                               onClick={() => handleEditClick(service)}
-                              className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-300 disabled:cursor-not-allowed"
+                              className="text-primary hover:text-primary-dark disabled:text-gray-300 disabled:cursor-not-allowed"
                               disabled={!!editingService || !!isDeleting}
                             >
                               編輯
                             </button>
-                            <button onClick={() => handleDeleteService(service.id, service.name)} disabled={isDeleting === service.id || !!editingService} className="text-red-600 hover:text-red-900 disabled:text-gray-300 disabled:cursor-not-allowed">
+                            <button onClick={() => handleDeleteService(service.id, service.name)} disabled={isDeleting === service.id || !!editingService} className="text-red-500 hover:text-red-700 disabled:text-gray-300 disabled:cursor-not-allowed">
                               {isDeleting === service.id ? '刪除中...' : '刪除'}
                             </button>
                           </td>
@@ -376,43 +381,43 @@ const ServiceManagement = () => {
                 {/* Mobile Card View */}
                 <div className="grid grid-cols-1 gap-4 md:hidden">
                   {filteredServices.map((service) => (
-                    <div key={service.id} className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+                    <div key={service.id} className="bg-white p-4 rounded-xl shadow-sm border border-secondary-dark/50">
                       <div className="flex items-start mb-3">
                         <div className="flex-1 flex flex-row justify-between">
-                          <h3 className="font-bold text-lg text-gray-800 break-words">{service.name}</h3>
+                          <h3 className="font-bold text-lg text-text-main break-words font-serif">{service.name}</h3>
                           <div className="flex justify-end items-center mb-2">
                         <button
                           onClick={() => handleEditClick(service)}
-                          className="ml-4 flex-shrink-0 text-indigo-600 hover:text-indigo-900 disabled:text-gray-300"
+                          className="ml-4 flex-shrink-0 text-primary hover:text-primary-dark disabled:text-gray-300"
                           disabled={!!editingService || !!isDeleting}
                         >
                           編輯
                         </button>
-                        <button onClick={() => handleDeleteService(service.id, service.name)} disabled={isDeleting === service.id || !!editingService} className="ml-2 flex-shrink-0 text-red-600 hover:text-red-900 disabled:text-gray-300 disabled:cursor-not-allowed">
+                        <button onClick={() => handleDeleteService(service.id, service.name)} disabled={isDeleting === service.id || !!editingService} className="ml-2 flex-shrink-0 text-red-500 hover:text-red-700 disabled:text-gray-300 disabled:cursor-not-allowed">
                           {isDeleting === service.id ? '刪除中...' : '刪除'}
                         </button>
                       </div>
                         </div>
                       </div>
-                      <div className="flex flex-row gap-4 border-t pt-3 mt-3">
-                        <div className="flex-1 space-y-2 text-sm text-gray-600">
-                          <div><strong className="font-medium text-gray-700">分類:</strong> {service.category}</div>
-                          <div><strong className="font-medium text-gray-700">一般價:</strong> ${service.price}</div>
+                      <div className="flex flex-row gap-4 border-t border-secondary-light pt-3 mt-3">
+                        <div className="flex-1 space-y-2 text-sm text-text-light">
+                          <div><strong className="font-medium text-text-main">分類:</strong> {service.category}</div>
+                          <div><strong className="font-medium text-text-main">一般價:</strong> ${service.price}</div>
                           {service.platinumPrice && (
-                            <div className="text-yellow-700">
-                              <strong className="font-medium text-yellow-600">白金價:</strong> ${service.platinumPrice}
+                            <div className="text-accent-hover">
+                              <strong className="font-medium text-accent">白金價:</strong> ${service.platinumPrice}
                             </div>
                           )}
-                          <div><strong className="font-medium text-gray-700">時長:</strong> {service.duration} 分鐘</div>
+                          <div><strong className="font-medium text-text-main">時長:</strong> {service.duration} 分鐘</div>
                           <div className="flex items-center pt-1">
-                            <strong className="font-medium text-gray-700 mr-2">狀態:</strong>
+                            <strong className="font-medium text-text-main mr-2">狀態:</strong>
                             <button onClick={() => handleToggleAvailability(service)} disabled={isToggling === service.id} className={`px-3 py-1 text-xs font-semibold rounded-full ${service.available ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} disabled:opacity-50`}>
                               {isToggling === service.id ? '...' : (service.available ? '上架中' : '已下架')}
                             </button>
                           </div>
                         </div>
                         <div className="flex-shrink-0">
-                          <img className="h-28 w-28 rounded-md object-cover" src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.name} />
+                          <img className="h-28 w-28 rounded-md object-cover border border-secondary-dark/20" src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.name} />
                         </div>
                       </div>
 
@@ -420,7 +425,7 @@ const ServiceManagement = () => {
                   ))}
                 </div>
                 {filteredServices.length === 0 && (
-                  <div className="text-center py-10 text-gray-500 bg-white rounded-lg shadow-md">
+                  <div className="text-center py-10 text-text-light bg-white rounded-lg shadow-sm border border-dashed border-secondary-dark">
                     <p>此分類下沒有服務項目。</p>
                   </div>
                 )}

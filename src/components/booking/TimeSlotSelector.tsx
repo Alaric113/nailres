@@ -14,7 +14,7 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({ selectedDate, servi
   const { availableSlots, loading, error } = useAvailableSlots(selectedDate, serviceDuration);
 
   if (!selectedDate || !serviceDuration) {
-    return <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">請先選擇服務項目與日期。</div>;
+    return <div className="p-8 text-center text-text-light bg-secondary-light/30 rounded-xl border border-dashed border-secondary-dark/30 font-light">請先選擇服務項目與日期。</div>;
   }
 
   if (loading) {
@@ -26,17 +26,19 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({ selectedDate, servi
   }
 
   if (availableSlots.length === 0) {
-    return <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">該日期已無可預約時段。</div>;
+    return <div className="p-8 text-center text-text-light bg-secondary-light/30 rounded-xl border border-dashed border-secondary-dark/30 font-light">該日期已無可預約時段，請嘗試其他日期。</div>;
   }
 
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
       {availableSlots.map((slot, index) => (
         <button
           key={index}
           onClick={() => onTimeSelect(slot)}
-          className={`p-3 border rounded-md text-center transition-colors ${
-            selectedTime?.getTime() === slot.getTime() ? 'bg-pink-500 text-white border-pink-500' : 'bg-white border-gray-300 hover:bg-pink-50'
+          className={`py-3 px-2 border rounded-lg text-center transition-all duration-200 font-medium text-sm shadow-sm ${
+            selectedTime?.getTime() === slot.getTime() 
+              ? 'bg-primary text-white border-primary ring-2 ring-primary/30' 
+              : 'bg-white border-secondary-dark/30 text-text-main hover:bg-secondary-light hover:border-primary/50 hover:text-primary-dark transform hover:-translate-y-0.5'
           }`}
         >
           {format(slot, 'HH:mm')}

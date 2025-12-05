@@ -74,6 +74,7 @@ const PortfolioManagementPage = () => {
         <PortfolioForm 
           item={editingItem} 
           onClose={() => setIsModalOpen(false)}
+          onSave={() => setIsModalOpen(false)}
         />
       </Modal>
     </div>
