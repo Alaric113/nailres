@@ -15,7 +15,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
       <div className="flex-1 flex justify-start">
         <button
           onClick={onMenuClick}
-          className="p-2 rounded-md text-text-main hover:bg-secondary hover:text-primary-dark focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light transition-colors"
+          className="hidden md:block p-2 rounded-md text-text-main hover:bg-secondary hover:text-primary-dark focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light transition-colors"
           aria-label="Open menu"
         >
           <Bars3Icon className="h-6 w-6" />
@@ -33,7 +33,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
       <div className="flex-1 flex justify-end">
         <button
           // onClick={() => { /* 之後實作搜尋功能 */ }}
-          className="p-2 rounded-md text-text-main hover:bg-secondary hover:text-primary-dark focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light transition-colors"
+          className="hidden md:block p-2 rounded-md text-text-main hover:bg-secondary hover:text-primary-dark focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light transition-colors"
           aria-label="Search"
         >
           <MagnifyingGlassIcon className="h-6 w-6" />

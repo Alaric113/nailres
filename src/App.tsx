@@ -17,6 +17,7 @@ import PortfolioGalleryPage from './pages/PortfolioGalleryPage';
 // Page Components
 import Dashboard from './pages/Dashboard';
 import BookingPage from './pages/BookingPage';
+import UserMemberPage from './pages/UserMemberPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ServiceManagement from './pages/ServiceManagement';
 import CustomerListPage from './pages/CustomerListPage';
@@ -50,7 +51,7 @@ function AppContent() {
   }
 
   // Determine if the announcement banner should be shown
-  const showAnnouncementBanner = location.pathname !== '/booking';
+  const showAnnouncementBanner = location.pathname !== '/booking' && !currentUser;
 
   return (
     <>
@@ -89,7 +90,7 @@ function AppContent() {
               <Navbar onMenuClick={toggleSidebar} />
               {showAnnouncementBanner && <AnnouncementBanner />}
               <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
-              <MainLayout>
+              <MainLayout showAnnouncementBanner={showAnnouncementBanner}>
                 <Outlet /> {/* Nested routes will render here */}
               </MainLayout>
             </>
@@ -99,6 +100,7 @@ function AppContent() {
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/booking" element={<BookingPage />} />
+            <Route path="/member" element={<UserMemberPage />} />
           </Route>
 
           {/* Protected Routes for admins */}

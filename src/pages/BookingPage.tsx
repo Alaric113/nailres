@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import ServiceSelector from '../components/booking/ServiceSelector';
 import TimeSlotSelector from '../components/booking/TimeSlotSelector';
@@ -11,20 +10,32 @@ import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
 import { useGlobalSettings } from '../hooks/useGlobalSettings';
 import CouponSelectorModal from '../components/booking/CouponSelectorModal';
 import type { Coupon } from '../types/coupon';
-import { TicketIcon, ChevronRightIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { 
+  TicketIcon, 
+  ChevronRightIcon,
+  CalendarDaysIcon,
+  PencilSquareIcon
+} from '@heroicons/react/24/outline';
+import BookingProgressBar from '../components/booking/BookingProgressBar';
+import { format } from 'date-fns';
+import { zhTW } from 'date-fns/locale';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const BookingPage = () => {
   const location = useLocation();
   const query = new URLSearchParams(location.search);
   const initialCategory = query.get('category');
 
+  const [currentStep, setCurrentStep] = useState(1);
+  
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
-  const { userProfile } = useAuthStore();
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(true); // Control calendar visibility
   
+  const { userProfile } = useAuthStore();
   const { closedDays, loading: isLoadingClosedDays } = useBusinessHoursSummary();
   const { settings: globalSettings, isLoading: isLoadingGlobalSettings } = useGlobalSettings();
 
@@ -41,7 +52,13 @@ const BookingPage = () => {
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
-    setSelectedTime(null); // Reset time when date changes
+    setSelectedTime(null);
+    if (date) {
+      // Auto-collapse calendar and expand time slots after selection
+      setTimeout(() => {
+        setIsCalendarExpanded(false);
+      }, 300);
+    }
   };
 
   const handleTimeSelect = (time: Date) => {
@@ -53,11 +70,12 @@ const BookingPage = () => {
   };
 
   const handleBookingSuccess = () => {
-    // Reset selections after a successful booking
     setSelectedServices([]);
-    setSelectedDate(new Date());
+    setSelectedDate(undefined);
     setSelectedTime(null);
-    setSelectedCoupon(null); // activeStep 會自動重置
+    setSelectedCoupon(null);
+    setCurrentStep(1);
+    setIsCalendarExpanded(true);
   };
 
   const { totalDuration, originalPrice, finalPrice, discountAmount } = useMemo(() => {
@@ -78,132 +96,206 @@ const BookingPage = () => {
     return { totalDuration: duration, originalPrice: basePrice, finalPrice: final, discountAmount: discount };
   }, [selectedServices, userProfile, selectedCoupon]);
 
-  return (
-    <div className="min-h-screen bg-secondary-light text-text-main">
-      <header className="bg-white/80 backdrop-blur-md border-b border-secondary-dark sticky top-[64px] z-30">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center max-w-4xl">
-          <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main tracking-wide">
-            預約服務
-          </h1>
-          <Link to="/dashboard" className="flex items-center text-sm font-medium text-text-light hover:text-primary transition-colors">
-            <ArrowLeftIcon className="h-4 w-4 mr-1" />
-            返回
-          </Link>
-        </div>
-      </header>
-      <main className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl pb-24">
-        <div className="text-center mb-10">
-          <p className="text-lg text-text-light font-light mt-2">請依序選擇您想要的服務、日期與時段</p>
-          <div className="w-16 h-0.5 bg-primary/30 mx-auto mt-4"></div>
-        </div>
+  const nextStep = () => {
+    if (currentStep < 3) setCurrentStep(prev => prev + 1);
+  };
 
-        <div className="space-y-8">
-          {/* --- Step 1: Service Selection --- */}
-          <div className="bg-white rounded-2xl shadow-sm border border-secondary-dark/50 overflow-hidden transition-all hover:shadow-md">
-            <div className="p-6 border-b border-secondary-light">
-              <h2 className="text-xl font-serif font-bold text-text-main flex items-center">
-                <span className="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">1</span>
-                選擇服務項目
-              </h2>
+  const handleStepClick = (step: number) => {
+    if (step < currentStep) {
+      setCurrentStep(step);
+    }
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-64px)] bg-[#FAF9F6] pb-20 pt-4"> 
+      
+      {/* Progress Bar with Back Navigation built-in */}
+      <div className="mb-8">
+        <BookingProgressBar currentStep={currentStep} onStepClick={handleStepClick} />
+      </div>
+
+      {/* Main Content Area */}
+      <main className="container mx-auto px-4 max-w-lg">
+        
+        {/* Step 1: Services */}
+        {currentStep === 1 && (
+          <div className="space-y-6">
+            <ServiceSelector 
+              onServiceToggle={handleServiceToggle} 
+              selectedServiceIds={selectedServices.map(s => s.id)}
+              initialCategory={initialCategory}
+            />
+          </div>
+        )}
+
+        {/* Step 2: Date & Time - Collapsible UX */}
+        {currentStep === 2 && (
+          <div className="space-y-4">
+            
+            {/* 1. Date Selection Section */}
+            <div className="bg-white rounded-2xl shadow-sm border border-[#EFECE5] overflow-hidden">
+               {/* Header / Summary */}
+               <div 
+                 onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
+                 className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${!isCalendarExpanded ? 'hover:bg-gray-50' : ''}`}
+               >
+                 <div className="flex items-center gap-2">
+                   <CalendarDaysIcon className="w-5 h-5 text-[#9F9586]" />
+                   <h3 className="font-serif font-bold text-gray-900">選擇日期</h3>
+                 </div>
+                 
+                 {!isCalendarExpanded && selectedDate && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#9F9586] font-medium">
+                        {format(selectedDate, 'yyyy-MM-dd')}
+                      </span>
+                      <PencilSquareIcon className="w-4 h-4 text-gray-400" />
+                    </div>
+                 )}
+               </div>
+
+               {/* Calendar Content (Collapsible) */}
+               {isCalendarExpanded && (
+                 <div className="px-4 pb-4">
+                    <CalendarSelector
+                        selectedDate={selectedDate}
+                        onDateSelect={handleDateSelect}
+                        closedDays={closedDays}
+                        isLoading={isLoadingClosedDays || isLoadingGlobalSettings}
+                        bookingDeadline={globalSettings.bookingDeadline}
+                    />
+                 </div>
+               )}
             </div>
             
-            <div className="p-6">
-              {selectedServices.length > 0 && (
-                <div className="mb-6 p-4 bg-secondary rounded-xl border border-secondary-dark">
-                  <p className="text-text-main"><strong className="text-primary-dark">已選服務:</strong> {selectedServices.map(s => s.name).join('、')}</p>
-                  <p className="text-text-main mt-1"><strong className="text-primary-dark">總計:</strong> {totalDuration} 分鐘 / NT$ {originalPrice}</p>
-                </div>
-              )}
-              
-              {/* 服務選擇器始終可見，但可能被禁用 */}
-                <ServiceSelector 
-                  onServiceToggle={handleServiceToggle} 
-                  selectedServiceIds={selectedServices.map(s => s.id)}
-                  initialCategory={initialCategory}
-                />
-            </div>
-          </div>
-
-          {/* --- Step 2: Date & Time Selection --- */}
-          <div className={`bg-white rounded-2xl shadow-sm border border-secondary-dark/50 overflow-hidden transition-all duration-500 ${selectedServices.length === 0 ? 'opacity-50 grayscale pointer-events-none' : 'hover:shadow-md'}`}>
-             <div className="p-6 border-b border-secondary-light">
-              <h2 className="text-xl font-serif font-bold text-text-main flex items-center">
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3 ${selectedServices.length > 0 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'}`}>2</span>
-                選擇日期與時段
-              </h2>
-            </div>
-
-            {selectedServices.length > 0 && (
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Calendar */}
-                  <div className="bg-secondary-light/30 p-4 rounded-xl">
-                    <h3 className="font-serif font-medium text-lg mb-4 text-center text-text-main">選擇日期</h3>
-                    <CalendarSelector
-                      selectedDate={selectedDate}
-                      onDateSelect={handleDateSelect}
-                      closedDays={closedDays}
-                      isLoading={isLoadingClosedDays || isLoadingGlobalSettings}
-                      bookingDeadline={globalSettings.bookingDeadline}
-                    />
-                  </div>
-                  {/* Time Slots */}
-                  <div className="bg-secondary-light/30 p-4 rounded-xl">
-                    <h3 className="font-serif font-medium text-lg mb-4 text-center text-text-main">選擇時段</h3>
-                    <TimeSlotSelector
-                      selectedDate={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
+            {/* 2. Time Selection Section (Appears after date selection) */}
+            <AnimatePresence>
+              {!isCalendarExpanded && selectedDate && (
+                 <motion.div
+                   initial={{ opacity: 0, y: 20 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   exit={{ opacity: 0, y: 20 }}
+                   transition={{ duration: 0.4, delay: 0.1 }}
+                   className="bg-white rounded-2xl p-4 shadow-sm border border-[#EFECE5]"
+                 >
+                   <h3 className="font-serif font-bold text-gray-900 mb-4 px-1">
+                     {format(selectedDate, 'M月d日 (EEEE)', { locale: zhTW })} 的時段
+                   </h3>
+                   <TimeSlotSelector
+                      selectedDate={format(selectedDate, 'yyyy-MM-dd')}
                       serviceDuration={totalDuration}
                       onTimeSelect={handleTimeSelect}
                       selectedTime={selectedTime}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+                   />
+                 </motion.div>
+              )}
+            </AnimatePresence>
           </div>
+        )}
 
-          {/* --- Step 4: Confirmation --- */}
-          <div className={`bg-white rounded-2xl shadow-sm border border-secondary-dark/50 overflow-hidden transition-all duration-500 ${!selectedTime ? 'opacity-50 grayscale pointer-events-none' : 'hover:shadow-md'}`}>
-            <div className="p-6 border-b border-secondary-light">
-              <h2 className="text-xl font-serif font-bold text-text-main flex items-center">
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3 ${selectedTime ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'}`}>3</span>
-                確認預約資訊
-              </h2>
-            </div>
-            
-            {selectedTime && (
-              <div className="p-6 space-y-6">
-                {/* Coupon Selector Bar */}
-                <button 
+        {/* Step 3: Confirmation */}
+        {currentStep === 3 && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#EFECE5]">
+               <div className="space-y-4 mb-6">
+                 <div>
+                   <h3 className="text-sm text-gray-500 font-medium">預約時間</h3>
+                   <p className="text-lg font-bold text-gray-900 mt-1">
+                     {selectedDate && format(selectedDate, 'yyyy年M月d日 (EEEE)', { locale: zhTW })}
+                   </p>
+                   <p className="text-lg font-bold text-[#9F9586]">
+                     {selectedTime && format(selectedTime, 'HH:mm')}
+                   </p>
+                 </div>
+                 <div className="h-px bg-gray-100"></div>
+                 <div>
+                   <h3 className="text-sm text-gray-500 font-medium">已選服務</h3>
+                   <div className="mt-2 space-y-2">
+                     {selectedServices.map(s => (
+                       <div key={s.id} className="flex justify-between items-center text-sm">
+                         <span className="text-gray-900">{s.name}</span>
+                         <span className="text-gray-500">${s.price}</span>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               </div>
+
+               {/* Coupon Selector */}
+               <button 
                   onClick={() => setIsCouponModalOpen(true)}
-                  className="w-full flex justify-between items-center p-4 bg-white border border-dashed border-primary/50 rounded-xl text-left hover:bg-secondary-light transition-colors group"
+                  className="w-full flex justify-between items-center p-4 bg-[#FAF9F6] border border-dashed border-[#9F9586]/30 rounded-xl mb-6 hover:bg-[#F5F3EF] transition-colors group"
                 >
-                  <div className="flex items-center">
-                    <div className="bg-secondary p-2 rounded-full mr-3 group-hover:bg-white transition-colors">
-                      <TicketIcon className="h-5 w-5 text-primary" />
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white p-2 rounded-full shadow-sm text-[#9F9586]">
+                      <TicketIcon className="h-5 w-5" />
                     </div>
-                    <div>
-                      <p className="font-medium text-text-main">
-                        {selectedCoupon ? selectedCoupon.title : '選擇優惠券 / 輸入折扣碼'}
+                    <div className="text-left">
+                      <p className="font-medium text-gray-900 text-sm">
+                        {selectedCoupon ? selectedCoupon.title : '使用優惠券'}
                       </p>
-                      {selectedCoupon && <p className="text-sm text-accent">已折抵 NT$ {discountAmount}</p>}
+                      {selectedCoupon && <p className="text-xs text-[#9F9586] font-medium">已折抵 NT$ {discountAmount}</p>}
                     </div>
                   </div>
-                  <ChevronRightIcon className="h-5 w-5 text-text-light group-hover:translate-x-1 transition-transform" />
+                  <ChevronRightIcon className="h-4 w-4 text-gray-400 group-hover:text-[#9F9586]" />
                 </button>
 
-                <BookingForm
+               <BookingForm
                   services={selectedServices}
-                  dateTime={selectedTime}
+                  dateTime={selectedTime!} // Safe assertion as step 3 requires time
                   totalPrice={finalPrice}
                   coupon={selectedCoupon}
                   onBookingSuccess={handleBookingSuccess}
-                />
-              </div>
-            )}
+               />
+            </div>
           </div>
-        </div>
+        )}
       </main>
+
+      {/* Floating Action Button for Next Step */}
+      <div className="fixed bottom-[80px] md:bottom-10 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 md:hidden z-40">
+        {currentStep === 1 && (
+          <button 
+            onClick={nextStep}
+            disabled={selectedServices.length === 0}
+            className="w-full bg-[#9F9586] text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
+          >
+            下一步：選擇時間
+          </button>
+        )}
+        {currentStep === 2 && (
+          <button 
+            onClick={nextStep}
+            disabled={!selectedTime}
+            className="w-full bg-[#9F9586] text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
+          >
+            下一步：確認預約
+          </button>
+        )}
+      </div>
+
+      {/* Desktop Next Buttons (Hidden on mobile) */}
+      <div className="hidden md:flex justify-end container mx-auto px-4 max-w-lg mt-8">
+         {currentStep === 1 && (
+            <button 
+              onClick={nextStep}
+              disabled={selectedServices.length === 0}
+              className="bg-[#9F9586] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#8a8173] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              下一步
+            </button>
+         )}
+         {currentStep === 2 && (
+            <button 
+              onClick={nextStep}
+              disabled={!selectedTime}
+              className="bg-[#9F9586] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#8a8173] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              下一步
+            </button>
+         )}
+      </div>
+
       <CouponSelectorModal
         isOpen={isCouponModalOpen}
         onClose={() => setIsCouponModalOpen(false)}

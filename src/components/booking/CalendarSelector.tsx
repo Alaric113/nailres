@@ -33,7 +33,10 @@ const CalendarSelector = ({ selectedDate, onDateSelect, closedDays, isLoading, b
     );
   }
 
-  const disabledDays: Matcher[] = [{ before: new Date() }, ...closedDays];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const disabledDays: Matcher[] = [{ before: today }, ...closedDays];
   if (bookingDeadline) {
     disabledDays.push({ after: bookingDeadline });
   }

@@ -96,21 +96,11 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, totalPric
   };
 
   return (
-    <div className="p-6 border-t border-gray-200">
+    <div className="pt-2">
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div>
-            <h3 className="font-semibold text-gray-700">預約項目:</h3>
-            <ul className="list-disc list-inside text-gray-600">
-              {services.map(s => <li key={s.id}>{s.name}</li>)}
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-700">最終費用:</h3>
-            <p className="text-2xl font-bold text-pink-600">${totalPrice}</p>
-          </div>
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
               備註 (選填)
             </label>
             <textarea
@@ -118,18 +108,27 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, totalPric
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              placeholder="有特殊需求嗎？例如：需要卸甲"
+              className="w-full rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-[#9F9586] focus:ring-[#9F9586] text-sm transition-all"
+              placeholder="有特殊需求嗎？例如：需要卸甲、指定美甲師..."
             ></textarea>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full px-4 py-3 font-semibold text-white bg-pink-500 rounded-md hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:bg-pink-300 disabled:cursor-not-allowed transition-all"
-          >
-            {isSubmitting ? '正在提交...' : '確認預約'}
-          </button>
+          
+          {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+          
+          <div className="pt-2 pb-24 md:pb-0"> {/* Padding bottom for mobile nav spacing */}
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-gray-600 font-medium">總計費用</span>
+              <span className="text-2xl font-bold text-[#9F9586]">${totalPrice}</span>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full px-4 py-3.5 font-bold text-white bg-[#9F9586] rounded-xl hover:bg-[#8a8173] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9F9586] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 transition-all"
+            >
+              {isSubmitting ? '正在提交...' : '確認預約'}
+            </button>
+          </div>
         </div>
       </form>
     </div>
