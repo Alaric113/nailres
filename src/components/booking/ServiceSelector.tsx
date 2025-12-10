@@ -65,25 +65,44 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onServiceToggle, sele
 
   return (
     <div className="space-y-4">
-      {sortedCategories.map((category) => (
-        <div key={category} className="border border-secondary-dark/30 rounded-xl overflow-hidden transition-all duration-300">
-          <button
-            onClick={() => handleCategoryClick(category)}
-            className="w-full p-4 text-left flex justify-between items-center bg-white hover:bg-secondary-light transition-colors"
+      {sortedCategories.map((category) => {
+        const categoryServices = groupedServices[category];
+        const selectedCount = categoryServices.filter(s => selectedServiceIds.includes(s.id)).length;
+        const isCategoryActive = selectedCount > 0;
+
+        return (
+          <div 
+            key={category} 
+            className={`border rounded-xl overflow-hidden transition-all duration-300 ${
+              isCategoryActive ? 'border-primary ring-1 ring-primary/20' : 'border-secondary-dark/30'
+            }`}
           >
-            <h3 className="text-lg font-serif font-bold text-text-main tracking-wide">{category}</h3>
-            <ChevronDownIcon
-              className={`w-5 h-5 text-text-light transition-transform duration-300 ${
-                openCategory === category ? 'rotate-180 text-primary' : ''
+            <button
+              onClick={() => handleCategoryClick(category)}
+              className={`w-full p-4 text-left flex justify-between items-center transition-colors ${
+                 isCategoryActive ? 'bg-primary/5 hover:bg-primary/10' : 'bg-white hover:bg-secondary-light'
               }`}
-            />
-          </button>
-          <div
-            className="transition-all duration-500 ease-in-out overflow-hidden"
-            style={{ maxHeight: openCategory === category ? '1000px' : '0px' }}
-          >
-            <div className="p-4 bg-secondary-light/30 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3  gap-4">
-              {groupedServices[category].map((service) => (
+            >
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-serif font-bold text-text-main tracking-wide">{category}</h3>
+                {selectedCount > 0 && (
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold">
+                    {selectedCount}
+                  </span>
+                )}
+              </div>
+              <ChevronDownIcon
+                className={`w-5 h-5 text-text-light transition-transform duration-300 ${
+                  openCategory === category ? 'rotate-180 text-primary' : ''
+                }`}
+              />
+            </button>
+            <div
+              className="transition-all duration-500 ease-in-out overflow-hidden"
+              style={{ maxHeight: openCategory === category ? '1000px' : '0px' }}
+            >
+              <div className="p-4 bg-secondary-light/30 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3  gap-4">
+                {categoryServices.map((service) => (
                 <div
                   key={service.id}
                   onClick={() => onServiceToggle(service)}
@@ -125,11 +144,12 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onServiceToggle, sele
                     </div>
                   </div>
                 </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
