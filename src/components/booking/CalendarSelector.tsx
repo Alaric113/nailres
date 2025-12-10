@@ -24,11 +24,19 @@ const CalendarSelector = ({ selectedDate, onDateSelect, closedDays, isLoading, b
 
   const today = startOfDay(new Date());
 
+  const handleSelect = (date: Date | undefined) => {
+    console.log('CalendarSelector internal select:', date);
+    onDateSelect(date);
+  };
+
   const isDateDisabled = (date: Date) => {
-    if (isBefore(date, today)) return true;
-    if (closedDays.some(closed => isSameDay(closed, date))) return true;
-    if (bookingDeadline && isAfter(date, bookingDeadline)) return true;
-    return false;
+    const disabled = (
+      isBefore(date, today) ||
+      closedDays.some(closed => isSameDay(closed, date)) ||
+      (bookingDeadline ? isAfter(date, bookingDeadline) : false)
+    );
+    // console.log(`Date check ${date.toISOString().split('T')[0]}: disabled=${disabled}`);
+    return disabled;
   };
 
   return (
@@ -75,7 +83,7 @@ const CalendarSelector = ({ selectedDate, onDateSelect, closedDays, isLoading, b
       <DayPicker
         mode="single"
         selected={selectedDate}
-        onSelect={onDateSelect}
+        onSelect={handleSelect}
         locale={zhTW}
         disabled={isDateDisabled}
       />
