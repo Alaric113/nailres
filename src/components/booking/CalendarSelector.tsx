@@ -50,31 +50,15 @@ const CalendarSelector = ({ selectedDate, onDateSelect, closedDays, isLoading, b
   };
 
   return (
-    <div className="flex justify-center bg-white rounded-xl p-2">
-      <style>{`
-        .rdp {
-          --rdp-cell-size: 40px;
-          --rdp-accent-color: #9F9586;
-          --rdp-background-color: #FDFBF7;
-          margin: 0;
-        }
-        .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
-          background-color: #EFECE5;
-          color: #5C5548;
-        }
-        .rdp-day_selected {
-          font-weight: bold;
-        }
-        .rdp-caption_label {
-          font-family: "Noto Serif Display", serif;
-          color: #5C5548;
-          font-size: 1.1rem;
-        }
-        .rdp-head_cell {
-          color: #8A8173;
-          font-weight: 500;
-        }
-      `}</style>
+    <div 
+      className="flex justify-center bg-white rounded-xl p-2"
+      style={{
+        // @ts-ignore - CSS variables for DayPicker
+        '--rdp-cell-size': '40px',
+        '--rdp-accent-color': '#9F9586',
+        '--rdp-background-color': '#FDFBF7',
+      }}
+    >
       <DayPicker
         mode="single"
         selected={selectedDate}
