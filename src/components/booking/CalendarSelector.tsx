@@ -1,7 +1,7 @@
 import { DayPicker } from 'react-day-picker';
 import { zhTW } from 'date-fns/locale';
 import { startOfDay, isBefore, isSameDay, isAfter } from 'date-fns';
-import 'react-day-picker/dist/style.css';
+import 'react-day-picker/src/style.css';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 interface CalendarSelectorProps {
