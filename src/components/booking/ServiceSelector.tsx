@@ -63,95 +63,119 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onServiceToggle, sele
     setOpenCategory(prev => (prev === category ? null : category));
   };
 
-  return (
-    <div className="space-y-4">
-      {sortedCategories.map((category) => {
-        const categoryServices = groupedServices[category];
-        const selectedCount = categoryServices.filter(s => selectedServiceIds.includes(s.id)).length;
-        const isCategoryActive = selectedCount > 0;
-
-        return (
-          <div 
-            key={category} 
-            className={`border rounded-xl overflow-hidden transition-all duration-300 ${
-              isCategoryActive ? 'border-primary ring-1 ring-primary/20' : 'border-secondary-dark/30'
-            }`}
-          >
-            <button
-              onClick={() => handleCategoryClick(category)}
-              className={`w-full p-4 text-left flex justify-between items-center transition-colors ${
-                 isCategoryActive ? 'bg-primary/5 hover:bg-primary/10' : 'bg-white hover:bg-secondary-light'
+    return (
+      <div className="space-y-4">
+        {sortedCategories.map((category) => {
+          const categoryServices = groupedServices[category];
+          const selectedCount = categoryServices.filter(s => selectedServiceIds.includes(s.id)).length;
+          const isCategoryActive = selectedCount > 0;
+          const isOpen = openCategory === category;
+  
+          return (
+            <div 
+              key={category} 
+              className={`border rounded-2xl overflow-hidden transition-all duration-300 shadow-sm ${
+                isCategoryActive ? 'border-primary/50' : 'border-secondary'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <h3 className="text-lg font-serif font-bold text-text-main tracking-wide">{category}</h3>
-                {selectedCount > 0 && (
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold">
-                    {selectedCount}
-                  </span>
-                )}
-              </div>
-              <ChevronDownIcon
-                className={`w-5 h-5 text-text-light transition-transform duration-300 ${
-                  openCategory === category ? 'rotate-180 text-primary' : ''
+              <button
+                onClick={() => handleCategoryClick(category)}
+                className={`w-full p-5 text-left flex justify-between items-center transition-all duration-300 ${
+                   isOpen 
+                     ? 'bg-secondary text-text-main shadow-inner' 
+                     : isCategoryActive 
+                        ? 'bg-secondary-light hover:bg-secondary' 
+                        : 'bg-white hover:bg-gray-50'
                 }`}
-              />
-            </button>
-            <div
-              className="transition-all duration-500 ease-in-out overflow-hidden"
-              style={{ maxHeight: openCategory === category ? '1000px' : '0px' }}
-            >
-              <div className="p-4 bg-secondary-light/30 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3  gap-4">
-                {categoryServices.map((service) => (
-                <div
-                  key={service.id}
-                  onClick={() => onServiceToggle(service)}
-                  className={`p-3 border rounded-xl cursor-pointer transition-all flex flex-row items-center bg-white relative overflow-hidden group ${
-                    selectedServiceIds.includes(service.id) 
-                      ? 'border-primary ring-1 ring-primary bg-primary/5' 
-                      : 'border-secondary-dark/30 hover:border-primary/50 hover:shadow-sm'
-                  }`}
-                >
-                  {/* Selection Indicator */}
-                  <div className={`absolute top-0 right-0 p-1 rounded-bl-lg transition-all ${selectedServiceIds.includes(service.id) ? 'bg-primary' : 'bg-transparent'}`}>
-                     {selectedServiceIds.includes(service.id) && (
-                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                       </svg>
-                     )}
-                  </div>
-
-                  {service.imageUrl && (
-                    <img className="h-16 w-16 rounded-lg object-cover mr-3 shadow-sm" src={service.imageUrl} alt={service.name} />
+              >
+                <div className="flex items-center gap-3">
+                  <h3 className={`text-lg font-serif font-bold tracking-wide ${isOpen ? 'text-text-main' : 'text-text-main'}`}>
+                    {category}
+                  </h3>
+                  {selectedCount > 0 && (
+                    <span className="flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full bg-primary text-white text-xs font-bold shadow-sm">
+                      {selectedCount}
+                    </span>
                   )}
-                  <div className="flex-grow">
-                    <h4 className={`font-medium text-base mb-1 ${selectedServiceIds.includes(service.id) ? 'text-primary-dark' : 'text-text-main'}`}>{service.name}</h4>
-                    <div className="text-sm text-text-light flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 border-t border-dashed border-secondary-dark/30">
-                      {(() => {
-                        const { price, isPlatinum, originalPrice } = getPriceForUser(service);
-                        return (
-                          <>
-                            <div className="flex items-baseline gap-1">
-                              {isPlatinum && <span className="line-through text-xs text-gray-400">NT${originalPrice}</span>}
-                              <span className={`font-bold ${isPlatinum ? 'text-accent' : 'text-text-main'}`}>NT${price}</span>
-                            </div>
-                            <span className="text-xs text-gray-300">|</span>
-                            <span className="text-xs">{service.duration} min</span>
-                          </>
-                        );
-                      })()}
-
-                    </div>
-                  </div>
                 </div>
-                ))}
+                <ChevronDownIcon
+                  className={`w-5 h-5 transition-transform duration-300 ${
+                    isOpen ? 'rotate-180 text-primary-dark' : 'text-gray-400'
+                  }`}
+                />
+              </button>
+              <div
+                className="transition-all duration-500 ease-in-out overflow-hidden bg-secondary-light/30"
+                style={{ maxHeight: isOpen ? '1200px' : '0px' }}
+              >
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {categoryServices.map((service) => {
+                    const isSelected = selectedServiceIds.includes(service.id);
+                    const { price, isPlatinum, originalPrice } = getPriceForUser(service);
+  
+                    return (
+                      <div
+                        key={service.id}
+                        onClick={() => onServiceToggle(service)}
+                        className={`
+                          relative flex flex-row items-center p-3 rounded-xl cursor-pointer transition-all duration-200 border
+                          ${isSelected 
+                            ? 'bg-white border-primary ring-2 ring-primary/20 shadow-md transform scale-[1.01]' 
+                            : 'bg-white border-transparent shadow-sm hover:shadow-md hover:border-secondary-dark/50'
+                          }
+                        `}
+                      >
+                        {/* Selection Checkmark Badge */}
+                        <div className={`
+                          absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200
+                          ${isSelected ? 'bg-primary scale-100 opacity-100' : 'bg-gray-100 scale-90 opacity-0'}
+                        `}>
+                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                           </svg>
+                        </div>
+  
+                        {service.imageUrl && (
+                          <div className="flex-shrink-0 mr-4">
+                             <img 
+                               className="h-20 w-20 rounded-lg object-cover shadow-sm bg-gray-100" 
+                               src={service.imageUrl} 
+                               alt={service.name} 
+                             />
+                          </div>
+                        )}
+                        
+                        <div className="flex-grow min-w-0 py-1">
+                          <h4 className={`font-medium text-base mb-1.5 truncate ${isSelected ? 'text-primary-dark font-bold' : 'text-text-main'}`}>
+                            {service.name}
+                          </h4>
+                          
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <div className="flex items-baseline gap-1.5">
+                              {isPlatinum && (
+                                <span className="line-through text-xs text-gray-400">
+                                  NT${originalPrice}
+                                </span>
+                              )}
+                              <span className={`text-lg font-bold font-serif ${isPlatinum ? 'text-accent' : 'text-text-main'}`}>
+                                NT${price}
+                              </span>
+                            </div>
+                            <span className="text-gray-300 text-xs">|</span>
+                            <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-full">
+                              {service.duration} 分鐘
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
+          );
+        })}
+      </div>
+    );
+  };
 export default ServiceSelector;
