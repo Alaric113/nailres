@@ -102,7 +102,9 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onServiceToggle, sele
                      )}
                   </div>
 
-                  <img className= {`h-16 w-16 rounded-lg object-cover mr-3 shadow-sm ${service.imageUrl === '' ? 'hidden' : ''}`} src={service.imageUrl || ''} alt={service.name} />
+                  {service.imageUrl && (
+                    <img className="h-16 w-16 rounded-lg object-cover mr-3 shadow-sm" src={service.imageUrl} alt={service.name} />
+                  )}
                   <div className="flex-grow">
                     <h4 className={`font-medium text-base mb-1 ${selectedServiceIds.includes(service.id) ? 'text-primary-dark' : 'text-text-main'}`}>{service.name}</h4>
                     <div className="text-sm text-text-light flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 border-t border-dashed border-secondary-dark/30">
