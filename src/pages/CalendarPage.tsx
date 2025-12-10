@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { format, addMinutes } from 'date-fns';
 import FullCalendar from '@fullcalendar/react';
@@ -13,7 +13,7 @@ import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
 import type { BookingStatus } from '../types/booking';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import BookingDetailModal from '../components/admin/BookingDetailModal';
-import { ArrowLeftIcon, CalendarDaysIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { FunnelIcon } from '@heroicons/react/24/outline';
 
 const useWindowSize = () => {
   const [size, setSize] = useState([window.innerWidth]);
@@ -84,26 +84,7 @@ const CalendarPage = () => {
 
   return (
     <div className="min-h-screen bg-secondary-light text-text-main">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-secondary-dark">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <div className="flex items-center gap-3">
-              <CalendarDaysIcon className="h-7 w-7 text-primary" />
-              <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main tracking-wide">
-                所有行程
-              </h1>
-            </div>
-            <Link 
-              to="/admin" 
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary hover:text-primary-dark hover:bg-secondary-light rounded-lg transition-colors"
-            >
-              <ArrowLeftIcon className="h-4 w-4" />
-              返回管理員頁面
-            </Link>
-          </div>
-        </div>
-      </header>
+      
 
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         {/* Error Alert */}

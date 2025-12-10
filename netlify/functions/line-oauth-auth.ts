@@ -24,20 +24,10 @@ const handler: Handler = async (event: HandlerEvent) => {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  // --- Environment Variables Debugging ---
-  console.log('line-oauth-auth function triggered.');
-  console.log('--- Environment Variables ---');
-  console.log('LINE_CHANNEL_ID:', LINE_CHANNEL_ID ? 'Set' : 'Not Set');
-  console.log('LINE_CHANNEL_SECRET:', LINE_CHANNEL_SECRET ? 'Set' : 'Not Set');
-  console.log('FIREBASE_SERVICE_ACCOUNT:', FIREBASE_SERVICE_ACCOUNT ? 'Set' : 'Not Set');
-  console.log('-----------------------------');
-  // --- End Environment Variables Debugging ---
-  
   let parsedBody;
   try {
     parsedBody = event.body ? JSON.parse(event.body) : {};
   } catch (e: any) {
-    console.error('Failed to parse event.body as JSON:', event.body, e);
     return { statusCode: 400, body: JSON.stringify({ message: 'Bad Request: Invalid JSON in body.', error: e.message }) };
   }
 

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
-import { Link } from 'react-router-dom';
+
 import { db } from '../lib/firebase';
 import { useAllUsers } from "../hooks/useAllUsers";
 import type {  UserRole } from '../types/user';
 import UserCard from '../components/admin/UserCard'; // 引入新的元件
-import { ArrowLeftIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import {  MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 // 預設頭像 URL
 const DEFAULT_AVATAR = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
@@ -100,17 +100,7 @@ const CustomerListPage = () => {
 
   return (
     <div className="min-h-screen bg-secondary-light text-text-main">
-      <header className="bg-white/80 backdrop-blur-md border-b border-secondary-dark sticky top-0 z-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main">
-            客戶管理
-          </h1>
-          <Link to="/admin" className="flex items-center text-sm font-medium text-primary hover:text-primary-dark transition-colors">
-            <ArrowLeftIcon className="h-4 w-4 mr-1" />
-            返回管理員頁面
-          </Link>
-        </div>
-      </header>
+      
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="mb-8 space-y-6">
           <div className="relative max-w-md">

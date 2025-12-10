@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { doc, getDoc, writeBatch } from 'firebase/firestore';
@@ -7,15 +7,9 @@ import { db } from '../lib/firebase';
 import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
 import type { BookingStatus } from '../types/booking';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
-const statusTextMap: Record<string, string> = {
-  pending_payment: '待付款的訂單',
-  pending_confirmation: '待確認的訂單',
-  confirmed: '已確認的訂單',
-  completed: '已完成的訂單',
-  cancelled: '已取消的訂單',
-};
+
+
 
 const OrderManagementPage = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -130,22 +124,14 @@ const OrderManagementPage = () => {
     }
   };
 
-  const pageTitle = statusFilter ? statusTextMap[statusFilter] : '訂單資訊';
+  
 
   if (loading) return <div className="flex justify-center items-center h-screen bg-secondary-light"><LoadingSpinner /></div>;
   if (error) return <div className="text-red-500 text-center mt-10">讀取訂單時發生錯誤: {error}</div>;
 
   return (
     <div className="min-h-screen bg-secondary-light text-text-main">
-      <header className="bg-white/80 backdrop-blur-md border-b border-secondary-dark sticky top-0 z-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main">{pageTitle}</h1>
-          <Link to="/admin" className="flex items-center text-sm font-medium text-primary hover:text-primary-dark transition-colors">
-            <ArrowLeftIcon className="h-4 w-4 mr-1" />
-            返回管理員頁面
-          </Link>
-        </div>
-      </header>
+      
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="bg-white rounded-xl shadow-sm border border-secondary-dark overflow-hidden">
           <div className="max-h-[75vh] overflow-y-auto p-2">

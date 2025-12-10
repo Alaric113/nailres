@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/common/Sidebar';
@@ -7,14 +7,13 @@ import AnnouncementBanner from '../components/common/AnnouncementBanner';
 import { useAuthStore } from '../store/authStore';
 
 const UserLayout: React.FC = () => {
-  console.log('UserLayout: Rendering...');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const { currentUser } = useAuthStore();
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarOpen(prev => !prev);
+  }, []);
 
   const showAnnouncementBanner = location.pathname !== '/booking' && !currentUser;
 

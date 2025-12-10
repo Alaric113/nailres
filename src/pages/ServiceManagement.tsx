@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc} from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Link } from 'react-router-dom';
 import { useServices } from '../hooks/useServices';
 import { useServiceCategories } from '../hooks/useServiceCategories';
 import Modal from '../components/common/Modal';
@@ -9,7 +8,8 @@ import CategoryManagementModal from '../components/admin/CategoryManagementModal
 import type { Service } from '../types/service';
 import ImageUploader from '../components/admin/ImageUploader'; // 引入圖片上傳元件
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { PencilSquareIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import ServiceMobileAccordionCard from '../components/admin/ServiceMobileAccordionCard'; // Import the new component
+import { PencilSquareIcon, EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const ServiceManagement = () => {
   const [formData, setFormData] = useState({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '' });
@@ -163,19 +163,9 @@ const ServiceManagement = () => {
     }
   }, [categories, activeCategoryTab]);
   return (
-    <div className="min-h-screen bg-secondary-light text-text-main">
-      <header className="bg-white/80 backdrop-blur-md border-b border-secondary-dark sticky top-0 z-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main">
-            服務項目管理
-          </h1>
-          <Link to="/admin" className="flex items-center text-sm font-medium text-primary hover:text-primary-dark transition-colors">
-            <ArrowLeftIcon className="h-4 w-4 mr-1" />
-            返回管理員頁面
-          </Link>
-        </div>
-      </header>
-      <main className="container mx-auto p-4 sm:p-6 lg:p-8 relative"> {/* Add relative for FAB positioning */}
+    <div className="min-h-screen overflow-x-hidden">
+      
+      <main className="container mx-auto p-4 sm:p-6 lg:p-8 relative bg-secondary-light text-text-main pb-20"> {/* Added bg-secondary-light text-text-main pb-20 */}
         {/* Floating Action Button */}
         <button
           onClick={() => {
@@ -284,7 +274,7 @@ const ServiceManagement = () => {
         />
 
         {/* 現有服務列表 */}
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-full mx-auto">
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800 font-serif">現有服務列表</h2>
@@ -302,7 +292,7 @@ const ServiceManagement = () => {
             {/* Category Tabs */}
             <div className="mb-6">
               <div className="border-b border-secondary-dark/30">
-                <nav className="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+                <nav className="-mb-px flex space-x-6 overflow-x-scroll" aria-label="Tabs">
                   {categoryTabs.map((tabName) => (
                     <button
                       key={tabName}
@@ -356,20 +346,24 @@ const ServiceManagement = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">{service.duration}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">{service.category}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onClick={() => handleToggleAvailability(service)} disabled={isToggling === service.id} className={`px-3 py-1 text-xs font-semibold rounded-full ${service.available ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} disabled:opacity-50`}>
-                              {isToggling === service.id ? '...' : (service.available ? '上架中' : '已下架')}
+                            <button onClick={() => handleToggleAvailability(service)} disabled={isToggling === service.id} className={`px-3 py-1 text-xs font-semibold rounded-full ${service.available ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} disabled:opacity-50`}
+                            aria-label={service.available ? '下架服務' : '上架服務'}>
+                              {isToggling === service.id ? '...' : (service.available ? <EyeIcon className="h-4 w-4 inline-block mr-1" /> : <EyeSlashIcon className="h-4 w-4 inline-block mr-1" />)}
+                              {isToggling === service.id ? '' : (service.available ? '上架中' : '已下架')}
                             </button>
                           </td>
-                          <td className="px-6 py-6 whitespace-nowrap text-sm font-medium flex gap-2">
+                          <td className="px-6 py-6 whitespace-nowrap text-sm font-medium flex gap-2 items-center">
                             <button
                               onClick={() => handleEditClick(service)}
-                              className="text-primary hover:text-primary-dark disabled:text-gray-300 disabled:cursor-not-allowed"
+                              className="text-primary p-2 rounded-full hover:bg-secondary-dark/20 disabled:text-gray-300 disabled:cursor-not-allowed"
                               disabled={!!editingService || !!isDeleting}
+                              aria-label="編輯服務"
                             >
-                              編輯
+                              <PencilSquareIcon className="h-5 w-5" />
                             </button>
-                            <button onClick={() => handleDeleteService(service.id, service.name)} disabled={isDeleting === service.id || !!editingService} className="text-red-500 hover:text-red-700 disabled:text-gray-300 disabled:cursor-not-allowed">
-                              {isDeleting === service.id ? '刪除中...' : '刪除'}
+                            <button onClick={() => handleDeleteService(service.id, service.name)} disabled={isDeleting === service.id || !!editingService} className="text-red-500 p-2 rounded-full hover:bg-secondary-dark/20 disabled:text-gray-300 disabled:cursor-not-allowed"
+                            aria-label="刪除服務">
+                              {isDeleting === service.id ? '...' : <TrashIcon className="h-5 w-5" />}
                             </button>
                           </td>
                         </tr>
@@ -378,50 +372,17 @@ const ServiceManagement = () => {
                   </table>
                 </div>
 
-                {/* Mobile Card View */}
-                <div className="grid grid-cols-1 gap-4 md:hidden">
+                {/* Mobile Accordion Card View */}
+                <div className="md:hidden space-y-4">
                   {filteredServices.map((service) => (
-                    <div key={service.id} className="bg-white p-4 rounded-xl shadow-sm border border-secondary-dark/50">
-                      <div className="flex items-start mb-3">
-                        <div className="flex-1 flex flex-row justify-between">
-                          <h3 className="font-bold text-lg text-text-main break-words font-serif">{service.name}</h3>
-                          <div className="flex justify-end items-center mb-2">
-                        <button
-                          onClick={() => handleEditClick(service)}
-                          className="ml-4 flex-shrink-0 text-primary hover:text-primary-dark disabled:text-gray-300"
-                          disabled={!!editingService || !!isDeleting}
-                        >
-                          編輯
-                        </button>
-                        <button onClick={() => handleDeleteService(service.id, service.name)} disabled={isDeleting === service.id || !!editingService} className="ml-2 flex-shrink-0 text-red-500 hover:text-red-700 disabled:text-gray-300 disabled:cursor-not-allowed">
-                          {isDeleting === service.id ? '刪除中...' : '刪除'}
-                        </button>
-                      </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-row gap-4 border-t border-secondary-light pt-3 mt-3">
-                        <div className="flex-1 space-y-2 text-sm text-text-light">
-                          <div><strong className="font-medium text-text-main">分類:</strong> {service.category}</div>
-                          <div><strong className="font-medium text-text-main">一般價:</strong> ${service.price}</div>
-                          {service.platinumPrice && (
-                            <div className="text-accent-hover">
-                              <strong className="font-medium text-accent">白金價:</strong> ${service.platinumPrice}
-                            </div>
-                          )}
-                          <div><strong className="font-medium text-text-main">時長:</strong> {service.duration} 分鐘</div>
-                          <div className="flex items-center pt-1">
-                            <strong className="font-medium text-text-main mr-2">狀態:</strong>
-                            <button onClick={() => handleToggleAvailability(service)} disabled={isToggling === service.id} className={`px-3 py-1 text-xs font-semibold rounded-full ${service.available ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} disabled:opacity-50`}>
-                              {isToggling === service.id ? '...' : (service.available ? '上架中' : '已下架')}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <img className="h-28 w-28 rounded-md object-cover border border-secondary-dark/20" src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.name} />
-                        </div>
-                      </div>
-
-                    </div>
+                    <ServiceMobileAccordionCard key={service.id} service={service}
+                      handleEditClick={handleEditClick}
+                      handleDeleteService={handleDeleteService}
+                      handleToggleAvailability={handleToggleAvailability}
+                      isToggling={isToggling}
+                      isDeleting={isDeleting}
+                      editingService={editingService}
+                    />
                   ))}
                 </div>
                 {filteredServices.length === 0 && (

@@ -7,7 +7,7 @@ import { useServices } from '../hooks/useServices';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import SummaryCard from '../components/admin/SummaryCard';
 import ImageManagementModal from '../components/admin/ImageManagementModal';
-import AdminLayout from '../components/admin/AdminLayout'; // Import AdminLayout
+
 import {
   BellAlertIcon, // For urgent tasks
   UsersIcon, // For new users
@@ -73,16 +73,14 @@ const AdminDashboard = () => {
   }
 
   return (
-    <AdminLayout> {/* Wrap with AdminLayout */}
-      <div className="py-6">
-        <h1 className="text-3xl font-serif font-bold text-gray-900 mb-6">總覽</h1>
-        
-        {/* Urgent Tasks Section */}
-        <div className="mb-8 p-6 bg-white rounded-2xl shadow-sm border border-[#EFECE5]">
+    <div className="p-4">
+      
+      {/* Urgent Tasks Section */}
+        <div className="mb-8 p-4 bg-white rounded-2xl shadow-sm border border-[#EFECE5]">
           <h2 className="text-xl font-serif font-bold text-gray-900 mb-4 flex items-center gap-2">
             <BellAlertIcon className="w-6 h-6 text-accent" /> 待處理事項
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
             <SummaryCard
               title="待確認訂單"
               value={summaryData.pendingConfirmation}
@@ -105,7 +103,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Quick Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
           <SummaryCard
             title="近7日新註冊用戶"
             value={summaryData.newUsersLast7Days}
@@ -137,8 +135,7 @@ const AdminDashboard = () => {
           <ImageManagementModal onClose={() => setIsImageModalOpen(false)} />
         )}
       </div>
-    </AdminLayout>
-  );
-};
+    );
+  };
 
 export default AdminDashboard;

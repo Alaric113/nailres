@@ -34,7 +34,6 @@ export const useAuth = () => {
           setAuthState(firebaseUser, userDocSnap.data() as UserDocument);
         } else {
           // New user (e.g., via social sign-in). Create their profile.
-          console.log('User profile not found, creating a new one...');
           
           const batch = writeBatch(db);
 

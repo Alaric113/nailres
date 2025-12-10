@@ -1,9 +1,4 @@
-import PortfolioManagementPage from './pages/PortfolioManagementPage';
-import LoadingSpinner from './components/common/LoadingSpinner';
-import AdminLayout from './components/admin/AdminLayout';
-import UserLayout from './layouts/UserLayout';
-
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useAuthStore } from './store/authStore';
 
@@ -25,78 +20,94 @@ import CalendarPage from './pages/CalendarPage';
 import SettingsPage from './pages/SettingsPage';
 import PromotionsPage from './pages/PromotionsPage';
 
+import PortfolioManagementPage from './pages/PortfolioManagementPage';
+// Layout Components
+import LoadingSpinner from './components/common/LoadingSpinner';
+import AdminLayout from './components/admin/AdminLayout';
+import UserLayout from './layouts/UserLayout';
+
 // Route Components
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 
-function AppContent() {
+function RootLayout() {
   const { isCheckingRedirect } = useAuth();
-  const { currentUser, userProfile, authIsLoading } = useAuthStore();
+  const { authIsLoading } = useAuthStore(); // Removed currentUser, userProfile
 
   if (authIsLoading || isCheckingRedirect) {
-    console.log('[App Checkpoint 1] App is in loading state (authIsLoading: true).');
     return <LoadingSpinner size='lg' text='正在載入中...' fullScreen />;
   }
 
   return (
     <>
       <PwaUpdatePrompt />
-      <Routes>
-        {/* Public and User Protected routes use UserLayout */}
-        <Route element={<UserLayout />}>
-          {/* Public Routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/portfolio" element={<PortfolioGalleryPage />} />
-
-          {/* Protected Routes for regular users */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/booking" element={<BookingPage />} />
-            <Route path="/member" element={<UserMemberPage />} />
-          </Route>
-        </Route>
-
-        {/* Auth routes without UserLayout or AdminLayout */}
-        <Route
-          path="/login"
-          element={!currentUser ? <Login /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />}
-        />
-        <Route
-          path="/register"
-          element={!currentUser ? <Register /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />}
-        />
-
-        {/* Admin Layout for all admin protected routes */}
-        <Route element={<AdminRoute />}>
-          <Route
-            element={
-              <AdminLayout>
-                <Outlet />
-              </AdminLayout>
-            }
-          >
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/services" element={<ServiceManagement />} />
-            <Route path="/admin/customers" element={<CustomerListPage />} />
-            <Route path="/admin/hours" element={<HoursSettingsPage />} />
-            <Route path="/admin/orders" element={<OrderManagementPage />} />
-            <Route path="/admin/calendar" element={<CalendarPage />} />
-            <Route path="/admin/settings" element={<SettingsPage />} />
-            <Route path="/admin/portfolio" element={<PortfolioManagementPage />} />
-            <Route path="/admin/promotions" element={<PromotionsPage />} />
-          </Route>
-        </Route>
-      </Routes>
+      <Outlet /> {/* This Outlet will render the current route's element */}
     </>
   );
 }
 
+const routes = [
+  {
+    path: '/',
+    element: <RootLayout />,
+    children: [
+      {
+        element: <UserLayout />,
+        children: [
+          { path: '/', element: <Home /> },
+          { path: 'portfolio', element: <PortfolioGalleryPage /> },
+          {
+            element: <ProtectedRoute />,
+            children: [
+              { path: 'dashboard', element: <Dashboard /> },
+              { path: 'booking', element: <BookingPage /> },
+              { path: 'member', element: <UserMemberPage /> },
+            ],
+          },
+        ],
+      },
+      {
+        path: 'login',
+        element: (
+          !useAuthStore.getState().currentUser ? <Login /> : <Navigate to={useAuthStore.getState().userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />
+        ),
+      },
+      {
+        path: 'register',
+        element: (
+          !useAuthStore.getState().currentUser ? <Register /> : <Navigate to={useAuthStore.getState().userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />
+        ),
+      },
+      {
+        path: 'admin',
+        element: <AdminRoute />,
+        children: [
+          {
+            element: <AdminLayout />,
+            children: [
+              { index: true, element: <AdminDashboard />, handle: { title: '總覽' } },
+              { path: 'services', element: <ServiceManagement />, handle: { title: '服務管理' } },
+              { path: 'customers', element: <CustomerListPage />, handle: { title: '客戶管理' } },
+              { path: 'hours', element: <HoursSettingsPage />, handle: { title: '營業時間設定' } },
+              { path: 'orders', element: <OrderManagementPage />, handle: { title: '訂單管理' } },
+              { path: 'calendar', element: <CalendarPage />, handle: { title: '行事曆' } },
+              { path: 'settings', element: <SettingsPage />, handle: { title: '一般設定' } },
+              { path: 'portfolio', element: <PortfolioManagementPage />, handle: { title: '作品集管理' } },
+              { path: 'promotions', element: <PromotionsPage />, handle: { title: '優惠活動' } },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+const router = createBrowserRouter(routes);
+
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <RouterProvider router={router} />
   );
 }
 

@@ -5,7 +5,7 @@ import { ArrowRightOnRectangleIcon, WrenchScrewdriverIcon } from '@heroicons/rea
 import { useNavigate } from 'react-router-dom';
 
 const UserMemberPage = () => {
-  const { logout } = useAuthStore();
+  const { logout, userProfile } = useAuthStore();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -19,13 +19,15 @@ const UserMemberPage = () => {
       <div className="px-6 pt-6 pb-4 flex justify-between items-center">
         <h1 className="text-2xl font-serif font-bold text-gray-900">會員中心</h1>
         <div className="flex gap-3">
-            <button 
-              onClick={() => navigate('/admin')}
-              className="p-2 rounded-full bg-white border border-[#EFECE5] text-gray-600 hover:bg-[#9F9586] hover:text-white transition-colors"
-              aria-label="Admin Dashboard"
-            >
-              <WrenchScrewdriverIcon className="w-5 h-5" />
-            </button>
+            {userProfile?.role === 'admin' && (
+              <button 
+                onClick={() => navigate('/admin')}
+                className="p-2 rounded-full bg-white border border-[#EFECE5] text-gray-600 hover:bg-[#9F9586] hover:text-white transition-colors"
+                aria-label="Admin Dashboard"
+              >
+                <WrenchScrewdriverIcon className="w-5 h-5" />
+              </button>
+            )}
             <button 
               onClick={handleLogout}
               className="p-2 rounded-full bg-white border border-[#EFECE5] text-gray-600 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors"

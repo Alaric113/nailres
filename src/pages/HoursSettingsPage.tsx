@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { DayPicker } from 'react-day-picker';
 import { format, isValid } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
@@ -8,7 +7,7 @@ import { db } from '../lib/firebase';
 import type { BusinessHours, TimeSlot } from '../types/businessHours';
 import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
 import { useGlobalSettings } from '../hooks/useGlobalSettings';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+
 
 import 'react-day-picker/style.css';
 
@@ -146,17 +145,7 @@ const HoursSettingsPage = () => {
 
   return (
     <div className="min-h-screen bg-secondary-light text-text-main">
-      <header className="bg-white/80 backdrop-blur-md border-b border-secondary-dark sticky top-0 z-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main">
-            營業時間設定
-          </h1>
-          <Link to="/admin" className="flex items-center text-sm font-medium text-primary hover:text-primary-dark transition-colors">
-            <ArrowLeftIcon className="h-4 w-4 mr-1" />
-            返回管理員頁面
-          </Link>
-        </div>
-      </header>
+      
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         {message && (
           <div className={`p-4 mb-6 rounded-lg border ${message.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
@@ -259,13 +248,13 @@ const HoursSettingsPage = () => {
         )}
 
         {activeTab === 'global' && (
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-secondary-dark/50 max-w-2xl mx-auto">
+          <div>
             <h2 className="text-lg font-serif font-bold text-text-main mb-6 border-b border-secondary-light pb-2">全域預約設定</h2>
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-text-main mb-2">最晚可預約日期</label>                
                 {isLoadingGlobalSettings ? <p className="text-text-light">載入中...</p> : (
-                  <div className="bg-secondary-light/20 p-4 rounded-xl inline-block border border-secondary-dark/30">
+                  <div className="bg-secondary-light/20 p-4 rounded-xl inline-block border border-secondary-dark/30 w-full flex justify-center">
                      <style>{`
                       .rdp {
                         --rdp-accent-color: #9F9586;

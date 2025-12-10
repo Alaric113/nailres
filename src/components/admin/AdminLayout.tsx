@@ -1,24 +1,22 @@
-import React, { Fragment, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { Fragment, useState, useMemo } from 'react';
+import { Link, useLocation, Outlet, useMatches } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react';
-import { 
-  Bars3Icon, 
+import {
   XMarkIcon,
   HomeIcon,
-  CalendarDaysIcon, 
-  UserGroupIcon, 
-  CubeIcon, 
-  CurrencyDollarIcon, 
-  PhotoIcon, 
+  CalendarDaysIcon,
+  UserGroupIcon,
+  CubeIcon,
+  CurrencyDollarIcon,
+  PhotoIcon,
   Cog6ToothIcon,
   ChartBarIcon,
   ClockIcon,
   TicketIcon
 } from '@heroicons/react/24/outline';
+import AdminMobileHeader from './AdminMobileHeader';
 
-interface AdminLayoutProps {
-  children: React.ReactNode;
-}
+interface AdminLayoutProps {}
 
 const navigation = [
   { name: '總覽', href: '/admin', icon: HomeIcon },
@@ -32,10 +30,17 @@ const navigation = [
   { name: '設定', href: '/admin/settings', icon: Cog6ToothIcon },
 ];
 
-const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
-  console.log('AdminLayout: Rendering...');
+const AdminLayout: React.FC<AdminLayoutProps> = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const matches = useMatches();
+
+  const currentTitle = useMemo(() => {
+    const lastMatch = matches[matches.length - 1];
+    return (lastMatch?.handle as { title?: string })?.title || '管理後台';
+  }, [matches]);
+
+  console.log('AdminLayout: Resolved Current Title:', currentTitle);
 
   return (
     <div className="flex h-screen bg-[#FAF9F6]">
@@ -169,21 +174,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       </div>
 
       <div className="flex flex-1 flex-col">
-        {/* Main Header */}
-        <div className="sticky top-0 z-10 bg-white pl-1 pt-1 sm:pl-3 sm:pt-3 lg:hidden">
-          <button
-            type="button"
-            className="-ml-0.5 flex h-12 w-12 items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#9F9586]"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <span className="sr-only">Open sidebar</span>
-            <Bars3Icon className="h-6 w-6" aria-hidden="true" />
-          </button>
+        {/* Main Header (Mobile Only) */}
+        <AdminMobileHeader onMenuButtonClick={() => setSidebarOpen(true)} pageTitle={currentTitle} />
+
+        {/* Page Title Header (Desktop) */}
+        <div className="hidden lg:block border-b border-gray-200 bg-white px-4 py-4 sm:px-6 lg:px-8">
+          <h1 className="text-xl font-serif font-bold leading-7 text-gray-900">{currentTitle}</h1>
         </div>
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto focus:outline-none">
-          {children}
+          <Outlet />
         </main>
       </div>
     </div>

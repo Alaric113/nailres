@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import Modal from '../components/common/Modal';
 import PortfolioForm from '../components/admin/PortfolioForm';
 import PortfolioList from '../components/admin/PortfolioList';
@@ -48,16 +47,7 @@ const PortfolioManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-            作品集管理
-          </h1>
-          <Link to="/admin" className="text-sm font-medium text-indigo-600 hover:underline">
-            &larr; 返回管理員後台
-          </Link>
-        </div>
-      </header>
+      
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex justify-between items-center mb-4">

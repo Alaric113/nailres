@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import Modal from '../components/common/Modal';
 import CouponForm from '../components/admin/CouponForm';
 import CouponList from '../components/admin/CouponList';
 import LoyaltySettings from '../components/admin/LoyaltySettings';
 import CouponDistribution from '../components/admin/CouponDistribution';
 import type { Coupon } from '../types/coupon';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 type Tab = 'coupons' | 'distribution' | 'loyalty';
 
@@ -22,17 +20,7 @@ const PromotionsPage = () => {
 
   return (
     <div className="min-h-screen bg-secondary-light text-text-main">
-      <header className="bg-white/80 backdrop-blur-md border-b border-secondary-dark sticky top-0 z-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main">
-            優惠與集點管理
-          </h1>
-          <Link to="/admin" className="flex items-center text-sm font-medium text-primary hover:text-primary-dark transition-colors">
-            <ArrowLeftIcon className="h-4 w-4 mr-1" />
-            返回管理員後台
-          </Link>
-        </div>
-      </header>
+      
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="border-b border-secondary-dark/30 mb-8">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
