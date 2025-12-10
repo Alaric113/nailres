@@ -1,7 +1,6 @@
-import { DayPicker } from 'react-day-picker';
+import { DayPicker, type Matcher } from 'react-day-picker';
 import { zhTW } from 'date-fns/locale';
-import { startOfDay, isBefore, isSameDay, isAfter } from 'date-fns';
-import 'react-day-picker/src/style.css';
+import 'react-day-picker/style.css';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 interface CalendarSelectorProps {
@@ -14,6 +13,18 @@ interface CalendarSelectorProps {
 
 const CalendarSelector = ({ selectedDate, onDateSelect, closedDays, isLoading, bookingDeadline }: CalendarSelectorProps) => {
   
+  const modifiers = {
+    closed: closedDays, // Keep this for styling closed days
+  };
+
+  const modifierStyles = {
+    closed: {
+      color: '#B7AD9E', // primary-light
+      textDecoration: 'line-through',
+      opacity: 0.5,
+    },
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -22,70 +33,58 @@ const CalendarSelector = ({ selectedDate, onDateSelect, closedDays, isLoading, b
     );
   }
 
-  const today = startOfDay(new Date());
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const handleSelect = (date: Date | undefined) => {
-    console.log('CalendarSelector internal select:', date);
+  const disabledDays: Matcher[] = [{ before: today }, ...closedDays];
+  if (bookingDeadline) {
+    disabledDays.push({ after: bookingDeadline });
+  }
+
+  const handleDaySelect = (date: Date | undefined) => {
     onDateSelect(date);
   };
 
-  const isDateDisabled = (date: Date) => {
-    const disabled = (
-      isBefore(date, today) ||
-      closedDays.some(closed => isSameDay(closed, date)) ||
-      (bookingDeadline ? isAfter(date, bookingDeadline) : false)
-    );
-    // console.log(`Date check ${date.toISOString().split('T')[0]}: disabled=${disabled}`);
-    return disabled;
-  };
-
   return (
-    <div 
-      className="flex justify-center bg-white rounded-xl p-2"
-      style={{
-        // @ts-ignore - CSS variables for DayPicker
-        '--rdp-cell-size': '40px',
-        '--rdp-accent-color': '#9F9586',
-        '--rdp-background-color': '#FDFBF7',
-      }}
-    >
+    <div className="flex justify-center bg-white rounded-xl p-2">
       <style>{`
-        .rdp-button_reset {
-            all: unset;
+        .rdp-root {
+          --rdp-accent-color: #9F9586;
+          --rdp-background-color: #FDFBF7;
+          --rdp-day-height: 40px;
+          --rdp-day-width: 40px;
+          margin: 0;
         }
-        .rdp-button {
-            width: var(--rdp-cell-size);
-            height: var(--rdp-cell-size);
-            border-radius: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
+        /* Custom Hover State */
+        .rdp-day_button:hover:not([disabled]):not(.rdp-selected) {
+          background-color: #EFECE5;
+          color: #5C5548;
         }
-        .rdp-button:hover:not([disabled]) {
-            background-color: #EFECE5;
-            color: #5C5548;
+        /* Selected State overrides */
+        .rdp-selected .rdp-day_button, .rdp-day_button.rdp-selected {
+          background-color: #9F9586 !important;
+          color: white !important;
+          font-weight: bold;
         }
-        .rdp-day_selected {
-            background-color: var(--rdp-accent-color);
-            color: white;
-            font-weight: bold;
+        /* Caption/Header styling */
+        .rdp-caption_label {
+          font-family: "Noto Serif Display", serif;
+          color: #5C5548;
+          font-size: 1.1rem;
         }
-        .rdp-day_today {
-            font-weight: bold;
-            color: #A67C52;
-        }
-        .rdp-nav_button {
-            width: 30px;
-            height: 30px;
+        .rdp-head_cell {
+          color: #8A8173;
+          font-weight: 500;
         }
       `}</style>
       <DayPicker
         mode="single"
         selected={selectedDate}
-        onSelect={handleSelect}
+        onSelect={handleDaySelect}
         locale={zhTW}
-        disabled={isDateDisabled}
+        modifiers={modifiers}
+        modifiersStyles={modifierStyles}
+        disabled={disabledDays}
       />
     </div>
   );

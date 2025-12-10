@@ -10,7 +10,7 @@ import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
 import { useGlobalSettings } from '../hooks/useGlobalSettings';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
-import 'react-day-picker/dist/style.css';
+import 'react-day-picker/style.css';
 
 type Tab = 'daily' | 'global';
 

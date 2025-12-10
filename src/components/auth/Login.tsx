@@ -1,14 +1,92 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { signInWithEmailAndPassword, signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { handleSocialSignIn } from '../../lib/socialAuth';
+import { isLiffBrowser, liffLogin } from '../../lib/liff';
+import { generateNonce, generateState } from '../../utils/lineAuth';
+
+const LINE_CHANNEL_ID = import.meta.env.VITE_LINE_CHANNEL_ID;
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isOAuthProcessing = useRef(false); // Flag to prevent double processing in Strict Mode
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+
+    const handleLineOAuthRedirect = async () => {
+      // Only proceed if code and state are present AND we haven't processed it yet
+      if (code && state && !isOAuthProcessing.current) {
+        isOAuthProcessing.current = true; // Set flag to true
+
+        setIsSubmitting(true);
+        setError(null);
+        console.log('LINE OAuth Redirect Handler: Received code and state.');
+
+        try {
+          // Verify state to prevent CSRF
+          const storedState = localStorage.getItem('line_oauth_state');
+          console.log('LINE OAuth Redirect Handler: Stored State:', storedState);
+          console.log('LINE OAuth Redirect Handler: Received State:', state);
+          
+          if (!storedState || storedState !== state) {
+            throw new Error('State mismatch. Possible CSRF attack.');
+          }
+          // DO NOT remove from localStorage yet. Remove AFTER successful Firebase login.
+          
+          // Exchange authorization code for Firebase custom token
+          const redirectUri = window.location.origin + location.pathname; // Current page URL
+          console.log('Frontend sending OAuth code to Netlify function:', JSON.stringify({ code, redirectUri }));
+          const response = await fetch('/api/line-oauth-auth', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ code, redirectUri }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to get Firebase custom token from OAuth.');
+          }
+
+          const { firebaseCustomToken } = await response.json();
+          await signInWithCustomToken(auth, firebaseCustomToken);
+          
+          localStorage.removeItem('line_oauth_state'); // Now it's safe to remove
+          console.log('Successfully signed in with LINE OAuth via Firebase custom token.');
+
+          // Clean up URL
+          navigate(location.pathname, { replace: true });
+
+        } catch (err: any) {
+          console.error('Error during LINE OAuth redirect handling:', err);
+          setError(`LINE 登入失敗：${err.message || '請稍後再試。'}`);
+          // Clean up URL even on error
+          navigate(location.pathname, { replace: true });
+          localStorage.removeItem('line_oauth_state'); // Also remove on error
+        } finally {
+          setIsSubmitting(false);
+          isOAuthProcessing.current = false; // Reset flag
+        }
+      } else if (code && !state) {
+        // If code is present but state is missing, it's an invalid or expired redirect
+        console.warn('LINE OAuth Redirect Handler: Code present but state missing or processing already occurred.');
+        navigate(location.pathname, { replace: true }); // Clean up URL
+      }
+    };
+
+    handleLineOAuthRedirect();
+  }, [location, navigate]); // Depend on location to re-run when params change
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,12 +113,38 @@ const Login = () => {
     setIsSubmitting(true);
     setError(null);
     try {
-      await handleSocialSignIn(provider);
-      // On success, onAuthStateChanged will handle the redirect.
-      // On redirect, the page will reload and onAuthStateChanged will handle it.
+      if (provider === 'line') {
+        if (isLiffBrowser()) {
+          // Use LIFF flow if in LIFF browser context
+          liffLogin();
+        } else {
+          // Use LINE OAuth 2.0 (Authorization Code Flow) for regular browser
+          if (!LINE_CHANNEL_ID) {
+            throw new Error('LINE Channel ID is not configured.');
+          }
+          const state = generateState();
+          const nonce = generateNonce();
+          localStorage.setItem('line_oauth_state', state); // Store state to verify on redirect
+
+          const redirectUri = window.location.origin + location.pathname; // Current page URL
+
+          const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?` +
+            `response_type=code` +
+            `&client_id=${LINE_CHANNEL_ID}` +
+            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+            `&scope=profile%20openid%20email` + // Request profile, openid, and email
+            `&state=${state}` +
+            `&nonce=${nonce}`;
+          
+          window.location.href = lineAuthUrl; // Redirect to LINE login page
+        }
+      } else {
+        // Use standard Firebase Auth for Google
+        await handleSocialSignIn(provider);
+      }
     } catch (error: any) {
       console.error(`Social Sign-In Error (${provider}):`, error);
-      setError(`使用 ${provider === 'google' ? 'Google' : 'LINE'} 登入失敗，請稍後再試。`);
+      setError(`使用 ${provider === 'google' ? 'Google' : 'LINE'} 登入失敗：${error.message || '請稍後再試。'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -57,7 +161,7 @@ const Login = () => {
           </div>
           <div>
             <label htmlFor="password" className="text-sm font-medium text-gray-700">密碼</label>
-            <input id="password" name="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+            <input id="password" name="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div>

@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { isWithinInterval, startOfDay, endOfDay, addDays } from 'date-fns';
 import { useAllBookings } from '../hooks/useAllBookings';
@@ -8,20 +7,13 @@ import { useServices } from '../hooks/useServices';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import SummaryCard from '../components/admin/SummaryCard';
 import ImageManagementModal from '../components/admin/ImageManagementModal';
-import { 
-  CalendarDaysIcon, 
-  UserGroupIcon, 
-  CubeIcon, 
-  CurrencyDollarIcon, 
-  CheckCircleIcon, 
-  CheckBadgeIcon, 
-  ArchiveBoxIcon, 
-  CalendarIcon, 
-  PhotoIcon, 
-  Cog6ToothIcon,
-  ArrowRightIcon,
-  ChartBarIcon,
-  TicketIcon
+import AdminLayout from '../components/admin/AdminLayout'; // Import AdminLayout
+import {
+  BellAlertIcon, // For urgent tasks
+  UsersIcon, // For new users
+  CalendarDaysIcon, // For holidays
+  ClipboardDocumentCheckIcon, // For active services
+  CreditCardIcon // For pending payments
 } from '@heroicons/react/24/outline';
 
 const AdminDashboard = () => {
@@ -81,193 +73,71 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-secondary-light overflow-hidden">
-      {/* Header - 固定高度 */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-secondary-dark flex-shrink-0 z-10">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-xl">
-                <ChartBarIcon className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main tracking-wide">
-                  管理員後台
-                </h1>
-                <p className="text-xs sm:text-sm text-text-light">快速存取所有管理功能</p>
-              </div>
-            </div>
-            <Link 
-              to="/dashboard" 
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary hover:text-primary-dark hover:bg-secondary-light rounded-lg transition-colors"
-            >
-              <ArrowRightIcon className="h-4 w-4 rotate-180" />
-              返回使用者頁面
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content - 彈性填滿剩餘空間 */}
-      <main className="flex-1 container mx-auto px-4 py-6 overflow-y-auto">
-        {/* Flex Layout */}
-        <div className="flex flex-wrap gap-4">
-          {/* 所有行程 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
-            <SummaryCard
-              title="所有行程"
-              value=""
-              unit=""
-              linkTo="/admin/calendar"
-              icon={<CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-primary"
-            />
-          </div>
-
-          {/* 營業時間 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
-            <SummaryCard
-              title="營業時間"
-              value=""
-              unit=""
-              linkTo="/admin/hours"
-              icon={<CalendarDaysIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-accent"
-            />
-          </div>
-
-          {/* 首頁圖片 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
-            <SummaryCard
-              title="首頁圖片"
-              value=" "
-              unit=" "
-              onClick={() => setIsImageModalOpen(true)}
-              icon={<PhotoIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-primary-light"
-            />
-          </div>
-
-          {/* 作品集管理 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
-            <SummaryCard
-              title="作品集管理"
-              value=""
-              unit=""
-              linkTo="/admin/portfolio"
-              icon={<PhotoIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-primary-dark"
-            />
-          </div>
-
-          {/* 客戶管理 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
-            <SummaryCard
-              title="客戶管理"
-              value={users.length}
-              unit="位"
-              linkTo="/admin/customers"
-              icon={<UserGroupIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-primary"
-              subtext=''
-            />
-          </div>
-
-          {/* 待確認訂單 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
+    <AdminLayout> {/* Wrap with AdminLayout */}
+      <div className="py-6">
+        <h1 className="text-3xl font-serif font-bold text-gray-900 mb-6">總覽</h1>
+        
+        {/* Urgent Tasks Section */}
+        <div className="mb-8 p-6 bg-white rounded-2xl shadow-sm border border-[#EFECE5]">
+          <h2 className="text-xl font-serif font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <BellAlertIcon className="w-6 h-6 text-accent" /> 待處理事項
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <SummaryCard
               title="待確認訂單"
               value={summaryData.pendingConfirmation}
               unit="筆"
               linkTo="/admin/orders?status=pending_confirmation"
-              icon={<CheckCircleIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-accent"
+              icon={<ClipboardDocumentCheckIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-red-500" // More urgent color
               urgent={summaryData.pendingConfirmation > 0}
             />
-          </div>
-
-          {/* 待付款訂單 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
             <SummaryCard
               title="待付款訂單"
               value={summaryData.pendingPaymentCount}
               unit="筆"
               linkTo="/admin/orders?status=pending_payment"
-              icon={<CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-primary-light"
+              icon={<CreditCardIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              color="bg-orange-500" // Urgent color
               urgent={summaryData.pendingPaymentCount > 0}
             />
           </div>
-
-          {/* 已確認訂單 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
-            <SummaryCard
-              title="已確認訂單"
-              value={summaryData.confirmedCount}
-              unit="筆"
-              linkTo="/admin/orders?status=confirmed"
-              icon={<CheckBadgeIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-primary"
-            />
-          </div>
-
-          {/* 已完成訂單 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
-            <SummaryCard
-              title="已完成訂單"
-              value={summaryData.completedCount}
-              unit="筆"
-              linkTo="/admin/orders?status=completed"
-              icon={<ArchiveBoxIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-secondary-dark"
-            />
-          </div>
-
-          {/* 上架中服務 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
-            <SummaryCard
-              title="上架中服務"
-              value={summaryData.activeServices}
-              unit="項"
-              linkTo="/admin/services"
-              icon={<CubeIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-primary"
-            />
-          </div>
-
-          {/* 優惠與集點 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
-            <SummaryCard
-              title="優惠與集點"
-              value=""
-              unit=""
-              linkTo="/admin/promotions"
-              icon={<TicketIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-accent"
-            />
-          </div>
-
-          {/* 設定 */}
-          <div className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
-            <SummaryCard
-              title="設定"
-              value=""
-              unit=""
-              linkTo="/admin/settings"
-              icon={<Cog6ToothIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-              color="bg-text-light"
-            />
-          </div>
-
-          
         </div>
-      </main>
 
-      {/* Image Management Modal */}
-      {isImageModalOpen && (
-        <ImageManagementModal onClose={() => setIsImageModalOpen(false)} />
-      )}
-    </div>
+        {/* Quick Stats Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <SummaryCard
+            title="近7日新註冊用戶"
+            value={summaryData.newUsersLast7Days}
+            unit="位"
+            linkTo="/admin/customers"
+            icon={<UsersIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+            color="bg-blue-500"
+          />
+          <SummaryCard
+            title="近7日公休日"
+            value={summaryData.holidaysNext7Days}
+            unit="天"
+            linkTo="/admin/hours"
+            icon={<CalendarDaysIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+            color="bg-purple-500"
+          />
+          <SummaryCard
+            title="上架中服務"
+            value={summaryData.activeServices}
+            unit="項"
+            linkTo="/admin/services"
+            icon={<ClipboardDocumentCheckIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+            color="bg-green-500"
+          />
+        </div>
+
+        {/* Image Management Modal */}
+        {isImageModalOpen && (
+          <ImageManagementModal onClose={() => setIsImageModalOpen(false)} />
+        )}
+      </div>
+    </AdminLayout>
   );
 };
 

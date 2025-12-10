@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { doc, setDoc, addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/style.css';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import {
