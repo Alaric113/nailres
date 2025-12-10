@@ -4,8 +4,7 @@ const LIFF_ID = import.meta.env.VITE_LIFF_ID || 'YOUR_LIFF_ID_HERE'; // Use envi
 
 export const initializeLiff = async () => {
   try {
-    if (!liff.isInClient() && !liff._is        // Don't initialize if already initialized or not in LIFF
-    ) {
+    if (!liff.isInClient()) {
       await liff.init({ liffId: LIFF_ID });
     }
     return liff; // Return liff instance
