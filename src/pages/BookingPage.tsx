@@ -19,7 +19,7 @@ import {
 import BookingProgressBar from '../components/booking/BookingProgressBar';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const BookingPage = () => {
   const location = useLocation();
@@ -155,17 +155,19 @@ const BookingPage = () => {
                </div>
 
                {/* Calendar Content (Collapsible) */}
-               {isCalendarExpanded && (
-                 <div className="px-4 pb-4">
-                    <CalendarSelector
-                        selectedDate={selectedDate}
-                        onDateSelect={handleDateSelect}
-                        closedDays={closedDays}
-                        isLoading={isLoadingClosedDays || isLoadingGlobalSettings}
-                        bookingDeadline={globalSettings.bookingDeadline}
-                    />
+               <div className={`grid transition-all duration-300 ease-in-out ${isCalendarExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                 <div className="overflow-hidden">
+                   <div className="px-4 pb-4">
+                      <CalendarSelector
+                          selectedDate={selectedDate}
+                          onDateSelect={handleDateSelect}
+                          closedDays={closedDays}
+                          isLoading={isLoadingClosedDays || isLoadingGlobalSettings}
+                          bookingDeadline={globalSettings.bookingDeadline}
+                      />
+                   </div>
                  </div>
-               )}
+               </div>
             </div>
             
             {/* 2. Time Selection Section (Appears after date selection) */}

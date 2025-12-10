@@ -1,5 +1,6 @@
-import { DayPicker, type Matcher } from 'react-day-picker';
+import { DayPicker } from 'react-day-picker';
 import { zhTW } from 'date-fns/locale';
+import { startOfDay, isBefore, isSameDay, isAfter } from 'date-fns';
 import 'react-day-picker/dist/style.css';
 import LoadingSpinner from '../common/LoadingSpinner';
 
@@ -33,13 +34,20 @@ const CalendarSelector = ({ selectedDate, onDateSelect, closedDays, isLoading, b
     );
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = startOfDay(new Date());
 
-  const disabledDays: Matcher[] = [{ before: today }, ...closedDays];
-  if (bookingDeadline) {
-    disabledDays.push({ after: bookingDeadline });
-  }
+  const isDateDisabled = (date: Date) => {
+    // 1. Disable past days (strictly before today)
+    if (isBefore(date, today)) return true;
+    
+    // 2. Disable closed days
+    if (closedDays.some(closed => isSameDay(closed, date))) return true;
+
+    // 3. Disable after deadline
+    if (bookingDeadline && isAfter(date, bookingDeadline)) return true;
+
+    return false;
+  };
 
   return (
     <div className="flex justify-center bg-white rounded-xl p-2">
@@ -74,7 +82,7 @@ const CalendarSelector = ({ selectedDate, onDateSelect, closedDays, isLoading, b
         locale={zhTW}
         modifiers={modifiers}
         modifiersStyles={modifierStyles}
-        disabled={disabledDays}
+        disabled={isDateDisabled}
       />
     </div>
   );
