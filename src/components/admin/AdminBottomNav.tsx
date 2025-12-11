@@ -5,28 +5,30 @@ import {
   HomeIcon,
   CalendarDaysIcon,
   CurrencyDollarIcon,
-  Bars3Icon
+  Cog6ToothIcon,
+  ArrowUturnLeftIcon
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,
   CalendarDaysIcon as CalendarDaysIconSolid,
   CurrencyDollarIcon as CurrencyDollarIconSolid,
-  Bars3Icon as Bars3IconSolid
+  Cog6ToothIcon as Cog6ToothIconSolid,
+  ArrowUturnLeftIcon as ArrowUturnLeftIconSolid
 } from '@heroicons/react/24/solid';
 
 interface AdminBottomNavProps {
-  onMenuClick: () => void;
+  onMenuClick?: () => void;
 }
 
-const AdminBottomNav: React.FC<AdminBottomNavProps> = ({ onMenuClick }) => {
+const AdminBottomNav: React.FC<AdminBottomNavProps> = () => {
   const location = useLocation();
 
   const navItems = [
     { 
-      name: '總覽', 
-      path: '/admin', 
-      icon: HomeIcon, 
-      activeIcon: HomeIconSolid,
+      name: '前台', 
+      path: '/', 
+      icon: ArrowUturnLeftIcon, 
+      activeIcon: ArrowUturnLeftIconSolid,
       action: null 
     },
     { 
@@ -37,6 +39,13 @@ const AdminBottomNav: React.FC<AdminBottomNavProps> = ({ onMenuClick }) => {
       action: null
     },
     { 
+      name: '首頁', 
+      path: '/admin', 
+      icon: HomeIcon, 
+      activeIcon: HomeIconSolid,
+      action: null 
+    },
+    { 
       name: '訂單', 
       path: '/admin/orders', 
       icon: CurrencyDollarIcon, 
@@ -44,11 +53,11 @@ const AdminBottomNav: React.FC<AdminBottomNavProps> = ({ onMenuClick }) => {
       action: null
     },
     { 
-      name: '選單', 
-      path: '#', 
-      icon: Bars3Icon, 
-      activeIcon: Bars3IconSolid,
-      action: onMenuClick 
+      name: '設定', 
+      path: '/admin/settings', 
+      icon: Cog6ToothIcon, 
+      activeIcon: Cog6ToothIconSolid,
+      action: null 
     },
   ];
 
@@ -56,34 +65,31 @@ const AdminBottomNav: React.FC<AdminBottomNavProps> = ({ onMenuClick }) => {
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-lg border-t border-gray-100 pb-safe-area shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden">
       <div className="flex justify-around items-center px-2 py-3">
         {navItems.map((item) => {
-          // Check if active. For "Menu", it's never "active" route-wise, or handled differently.
-          // For now, let's say Menu is never active or highlight if sidebar is open (but we don't have that state here easily without props).
-          // Simpler: Just check path match.
-          const isActive = item.path !== '#' && (
-             location.pathname === item.path || 
-             (item.path !== '/admin' && location.pathname.startsWith(item.path))
-          );
+          // Exact match for root '/admin', startsWith for others to catch sub-routes if needed
+          // For '/', we want exact match otherwise it matches everything.
+          // For '/admin', we want exact match because '/admin/calendar' exists.
+          
+          let isActive = false;
+          if (item.path === '/') {
+             isActive = location.pathname === '/';
+          } else if (item.path === '/admin') {
+             isActive = location.pathname === '/admin';
+          } else {
+             isActive = location.pathname.startsWith(item.path);
+          }
           
           const Icon = isActive ? item.activeIcon : item.icon;
 
           return (
-            <button
+            <div
               key={item.name}
-              onClick={(e) => {
-                if (item.action) {
-                  e.preventDefault();
-                  item.action();
-                }
-              }}
-              className="relative flex flex-col items-center justify-center w-full h-full space-y-1 bg-transparent border-none cursor-pointer"
+              className="relative flex flex-col items-center justify-center w-full h-full space-y-1"
             >
-              {item.path !== '#' ? (
-                  <Link 
-                    to={item.path} 
-                    className="absolute inset-0" 
-                    aria-label={item.name}
-                  />
-              ) : null}
+              <Link 
+                to={item.path} 
+                className="absolute inset-0" 
+                aria-label={item.name}
+              />
 
               {isActive && (
                 <motion.div
@@ -101,7 +107,7 @@ const AdminBottomNav: React.FC<AdminBottomNavProps> = ({ onMenuClick }) => {
               <span className={`text-[10px] font-medium transition-colors duration-200 ${isActive ? 'text-[#9F9586]' : 'text-gray-400'}`}>
                 {item.name}
               </span>
-            </button>
+            </div>
           );
         })}
       </div>
