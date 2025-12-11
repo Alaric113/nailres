@@ -2,46 +2,121 @@ import { useState, useEffect } from 'react';
 import { DayPicker } from 'react-day-picker';
 import { format, isValid } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { BusinessHours, TimeSlot } from '../types/businessHours';
-import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
 import { useGlobalSettings } from '../hooks/useGlobalSettings';
-
+import { useAuthStore } from '../store/authStore';
+import type { Designer } from '../types/designer';
 
 import 'react-day-picker/style.css';
 
 type Tab = 'daily' | 'global';
 
 const HoursSettingsPage = () => {
+  const { userProfile, currentUser } = useAuthStore();
+  const isAdminOrManager = ['admin', 'manager'].includes(userProfile?.role || '');
+  const isDesigner = userProfile?.role === 'designer';
+
+  const [designers, setDesigners] = useState<Designer[]>([]);
+  const [selectedTargetId, setSelectedTargetId] = useState<string>('global'); // 'global' or designer.id
+  
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([{ start: '10:00', end: '19:00' }]);
   const [isClosed, setIsClosed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { settings: globalSettings, isLoading: isLoadingGlobalSettings } = useGlobalSettings();
+  
+  // Global Settings (Store Level)
+  const { settings: globalStoreSettings, isLoading: isLoadingGlobalStoreSettings } = useGlobalSettings();
   const [localBookingDeadline, setLocalBookingDeadline] = useState<Date | undefined>();
+  
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const { closedDays, customSettingDays } = useBusinessHoursSummary() as { closedDays: Date[], customSettingDays: Date[] };
   const [activeTab, setActiveTab] = useState<Tab>('daily');
 
-  useEffect(() => {
-    if (globalSettings.bookingDeadline) {
-      setLocalBookingDeadline(globalSettings.bookingDeadline);
-    }
-  }, [globalSettings.bookingDeadline]);
+  // Calendar Modifiers (Local implementation to support dynamic paths)
+  const [closedDays, setClosedDays] = useState<Date[]>([]);
+  const [customSettingDays, setCustomSettingDays] = useState<Date[]>([]);
 
-  // Fetch settings when a new date is selected
+  // 1. Initialize Designer Selection
   useEffect(() => {
-    if (!selectedDate || !isValid(selectedDate)) {
-      return;
+    const fetchDesigners = async () => {
+      if (isAdminOrManager) {
+        try {
+          const snap = await getDocs(collection(db, 'designers'));
+          setDesigners(snap.docs.map(d => ({ id: d.id, ...d.data() } as Designer)));
+        } catch (e) {
+          console.error("Error fetching designers:", e);
+        }
+      } else if (isDesigner && currentUser) {
+        try {
+          // Find the designer profile linked to this user
+          const q = query(collection(db, 'designers'), where('linkedUserId', '==', currentUser.uid));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            const myProfile = snap.docs[0];
+            setDesigners([{ id: myProfile.id, ...myProfile.data() } as Designer]);
+            setSelectedTargetId(myProfile.id);
+          } else {
+            setMessage({ type: 'error', text: '尚未建立您的設計師檔案，無法設定營業時間。' });
+          }
+        } catch (e) {
+          console.error("Error fetching my profile:", e);
+        }
+      }
+    };
+    fetchDesigners();
+  }, [isAdminOrManager, isDesigner, currentUser]);
+
+  // 2. Fetch Global Settings (Deadline) - Only needed once or when it changes
+  useEffect(() => {
+    if (globalStoreSettings.bookingDeadline) {
+      setLocalBookingDeadline(globalStoreSettings.bookingDeadline);
     }
+  }, [globalStoreSettings.bookingDeadline]);
+
+  // 3. Listen to Business Hours Summary (Modifiers) based on Target
+  useEffect(() => {
+    let collectionRef;
+    if (selectedTargetId === 'global') {
+      collectionRef = collection(db, 'businessHours');
+    } else {
+      collectionRef = collection(db, `designers/${selectedTargetId}/businessHours`);
+    }
+
+    const unsubscribe = onSnapshot(collectionRef, (snapshot) => {
+      const closed: Date[] = [];
+      const custom: Date[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data() as BusinessHours;
+        const date = new Date(doc.id + 'T00:00:00');
+        custom.push(date);
+        if (data.isClosed) {
+          closed.push(date);
+        }
+      });
+      setClosedDays(closed);
+      setCustomSettingDays(custom);
+    });
+
+    return () => unsubscribe();
+  }, [selectedTargetId]);
+
+  // 4. Fetch Daily Settings when Date or Target changes
+  useEffect(() => {
+    if (!selectedDate || !isValid(selectedDate)) return;
 
     const fetchSettings = async () => {
       setIsLoading(true);
       setMessage(null);
       const docId = format(selectedDate, 'yyyy-MM-dd');
-      const docRef = doc(db, 'businessHours', docId);
+      
+      let docRef;
+      if (selectedTargetId === 'global') {
+        docRef = doc(db, 'businessHours', docId);
+      } else {
+        docRef = doc(db, `designers/${selectedTargetId}/businessHours`, docId);
+      }
 
       try {
         const docSnap = await getDoc(docRef);
@@ -50,7 +125,7 @@ const HoursSettingsPage = () => {
           setIsClosed(data.isClosed);
           setTimeSlots(data.timeSlots && data.timeSlots.length > 0 ? data.timeSlots : [{ start: '10:00', end: '19:00' }]);
         } else {
-          // Reset to default if no setting exists for the day
+          // Default
           setTimeSlots([{ start: '10:00', end: '19:00' }]);
           setIsClosed(false);
         }
@@ -63,7 +138,7 @@ const HoursSettingsPage = () => {
     };
 
     fetchSettings();
-  }, [selectedDate]);
+  }, [selectedDate, selectedTargetId]);
 
   const handleSave = async () => {
     if (!selectedDate || !isValid(selectedDate)) {
@@ -74,7 +149,13 @@ const HoursSettingsPage = () => {
     setIsSaving(true);
     setMessage(null);
     const docId = format(selectedDate, 'yyyy-MM-dd');
-    const docRef = doc(db, 'businessHours', docId);
+    
+    let docRef;
+    if (selectedTargetId === 'global') {
+      docRef = doc(db, 'businessHours', docId);
+    } else {
+      docRef = doc(db, `designers/${selectedTargetId}/businessHours`, docId);
+    }
 
     const newSettings: BusinessHours = {
       timeSlots: isClosed ? [] : timeSlots,
@@ -133,40 +214,70 @@ const HoursSettingsPage = () => {
 
   const modifierStyles = {
     closed: {
-      color: '#ef4444', // red-500
-      backgroundColor: '#fee2e2', // red-100
+      color: '#ef4444', 
+      backgroundColor: '#fee2e2',
     },
     custom: {
       fontWeight: 'bold',
-      border: '2px solid #B7AD9E', // primary-light
+      border: '2px solid #B7AD9E',
     },
   };
 
-
   return (
     <div className="min-h-screen bg-secondary-light text-text-main">
-      
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         {message && (
           <div className={`p-4 mb-6 rounded-lg border ${message.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
             {message.text}
           </div>
         )}
+
+        {/* Header & Target Selector */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 className="text-2xl font-serif font-bold text-gray-900">營業時間設定</h1>
+                <p className="text-sm text-gray-500 mt-1">
+                    {isAdminOrManager ? '設定全店或個別設計師的營業時間' : '設定您的專屬營業時間'}
+                </p>
+            </div>
+            
+            {isAdminOrManager && (
+                <select 
+                    value={selectedTargetId} 
+                    onChange={(e) => setSelectedTargetId(e.target.value)}
+                    className="block w-full md:w-auto pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
+                >
+                    <option value="global">全店預設 (Global)</option>
+                    {designers.map(d => (
+                        <option key={d.id} value={d.id}>{d.name} {d.title ? `(${d.title})` : ''}</option>
+                    ))}
+                </select>
+            )}
+            {isDesigner && (
+                <div className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                    {designers.length > 0 ? `${designers[0].name} 的行程` : '未找到您的檔案'}
+                </div>
+            )}
+        </div>
+
         <div className="border-b border-secondary-dark/30 mb-8">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             <button onClick={() => setActiveTab('daily')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'daily' ? 'border-primary text-primary font-bold' : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'}`}>
               每日設定
             </button>
-            <button onClick={() => setActiveTab('global')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'global' ? 'border-primary text-primary font-bold' : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'}`}>
-              全域設定
-            </button>
+            {/* Global Settings only available for Store Default view */}
+            {selectedTargetId === 'global' && isAdminOrManager && (
+                <button onClick={() => setActiveTab('global')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'global' ? 'border-primary text-primary font-bold' : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'}`}>
+                全域設定 (最晚預約日)
+                </button>
+            )}
           </nav>
         </div>
 
         {activeTab === 'daily' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="md:col-span-1 flex justify-center">
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-secondary-dark/50">
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-secondary-dark/50 w-full">
                 <style>{`
                   .rdp {
                     --rdp-cell-size: 40px;
@@ -201,6 +312,9 @@ const HoursSettingsPage = () => {
             <div className="md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-secondary-dark/50">
               <h2 className="text-lg font-serif font-bold text-text-main mb-6 border-b border-secondary-light pb-2">
                 設定日期：{selectedDate ? format(selectedDate, 'yyyy年MM月dd日') : '請選擇日期'}
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({selectedTargetId === 'global' ? '全店預設' : designers.find(d => d.id === selectedTargetId)?.name || '設計師'})
+                </span>
               </h2>
               {isLoading ? (
                 <div className="flex justify-center py-10 text-text-light">正在載入設定...</div>
@@ -208,7 +322,9 @@ const HoursSettingsPage = () => {
                 <div className="space-y-6">
                   <div className="flex items-center p-4 bg-secondary-light/30 rounded-lg">
                     <input id="is-closed" type="checkbox" checked={isClosed} onChange={(e) => setIsClosed(e.target.checked)} className="h-5 w-5 text-primary border-secondary-dark/50 rounded focus:ring-primary" />
-                    <label htmlFor="is-closed" className="ml-3 block text-sm font-medium text-text-main">設為公休日 (不開放預約)</label>
+                    <label htmlFor="is-closed" className="ml-3 block text-sm font-medium text-text-main">
+                        {selectedTargetId === 'global' ? '全店公休' : '設計師休假'} (不開放預約)
+                    </label>
                   </div>
                   
                   {!isClosed && timeSlots.map((slot, index) => (
@@ -238,7 +354,7 @@ const HoursSettingsPage = () => {
                   
                   <div className="flex items-center justify-end pt-6 border-t border-secondary-light">
                     <button onClick={handleSave} disabled={isSaving} className="px-6 py-2.5 font-medium text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-300 transition-all shadow-sm hover:shadow-md">
-                      {isSaving ? '儲存中...' : '儲存當日設定'}
+                      {isSaving ? '儲存中...' : '儲存設定'}
                     </button>
                   </div>
                 </div>
@@ -247,13 +363,13 @@ const HoursSettingsPage = () => {
           </div>
         )}
 
-        {activeTab === 'global' && (
+        {activeTab === 'global' && selectedTargetId === 'global' && isAdminOrManager && (
           <div>
             <h2 className="text-lg font-serif font-bold text-text-main mb-6 border-b border-secondary-light pb-2">全域預約設定</h2>
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-text-main mb-2">最晚可預約日期</label>                
-                {isLoadingGlobalSettings ? <p className="text-text-light">載入中...</p> : (
+                {isLoadingGlobalStoreSettings ? <p className="text-text-light">載入中...</p> : (
                   <div className="bg-secondary-light/20 p-4 rounded-xl inline-block border border-secondary-dark/30 w-full flex justify-center">
                      <style>{`
                       .rdp {
@@ -266,7 +382,7 @@ const HoursSettingsPage = () => {
                 )}
               </div>
               <div className="flex justify-end pt-4">
-                <button onClick={handleSaveGlobalSettings} disabled={isSaving || isLoadingGlobalSettings} className="px-6 py-2.5 font-medium text-white bg-accent rounded-lg hover:bg-accent-hover disabled:bg-gray-300 transition-all shadow-sm hover:shadow-md">
+                <button onClick={handleSaveGlobalSettings} disabled={isSaving || isLoadingGlobalStoreSettings} className="px-6 py-2.5 font-medium text-white bg-accent rounded-lg hover:bg-accent-hover disabled:bg-gray-300 transition-all shadow-sm hover:shadow-md">
                   {isSaving ? '儲存中...' : '儲存全域設定'}
                 </button>
               </div>
