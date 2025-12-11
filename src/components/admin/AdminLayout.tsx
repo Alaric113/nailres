@@ -15,6 +15,7 @@ import {
   TicketIcon
 } from '@heroicons/react/24/outline';
 import AdminMobileHeader from './AdminMobileHeader';
+import AdminBottomNav from './AdminBottomNav';
 
 interface AdminLayoutProps {}
 
@@ -183,9 +184,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
         </div>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto focus:outline-none">
+        <main className="flex-1 overflow-y-auto focus:outline-none pb-[80px] lg:pb-0">
           <Outlet />
         </main>
+        
+        <AdminBottomNav onMenuClick={() => setSidebarOpen(true)} />
       </div>
     </div>
   );
