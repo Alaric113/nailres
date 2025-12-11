@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Modal from '../components/common/Modal';
@@ -8,7 +8,6 @@ import type { EnrichedUser } from '../types/user';
 import { v4 as uuidv4 } from 'uuid';
 import { 
   PencilIcon, 
-  TrashIcon, 
   CheckBadgeIcon
 } from '@heroicons/react/24/outline';
 
@@ -18,9 +17,6 @@ const StaffManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // We will edit a "Combined" object or just the Designer part, 
-  // but we need to know which User it belongs to.
-  // Let's store the target User and the existing Designer (if any).
   const [editingTarget, setEditingTarget] = useState<{ user: EnrichedUser; designer?: Designer } | null>(null);
   
   const [formData, setFormData] = useState<{
@@ -36,7 +32,6 @@ const StaffManagementPage: React.FC = () => {
       setLoading(true);
       try {
         // 1. Fetch Users with role 'manager' or 'designer'
-        // Using client-side filter as per previous fix to avoid index issues
         const usersRef = collection(db, 'users');
         const usersSnapshot = await getDocs(usersRef);
         const loadedStaffUsers = usersSnapshot.docs
@@ -77,8 +72,6 @@ const StaffManagementPage: React.FC = () => {
 
     const { user, designer } = editingTarget;
     
-    // Use existing ID or generate new one
-    // Note: We could use user.id as designer.id for simplicity, but keeping UUID is safer for migration
     const docId = designer?.id || uuidv4();
 
     const newDesignerData: Designer = {
@@ -95,7 +88,6 @@ const StaffManagementPage: React.FC = () => {
     try {
       await setDoc(doc(db, 'designers', docId), newDesignerData);
       
-      // Update local state
       setDesigners(prev => {
         const others = prev.filter(d => d.id !== docId);
         return [...others, newDesignerData];
@@ -106,16 +98,6 @@ const StaffManagementPage: React.FC = () => {
     } catch (error) {
       console.error("Error saving designer:", error);
       alert("儲存失敗");
-    }
-  };
-
-  const handleDeleteProfile = async (designerId: string) => {
-    if (!window.confirm("確定要移除此設計師檔案嗎？(這不會刪除使用者帳號，只會移除預約頁面上的顯示)")) return;
-    try {
-      await deleteDoc(doc(db, 'designers', designerId));
-      setDesigners(prev => prev.filter(d => d.id !== designerId));
-    } catch (error) {
-      console.error("Error deleting profile:", error);
     }
   };
 
@@ -141,8 +123,17 @@ const StaffManagementPage: React.FC = () => {
             const hasProfile = !!designer;
 
             return (
-                <div key={user.id} className={`bg-white rounded-xl shadow-sm border p-6 flex flex-col transition-all hover:shadow-md ${hasProfile && designer.isActive ? 'border-[#EFECE5]' : 'border-gray-200 bg-gray-50'}`}>
-                    <div className="flex items-start justify-between mb-4">
+                <div key={user.id} className={`relative bg-white rounded-xl shadow-sm border p-6 flex flex-col transition-all hover:shadow-md ${hasProfile && designer.isActive ? 'border-[#EFECE5]' : 'border-gray-200 bg-gray-50'}`}>
+                    {/* Edit Button (Top-Right) */}
+                    <button 
+                        onClick={() => openModal(user, designer)}
+                        className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                        title={hasProfile ? '編輯檔案' : '建立檔案'}
+                    >
+                        <PencilIcon className="h-5 w-5" />
+                    </button>
+
+                    <div className="flex items-start justify-between mb-4 pr-10"> {/* Added pr-10 to make space for edit button */}
                         <div className="flex items-center">
                             <div className="h-12 w-12 rounded-full bg-secondary-light flex items-center justify-center text-[#9F9586] text-xl font-bold border border-[#EFECE5] overflow-hidden">
                                 {user.profile.avatarUrl ? (
@@ -182,25 +173,6 @@ const StaffManagementPage: React.FC = () => {
                             <div className="flex items-center justify-center h-20 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 text-sm">
                                 尚未建立公開檔案
                             </div>
-                        )}
-                    </div>
-
-                    <div className="mt-6 flex items-center gap-3 pt-4 border-t border-gray-100">
-                        <button 
-                            onClick={() => openModal(user, designer)}
-                            className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-200 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                        >
-                            <PencilIcon className="h-4 w-4 mr-2 text-gray-500" />
-                            {hasProfile ? '編輯檔案' : '建立檔案'}
-                        </button>
-                        {hasProfile && (
-                            <button 
-                                onClick={() => handleDeleteProfile(designer.id)}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                                title="刪除檔案"
-                            >
-                                <TrashIcon className="h-5 w-5" />
-                            </button>
                         )}
                     </div>
                 </div>
