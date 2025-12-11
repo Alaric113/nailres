@@ -47,6 +47,15 @@ function RootLayout() {
   );
 }
 
+const RedirectIfLoggedIn = ({ children }: { children: JSX.Element }) => {
+  const { currentUser, userProfile } = useAuthStore();
+  
+  if (currentUser) {
+    return <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  }
+  return children;
+};
+
 const routes = [
   {
     path: '/',
@@ -70,13 +79,17 @@ const routes = [
       {
         path: 'login',
         element: (
-          !useAuthStore.getState().currentUser ? <Login /> : <Navigate to={useAuthStore.getState().userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />
+          <RedirectIfLoggedIn>
+            <Login />
+          </RedirectIfLoggedIn>
         ),
       },
       {
         path: 'register',
         element: (
-          !useAuthStore.getState().currentUser ? <Register /> : <Navigate to={useAuthStore.getState().userProfile?.role === 'admin' ? '/admin' : '/dashboard'} replace />
+          <RedirectIfLoggedIn>
+            <Register />
+          </RedirectIfLoggedIn>
         ),
       },
       {
