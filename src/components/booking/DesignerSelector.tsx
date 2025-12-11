@@ -56,7 +56,7 @@ const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, s
             >
               <button
                 onClick={() => onDesignerSelect(designer)}
-                className={`w-full p-4 rounded-xl shadow-sm border-2 transition-all duration-200 flex flex-col items-center text-center relative
+                className={`w-full p-4 rounded-xl shadow-sm border-2 transition-all duration-200 flex items-center text-left relative
                   ${selectedDesigner?.id === designer.id
                     ? 'border-primary-dark bg-primary/10 ring-2 ring-primary-dark'
                     : 'border-gray-200 bg-white hover:border-primary/50'
@@ -72,16 +72,18 @@ const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, s
                     <CheckCircleIcon className="w-6 h-6" />
                   </motion.div>
                 )}
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 mb-3">
+                <div className="flex-shrink-0 w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 mr-4">
                   {designer.avatarUrl ? (
                     <img src={designer.avatarUrl} alt={designer.name} className="w-full h-full object-cover" />
                   ) : (
-                    <UserCircleIcon className="w-12 h-12 text-gray-400" />
+                    <UserCircleIcon className="w-10 h-10 text-gray-400" />
                   )}
                 </div>
-                <h4 className="font-bold text-lg text-gray-900">{designer.name}</h4>
-                {designer.title && <p className="text-sm text-gray-500">{designer.title}</p>}
-                {designer.bio && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{designer.bio}</p>}
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-lg text-gray-900 truncate">{designer.name}</h4>
+                  {designer.title && <p className="text-sm text-gray-500 truncate">{designer.title}</p>}
+                  {designer.bio && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{designer.bio}</p>}
+                </div>
               </button>
             </motion.div>
           ))}
