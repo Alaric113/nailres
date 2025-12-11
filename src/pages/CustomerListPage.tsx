@@ -157,7 +157,19 @@ const CustomerListPage = () => {
                           />
                         </div>
                         <div className="ml-4">
-                          <div className="font-medium text-text-main">{user.profile.displayName || 'N/A'}</div>
+                          <div className="font-medium text-text-main flex items-center gap-2">
+                            {user.profile.displayName || 'N/A'}
+                            {user.role === 'designer' && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                設計師
+                              </span>
+                            )}
+                            {user.role === 'admin' && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                                管理員
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-text-light">{user.email}</div>
                         </div>
                       </div>

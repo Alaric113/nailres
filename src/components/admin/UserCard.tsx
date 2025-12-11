@@ -54,7 +54,19 @@ const UserCard: React.FC<UserCardProps> = ({ user, isUpdatingRole, onRoleChange,
       <div className="p-3 flex-1 flex flex-col justify-between">
         <div>
           <div className="flex justify-between items-start mb-2">
-            <h3 className="font-bold text-lg text-gray-800 truncate pr-2">{user.profile.displayName || 'N/A'}</h3>
+            <h3 className="font-bold text-lg text-gray-800 truncate pr-2 flex items-center gap-2">
+              {user.profile.displayName || 'N/A'}
+              {user.role === 'designer' && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
+                  設計師
+                </span>
+              )}
+              {user.role === 'admin' && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 border border-red-200 shrink-0">
+                  管理員
+                </span>
+              )}
+            </h3>
             <select
               value={user.role}
               onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}
