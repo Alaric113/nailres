@@ -15,7 +15,7 @@ const CustomerListPage = () => {
   const [noteText, setNoteText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [isUpdatingRole, setIsUpdatingRole] = useState(false); // Restored
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
 
@@ -65,7 +65,6 @@ const CustomerListPage = () => {
     }
   };  
 
-  // Restored Function
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setIsUpdatingRole(true);
     setSaveError(null);
@@ -81,11 +80,10 @@ const CustomerListPage = () => {
     }
   };
 
-  // Updated Tabs
   const tabs: { key: UserRole | 'all'; label: string }[] = [
     { key: 'all', label: '全部' },
     { key: 'admin', label: '管理員' },
-    { key: 'manager', label: '管理設計師' }, // New
+    { key: 'manager', label: '管理設計師' },
     { key: 'designer', label: '設計師' },
     { key: 'platinum', label: '白金會員' },
     { key: 'user', label: '一般會員' },
@@ -95,21 +93,6 @@ const CustomerListPage = () => {
     return roleFilter === tabKey
       ? 'bg-primary text-white shadow-md'
       : 'bg-white text-text-light hover:bg-secondary hover:text-text-main border border-secondary-dark/20';
-  };
-
-  const getRoleBadge = (role: UserRole) => {
-    switch (role) {
-      case 'admin':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200">管理員</span>;
-      case 'manager':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">管理設計師</span>;
-      case 'designer':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">設計師</span>;
-      case 'platinum':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">白金會員</span>;
-      default:
-        return null;
-    }
   };
 
   return (
@@ -149,7 +132,7 @@ const CustomerListPage = () => {
               <thead className="bg-secondary">
                 <tr>
                   <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">客戶名稱</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">角色設定</th>
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">角色</th>
                   <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">備註</th>
                 </tr>
               </thead>
@@ -168,22 +151,24 @@ const CustomerListPage = () => {
                           />
                         </div>
                         <div className="ml-4">
-                          <div className="font-medium text-text-main flex items-center gap-2">
-                            {user.profile.displayName || 'N/A'}
-                            {getRoleBadge(user.role)}
-                          </div>
+                          <div className="font-medium text-text-main">{user.profile.displayName || 'N/A'}</div>
                           <div className="text-xs text-text-light">{user.email}</div>
                         </div>
                       </div>
                     </td>
                     
-                    {/* Restored Role Column */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">
                       <select
                         value={user.role}
                         onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
                         disabled={isUpdatingRole}
-                        className={`w-full p-1.5 border rounded-lg text-xs font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors bg-white border-gray-200`}
+                        className={`w-full p-1.5 border rounded-lg text-xs font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors ${
+                          user.role === 'admin' ? 'bg-red-50 text-red-700 border-red-200' : 
+                          user.role === 'manager' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                          user.role === 'platinum' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                          user.role === 'designer' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                          'bg-gray-50 text-gray-600 border-gray-200'
+                        }`}
                       >
                         <option value="admin">管理員</option>
                         <option value="manager">管理設計師</option>
