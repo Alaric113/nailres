@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import ServiceSelector from '../components/booking/ServiceSelector';
