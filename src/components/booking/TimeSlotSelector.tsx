@@ -1,20 +1,21 @@
 import React from 'react';
-import { useAvailableSlots } from '../../hooks/useAvailableSlots';
+import { useDesignerAvailableSlots } from '../../hooks/useDesignerAvailableSlots'; // NEW IMPORT
 import LoadingSpinner from '../common/LoadingSpinner';
 import { format } from 'date-fns';
 
 interface TimeSlotSelectorProps {
+  selectedDesignerId: string | null; // NEW PROP
   selectedDate: string;
   serviceDuration: number | null; // Allow null
   onTimeSelect: (time: Date) => void;
   selectedTime: Date | null;
 }
 
-const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({ selectedDate, serviceDuration, onTimeSelect, selectedTime }) => {
-  const { availableSlots, loading, error } = useAvailableSlots(selectedDate, serviceDuration);
+const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({ selectedDesignerId, selectedDate, serviceDuration, onTimeSelect, selectedTime }) => {
+  const { availableSlots, loading, error } = useDesignerAvailableSlots(selectedDesignerId, selectedDate, serviceDuration); // Use designer-specific hook
 
-  if (!selectedDate || !serviceDuration) {
-    return <div className="p-8 text-center text-text-light bg-secondary-light/30 rounded-xl border border-dashed border-secondary-dark/30 font-light">請先選擇服務項目與日期。</div>;
+  if (!selectedDesignerId || !selectedDate || serviceDuration === null || serviceDuration === 0) { // Check designerId
+    return <div className="p-8 text-center text-text-light bg-secondary-light/30 rounded-xl border border-dashed border-secondary-dark/30 font-light">請先選擇設計師、服務項目與日期。</div>;
   }
 
   if (loading) {

@@ -6,6 +6,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 interface CalendarSelectorProps {
   selectedDate: Date | undefined;
   onDateSelect: (date: Date | undefined) => void;
+  // These props are now passed directly from BookingPage
   closedDays: Date[];
   isLoading: boolean;
   bookingDeadline: Date | null;
@@ -14,7 +15,7 @@ interface CalendarSelectorProps {
 const CalendarSelector = ({ selectedDate, onDateSelect, closedDays, isLoading, bookingDeadline }: CalendarSelectorProps) => {
   
   const modifiers = {
-    closed: closedDays, // Keep this for styling closed days
+    closed: closedDays, // Use closed days passed from BookingPage
   };
 
   const modifierStyles = {

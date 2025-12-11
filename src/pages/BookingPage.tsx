@@ -1,25 +1,29 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import ServiceSelector from '../components/booking/ServiceSelector';
+import DesignerSelector from '../components/booking/DesignerSelector'; // NEW IMPORT
 import TimeSlotSelector from '../components/booking/TimeSlotSelector';
 import BookingForm from '../components/booking/BookingForm';
 import type { Service } from '../types/service';
 import CalendarSelector from '../components/booking/CalendarSelector';
-import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
-import { useGlobalSettings } from '../hooks/useGlobalSettings';
+// REMOVED: import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
+// REMOVED: import { useGlobalSettings } from '../hooks/useGlobalSettings';
 import CouponSelectorModal from '../components/booking/CouponSelectorModal';
 import type { Coupon } from '../types/coupon';
+import type { Designer } from '../types/designer'; // NEW IMPORT
 import { 
   TicketIcon, 
   ChevronRightIcon,
   CalendarDaysIcon,
+  UserCircleIcon, // NEW IMPORT
   PencilSquareIcon
 } from '@heroicons/react/24/outline';
 import BookingProgressBar from '../components/booking/BookingProgressBar';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useDesignerBookingInfo } from '../hooks/useDesignerBookingInfo'; // NEW HOOK
 
 const BookingPage = () => {
   const location = useLocation();
@@ -29,15 +33,24 @@ const BookingPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+  const [selectedDesigner, setSelectedDesigner] = useState<Designer | null>(null); // NEW STATE
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
-  const [isCalendarExpanded, setIsCalendarExpanded] = useState(true); // Control calendar visibility
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   
   const { userProfile } = useAuthStore();
-  const { closedDays, loading: isLoadingClosedDays } = useBusinessHoursSummary();
-  const { settings: globalSettings, isLoading: isLoadingGlobalSettings } = useGlobalSettings();
+  // REMOVED: const { closedDays, loading: isLoadingClosedDays } = useBusinessHoursSummary();
+  // REMOVED: const { settings: globalSettings, isLoading: isLoadingGlobalSettings } = useGlobalSettings();
+
+  // NEW HOOK: Get booking info for selected designer
+  const { 
+    closedDays: designerClosedDays, 
+    bookingDeadline: designerBookingDeadline, 
+    loading: isLoadingDesignerBookingInfo
+  } = useDesignerBookingInfo(selectedDesigner?.id || null);
+
 
   const handleServiceToggle = (service: Service) => {
     setSelectedServices(prev => {
@@ -50,11 +63,17 @@ const BookingPage = () => {
     });
   };
 
+  const handleDesignerSelect = (designer: Designer) => { // NEW HANDLER
+    setSelectedDesigner(designer);
+    setSelectedDate(undefined); // Reset date/time on designer change
+    setSelectedTime(null);
+    setIsCalendarExpanded(true); // Expand calendar for new designer
+  };
+
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
     setSelectedTime(null);
     if (date) {
-      // Auto-collapse calendar and expand time slots after selection
       setTimeout(() => {
         setIsCalendarExpanded(false);
       }, 300);
@@ -71,6 +90,7 @@ const BookingPage = () => {
 
   const handleBookingSuccess = () => {
     setSelectedServices([]);
+    setSelectedDesigner(null); // Reset designer
     setSelectedDate(undefined);
     setSelectedTime(null);
     setSelectedCoupon(null);
@@ -96,10 +116,15 @@ const BookingPage = () => {
     return { totalDuration: duration, originalPrice: basePrice, finalPrice: final, discountAmount: discount };
   }, [selectedServices, userProfile, selectedCoupon]);
 
+  // Adjusted nextStep logic for 4 steps
   const nextStep = () => {
-    if (currentStep < 3) setCurrentStep(prev => prev + 1);
+    if (currentStep === 1 && selectedServices.length === 0) return;
+    if (currentStep === 2 && !selectedDesigner) return; // Designer required
+    if (currentStep === 3 && !selectedTime) return; // Time required
+    if (currentStep < 4) setCurrentStep(prev => prev + 1);
   };
 
+  // Adjusted handleStepClick for 4 steps
   const handleStepClick = (step: number) => {
     if (step < currentStep) {
       setCurrentStep(step);
@@ -111,7 +136,8 @@ const BookingPage = () => {
       
       {/* Progress Bar with Back Navigation built-in */}
       <div className="mb-8">
-        <BookingProgressBar currentStep={currentStep} onStepClick={handleStepClick} />
+        {/* Adjusted total steps in BookingProgressBar */}
+        <BookingProgressBar currentStep={currentStep} totalSteps={4} onStepClick={handleStepClick} />
       </div>
 
       {/* Main Content Area */}
@@ -120,6 +146,7 @@ const BookingPage = () => {
         {/* Step 1: Services */}
         {currentStep === 1 && (
           <div className="space-y-6">
+            <h3 className="font-serif font-bold text-gray-900 text-xl text-center mb-6">選擇服務項目</h3>
             <ServiceSelector 
               onServiceToggle={handleServiceToggle} 
               selectedServiceIds={selectedServices.map(s => s.id)}
@@ -128,8 +155,18 @@ const BookingPage = () => {
           </div>
         )}
 
-        {/* Step 2: Date & Time - Collapsible UX */}
+        {/* Step 2: Designer Selection */}
         {currentStep === 2 && (
+          <div className="space-y-6">
+            <DesignerSelector 
+              onDesignerSelect={handleDesignerSelect} 
+              selectedDesigner={selectedDesigner}
+            />
+          </div>
+        )}
+
+        {/* Step 3: Date & Time - Collapsible UX */}
+        {currentStep === 3 && (
           <div className="space-y-4">
             
             {/* 1. Date Selection Section */}
@@ -161,9 +198,9 @@ const BookingPage = () => {
                       <CalendarSelector
                           selectedDate={selectedDate}
                           onDateSelect={handleDateSelect}
-                          closedDays={closedDays}
-                          isLoading={isLoadingClosedDays || isLoadingGlobalSettings}
-                          bookingDeadline={globalSettings.bookingDeadline}
+                          closedDays={designerClosedDays} // Use designer's closed days
+                          isLoading={isLoadingDesignerBookingInfo} // Use designer's loading state
+                          bookingDeadline={designerBookingDeadline} // Use designer's booking deadline
                       />
                    </div>
                  </div>
@@ -184,6 +221,7 @@ const BookingPage = () => {
                      {format(selectedDate, 'M月d日 (EEEE)', { locale: zhTW })} 的時段
                    </h3>
                    <TimeSlotSelector
+                      selectedDesignerId={selectedDesigner?.id || null} // Pass designer ID
                       selectedDate={format(selectedDate, 'yyyy-MM-dd')}
                       serviceDuration={totalDuration}
                       onTimeSelect={handleTimeSelect}
@@ -195,8 +233,8 @@ const BookingPage = () => {
           </div>
         )}
 
-        {/* Step 3: Confirmation */}
-        {currentStep === 3 && (
+        {/* Step 4: Confirmation */}
+        {currentStep === 4 && (
           <div className="space-y-6">
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#EFECE5]">
                <div className="space-y-4 mb-6">
@@ -221,6 +259,25 @@ const BookingPage = () => {
                      ))}
                    </div>
                  </div>
+                 {/* NEW: Designer Info */}
+                 {selectedDesigner && (
+                   <>
+                     <div className="h-px bg-gray-100"></div>
+                     <div>
+                       <h3 className="text-sm text-gray-500 font-medium">設計師</h3>
+                       <div className="flex items-center mt-2">
+                         <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 mr-2">
+                           {selectedDesigner.avatarUrl ? (
+                             <img src={selectedDesigner.avatarUrl} alt={selectedDesigner.name} className="w-full h-full object-cover" />
+                           ) : (
+                             <UserCircleIcon className="w-5 h-5 text-gray-400" />
+                           )}
+                         </div>
+                         <p className="text-base font-bold text-gray-900">{selectedDesigner.name}</p>
+                       </div>
+                     </div>
+                   </>
+                 )}
                </div>
 
                {/* Coupon Selector */}
@@ -244,7 +301,8 @@ const BookingPage = () => {
 
                <BookingForm
                   services={selectedServices}
-                  dateTime={selectedTime!} // Safe assertion as step 3 requires time
+                  designerId={selectedDesigner?.id || null} // Pass designer ID to form
+                  dateTime={selectedTime!}
                   totalPrice={finalPrice}
                   coupon={selectedCoupon}
                   onBookingSuccess={handleBookingSuccess}
@@ -262,10 +320,19 @@ const BookingPage = () => {
             disabled={selectedServices.length === 0}
             className="w-full bg-[#9F9586] text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
           >
-            下一步：選擇時間
+            下一步：選擇設計師
           </button>
         )}
         {currentStep === 2 && (
+          <button 
+            onClick={nextStep}
+            disabled={!selectedDesigner}
+            className="w-full bg-[#9F9586] text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
+          >
+            下一步：選擇時間
+          </button>
+        )}
+        {currentStep === 3 && (
           <button 
             onClick={nextStep}
             disabled={!selectedTime}
@@ -288,6 +355,15 @@ const BookingPage = () => {
             </button>
          )}
          {currentStep === 2 && (
+            <button 
+              onClick={nextStep}
+              disabled={!selectedDesigner}
+              className="bg-[#9F9586] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#8a8173] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              下一步
+            </button>
+         )}
+         {currentStep === 3 && (
             <button 
               onClick={nextStep}
               disabled={!selectedTime}

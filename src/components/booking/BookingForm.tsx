@@ -9,13 +9,14 @@ import type { Coupon } from '../../types/coupon';
 
 interface BookingFormProps {
   services: Service[];
+  designerId: string | null; // NEW PROP
   dateTime: Date;
   totalPrice: number;
   coupon: Coupon | null;
   onBookingSuccess: () => void;
 }
 
-const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, totalPrice, coupon, onBookingSuccess }:BookingFormProps) => {
+const BookingForm: React.FC<BookingFormProps> = ({ services, designerId, dateTime, totalPrice, coupon, onBookingSuccess }:BookingFormProps) => {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +30,11 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, totalPric
       setError('您必須登入才能預約。');
       return;
     }
+    if (!designerId) {
+      setError('請選擇一位設計師。');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -45,6 +51,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, totalPric
       // 1. Create new booking document
       batch.set(newBookingRef, {
         userId: currentUser.uid,
+        designerId: designerId, // Save designer ID
         serviceIds,
         serviceNames,
         dateTime: dateTime,
@@ -76,6 +83,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, dateTime, totalPric
         },
         body: JSON.stringify({
           userId: currentUser.uid,
+          designerId: designerId, // Pass designerId to notification function
           serviceNames: serviceNames,
           dateTime: dateTime.toISOString(),
           amount: totalPrice,

@@ -3,16 +3,17 @@ import { CheckIcon } from '@heroicons/react/24/solid';
 
 interface BookingProgressBarProps {
   currentStep: number;
+  totalSteps: number; // NEW PROP
   onStepClick?: (step: number) => void;
 }
 
-const steps = [
-  { id: 1, name: '選擇服務' },
-  { id: 2, name: '日期時間' },
-  { id: 3, name: '確認預約' },
-];
+const BookingProgressBar: React.FC<BookingProgressBarProps> = ({ currentStep, totalSteps, onStepClick }) => {
+  // Generate steps dynamically based on totalSteps
+  const steps = Array.from({ length: totalSteps }, (_, i) => ({
+    id: i + 1,
+    name: i + 1 === 1 ? '選擇服務' : i + 1 === 2 ? '選擇設計師' : i + 1 === 3 ? '日期時間' : '確認預約',
+  }));
 
-const BookingProgressBar: React.FC<BookingProgressBarProps> = ({ currentStep, onStepClick }) => {
   return (
     <div className="w-full px-4 pt-6 pb-2">
       <div className="relative flex items-center justify-between">
@@ -24,7 +25,7 @@ const BookingProgressBar: React.FC<BookingProgressBarProps> = ({ currentStep, on
           className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-[#9F9586] rounded-full z-0"
           initial={{ width: '0%' }}
           animate={{ 
-            width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` 
+            width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` 
           }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
         />
