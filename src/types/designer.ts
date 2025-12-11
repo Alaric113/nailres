@@ -8,7 +8,7 @@ export interface Designer {
   avatarUrl?: string;
   
   // 關聯設定
-  linkedUserId?: string; // 連結到的系統使用者 ID (用於通知、權限判定)
+  linkedUserId?: string | null; // 連結到的系統使用者 ID (用於通知、權限判定)
   
   // 營運設定
   customBusinessHours?: BusinessHours; // 該設計師的獨立營業時間 (若無則使用全店預設)

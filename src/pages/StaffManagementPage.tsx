@@ -57,7 +57,7 @@ const StaffManagementPage: React.FC = () => {
       name: editingDesigner.name!,
       title: editingDesigner.title || '',
       bio: editingDesigner.bio || '',
-      linkedUserId: editingDesigner.linkedUserId || undefined,
+      linkedUserId: editingDesigner.linkedUserId || null,
       isActive: editingDesigner.isActive ?? true,
       displayOrder: editingDesigner.displayOrder || designers.length + 1,
     };
@@ -205,7 +205,7 @@ const StaffManagementPage: React.FC = () => {
                   </label>
                   <select
                       value={editingDesigner.linkedUserId || ''}
-                      onChange={e => setEditingDesigner({...editingDesigner, linkedUserId: e.target.value || undefined})}
+                      onChange={e => setEditingDesigner({...editingDesigner, linkedUserId: e.target.value || null})}
                       className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#9F9586]/50 focus:border-[#9F9586] sm:text-sm bg-white transition-shadow"
                   >
                       <option value="">-- 無連結 --</option>
