@@ -17,6 +17,7 @@ import {
   TrashIcon
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { useToast } from '../context/ToastContext'; // NEW IMPORT
 
 import 'react-day-picker/style.css';
 
@@ -44,6 +45,7 @@ const HoursSettingsPage = () => {
 
   // General Settings State
   const [bookingDeadline, setBookingDeadline] = useState<Date | undefined>();
+  const { showToast } = useToast();
 
   // 1. Initialize & Fetch Designers (Sync with Users)
   useEffect(() => {
@@ -122,6 +124,7 @@ const HoursSettingsPage = () => {
         }
       } catch (e) {
         console.error("Error initializing:", e);
+        showToast('初始化設定失敗。', 'error');
       } finally {
         setLoading(false);
       }
@@ -147,6 +150,7 @@ const HoursSettingsPage = () => {
         }
       } catch (e) {
         console.error("Error fetching general settings:", e);
+        showToast('讀取基本設定失敗。', 'error');
       }
     };
     fetchGeneralSettings();
@@ -204,7 +208,10 @@ const HoursSettingsPage = () => {
   // --- Handlers ---
 
   const handleSaveDaily = async () => {
-    if (!selectedTargetId || !selectedDate || !isValid(selectedDate)) return;
+    if (!selectedTargetId || !selectedDate || !isValid(selectedDate)) {
+      showToast('請先選擇一個有效的日期。', 'warning');
+      return;
+    }
     setIsSaving(true);
     setMessage(null);
 
@@ -219,10 +226,10 @@ const HoursSettingsPage = () => {
 
     try {
       await setDoc(docRef, newSettings);
-      setMessage({ type: 'success', text: '每日設定已儲存' });
+      showToast('每日設定已儲存', 'success');
     } catch (e) {
       console.error(e);
-      setMessage({ type: 'error', text: '儲存失敗' });
+      showToast('儲存失敗', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -238,10 +245,10 @@ const HoursSettingsPage = () => {
       await setDoc(docRef, { 
         bookingDeadline: bookingDeadline ? Timestamp.fromDate(bookingDeadline) : null 
       }, { merge: true });
-      setMessage({ type: 'success', text: '基本設定已儲存' });
+      showToast('基本設定已儲存', 'success');
     } catch (e) {
       console.error(e);
-      setMessage({ type: 'error', text: '儲存失敗' });
+      showToast('儲存失敗', 'error');
     } finally {
       setIsSaving(false);
     }
