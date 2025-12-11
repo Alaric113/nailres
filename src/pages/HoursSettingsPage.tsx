@@ -6,8 +6,9 @@ import { doc, getDoc, setDoc, serverTimestamp, Timestamp, collection, getDocs, q
 import { db } from '../lib/firebase';
 import type { BusinessHours, TimeSlot } from '../types/businessHours';
 import { useAuthStore } from '../store/authStore';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import type { Designer } from '../types/designer';
+import type { EnrichedUser } from '../types/user';
+import { v4 as uuidv4 } from 'uuid';
 import { 
   UserCircleIcon, 
   CalendarDaysIcon, 
@@ -16,6 +17,7 @@ import {
   ChevronRightIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 import 'react-day-picker/style.css';
 
@@ -44,31 +46,78 @@ const HoursSettingsPage = () => {
   // General Settings State
   const [bookingDeadline, setBookingDeadline] = useState<Date | undefined>();
 
-  // 1. Initialize & Fetch Designers
+  // 1. Initialize & Fetch Designers (Sync with Users)
   useEffect(() => {
     const init = async () => {
       setLoading(true);
       try {
-        let fetchedDesigners: Designer[] = [];
+        let finalDesignersList: Designer[] = [];
 
         if (isAdminOrManager) {
-          // Admin/Manager: Fetch All
-          const snap = await getDocs(collection(db, 'designers'));
-          fetchedDesigners = snap.docs.map(d => ({ id: d.id, ...d.data() } as Designer))
-                                      .sort((a, b) => a.displayOrder - b.displayOrder);
+          // 1. Fetch Users (Client-side filter for safety)
+          const usersSnap = await getDocs(collection(db, 'users'));
+          const eligibleUsers = usersSnap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as EnrichedUser))
+            .filter(u => ['manager', 'designer'].includes(u.role));
+
+          // 2. Fetch Existing Designers
+          const designersSnap = await getDocs(collection(db, 'designers'));
+          let currentDesigners = designersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Designer));
+
+          // 3. Sync: Create profiles for users who don't have one
+          const newDesigners: Designer[] = [];
+          for (const user of eligibleUsers) {
+            const existing = currentDesigners.find(d => d.linkedUserId === user.id);
+            if (!existing) {
+               const newId = uuidv4();
+               const newProfile: Designer = {
+                  id: newId,
+                  name: user.profile.displayName || '未命名',
+                  title: user.role === 'manager' ? '管理設計師' : '設計師',
+                  linkedUserId: user.id,
+                  isActive: true,
+                  displayOrder: 99,
+                  avatarUrl: user.profile.avatarUrl || undefined
+               };
+               // Auto-create in Firestore
+               await setDoc(doc(db, 'designers', newId), newProfile);
+               newDesigners.push(newProfile);
+            }
+          }
+          
+          finalDesignersList = [...currentDesigners, ...newDesigners].sort((a, b) => a.displayOrder - b.displayOrder);
+
         } else if (isDesigner && currentUser) {
-          // Designer: Fetch Own
+          // Designer: Fetch Own Profile
           const q = query(collection(db, 'designers'), where('linkedUserId', '==', currentUser.uid));
           const snap = await getDocs(q);
           if (!snap.empty) {
-            fetchedDesigners = [{ id: snap.docs[0].id, ...snap.docs[0].data() } as Designer];
+            finalDesignersList = [{ id: snap.docs[0].id, ...snap.docs[0].data() } as Designer];
+          } else {
+             // If designer has no profile (edge case), create one
+             const newId = uuidv4();
+             const newProfile: Designer = {
+                id: newId,
+                name: userProfile?.profile.displayName || '我',
+                title: '設計師',
+                linkedUserId: currentUser.uid,
+                isActive: true,
+                displayOrder: 99,
+                avatarUrl: userProfile?.profile.avatarUrl || undefined
+             };
+             await setDoc(doc(db, 'designers', newId), newProfile);
+             finalDesignersList = [newProfile];
           }
         }
 
-        setDesigners(fetchedDesigners);
-        // Default selection
-        if (fetchedDesigners.length > 0 && !selectedTargetId) {
-          setSelectedTargetId(fetchedDesigners[0].id);
+        setDesigners(finalDesignersList);
+        
+        // Restore selection or default
+        if (finalDesignersList.length > 0) {
+            // Keep selected if exists in new list, else select first
+            if (!selectedTargetId || !finalDesignersList.find(d => d.id === selectedTargetId)) {
+                setSelectedTargetId(finalDesignersList[0].id);
+            }
         }
       } catch (e) {
         console.error("Error initializing:", e);
@@ -77,7 +126,7 @@ const HoursSettingsPage = () => {
       }
     };
     init();
-  }, [isAdminOrManager, isDesigner, currentUser]);
+  }, [isAdminOrManager, isDesigner, currentUser, userProfile]); // userProfile needed for fallback name
 
   // 2. Fetch General Settings (Deadline) for Selected Designer
   useEffect(() => {
@@ -213,8 +262,8 @@ const HoursSettingsPage = () => {
         <div className="min-h-screen flex flex-col items-center justify-center bg-secondary-light p-4">
             <div className="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md">
                 <UserCircleIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h2 className="text-xl font-bold text-gray-900 mb-2">尚未建立設計師檔案</h2>
-                <p className="text-gray-500 mb-6">請先至「設計師管理」頁面建立檔案，才能設定營業時間。</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">無法載入設計師資料</h2>
+                <p className="text-gray-500 mb-6">請確認您的帳號權限或聯繫管理員。</p>
             </div>
         </div>
     );
@@ -224,23 +273,37 @@ const HoursSettingsPage = () => {
     <div className="min-h-screen bg-[#FAF9F6] flex flex-col lg:flex-row">
       
       {/* Sidebar (Desktop) / Header (Mobile) */}
-      <aside className="lg:w-64 bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex-shrink-0 z-10">
-        <div className="p-4 lg:p-6 border-b border-gray-100">
+      <aside className="lg:w-64 bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex-shrink-0 z-10 flex flex-col h-auto lg:h-screen sticky top-0 lg:static">
+        <div className="p-4 lg:p-6 border-b border-gray-100 flex items-center justify-between lg:block">
             <h1 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2">
                 <ClockIcon className="w-6 h-6 text-[#9F9586]" />
-                營業時間設定
+                營業時間
             </h1>
+            {/* Mobile Designer Dropdown - Only if multiple */}
+            {designers.length > 1 && (
+                <div className="lg:hidden">
+                    <select 
+                        value={selectedTargetId || ''} 
+                        onChange={(e) => setSelectedTargetId(e.target.value)}
+                        className="text-sm border-none bg-gray-50 rounded-lg py-1 px-2 focus:ring-0 font-bold text-gray-700"
+                    >
+                        {designers.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
         </div>
         
-        {/* Designer List */}
-        <div className="p-2 lg:p-4 overflow-x-auto lg:overflow-y-auto flex lg:flex-col gap-2">
+        {/* Designer List (Desktop) */}
+        <div className="hidden lg:flex flex-col gap-2 p-4 overflow-y-auto flex-1">
             {designers.map(d => (
                 <button
                     key={d.id}
                     onClick={() => setSelectedTargetId(d.id)}
-                    className={`flex items-center gap-3 p-3 rounded-xl transition-all w-full text-left flex-shrink-0 lg:flex-shrink
+                    className={`flex items-center gap-3 p-3 rounded-xl transition-all w-full text-left
                         ${selectedTargetId === d.id 
-                            ? 'bg-[#9F9586] text-white shadow-md' 
+                            ? 'bg-[#9F9586] text-white shadow-md transform scale-[1.02]' 
                             : 'hover:bg-gray-50 text-gray-600'
                         }
                     `}
@@ -254,20 +317,26 @@ const HoursSettingsPage = () => {
                         <div className="font-bold truncate">{d.name}</div>
                         <div className={`text-xs truncate ${selectedTargetId === d.id ? 'text-white/80' : 'text-gray-400'}`}>{d.title || '設計師'}</div>
                     </div>
-                    {selectedTargetId === d.id && <ChevronRightIcon className="w-4 h-4 ml-auto hidden lg:block" />}
+                    {selectedTargetId === d.id && <ChevronRightIcon className="w-4 h-4 ml-auto" />}
                 </button>
             ))}
         </div>
+        
+        {/* Mobile Horizontal Scroll (If Sidebar hidden) - Alternative to Dropdown if preferred, but Dropdown is cleaner for space. keeping dropdown. */}
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-        <div className="max-w-4xl mx-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto h-auto lg:h-screen">
+        <div className="max-w-4xl mx-auto pb-20 lg:pb-0">
             {/* Header Area */}
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{selectedDesignerName}</h2>
-                    <p className="text-sm text-gray-500">設定此設計師的排班與規則</p>
+                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        {selectedDesignerName}
+                        <span className="text-xs font-normal px-2 py-1 bg-gray-100 rounded-full text-gray-500">
+                            {activeTab === 'daily' ? '每日排班' : '基本設定'}
+                        </span>
+                    </h2>
                 </div>
                 
                 {/* Tabs */}
@@ -294,7 +363,7 @@ const HoursSettingsPage = () => {
             </div>
 
             {message && (
-                <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 animate-fade-in ${message.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                     <span className="text-lg">{message.type === 'success' ? '✓' : '!'}</span>
                     {message.text}
                 </div>
@@ -368,14 +437,14 @@ const HoursSettingsPage = () => {
                                 {!isClosed && (
                                     <div className="space-y-4">
                                         {timeSlots.map((slot, index) => (
-                                            <div key={index} className="flex flex-col sm:flex-row gap-4 items-start sm:items-end bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                            <div key={index} className="flex flex-col sm:flex-row gap-4 items-start sm:items-end bg-gray-50 p-4 rounded-xl border border-gray-100 animate-fade-in-up">
                                                 <div className="w-full sm:w-1/2">
                                                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">開始時間</label>
                                                     <input 
                                                         type="time" 
                                                         value={slot.start} 
                                                         onChange={(e) => handleTimeSlotChange(index, 'start', e.target.value)}
-                                                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-[#9F9586]"
+                                                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-[#9F9586] outline-none"
                                                     />
                                                 </div>
                                                 <div className="w-full sm:w-1/2">
@@ -384,7 +453,7 @@ const HoursSettingsPage = () => {
                                                         type="time" 
                                                         value={slot.end} 
                                                         onChange={(e) => handleTimeSlotChange(index, 'end', e.target.value)}
-                                                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-[#9F9586]"
+                                                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-[#9F9586] outline-none"
                                                     />
                                                 </div>
                                                 {timeSlots.length > 1 && (
@@ -393,7 +462,7 @@ const HoursSettingsPage = () => {
                                                             const newSlots = timeSlots.filter((_, i) => i !== index);
                                                             setTimeSlots(newSlots);
                                                         }}
-                                                        className="text-red-400 hover:text-red-600 p-2 sm:mb-1"
+                                                        className="text-red-400 hover:text-red-600 p-2 sm:mb-1 hover:bg-red-50 rounded-lg transition-colors"
                                                     >
                                                         <TrashIcon className="w-5 h-5" />
                                                     </button>
@@ -427,7 +496,7 @@ const HoursSettingsPage = () => {
 
             {/* General Settings View */}
             {activeTab === 'general' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden max-w-2xl mx-auto">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden max-w-2xl mx-auto animate-fade-in">
                     <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                         <h3 className="font-bold text-gray-900 text-lg">基本預約規則</h3>
                     </div>
