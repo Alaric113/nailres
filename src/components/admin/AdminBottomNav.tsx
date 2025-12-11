@@ -65,10 +65,6 @@ const AdminBottomNav: React.FC<AdminBottomNavProps> = () => {
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-lg border-t border-gray-100 pb-safe-area shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden">
       <div className="flex justify-around items-center px-2 py-3">
         {navItems.map((item) => {
-          // Exact match for root '/admin', startsWith for others to catch sub-routes if needed
-          // For '/', we want exact match otherwise it matches everything.
-          // For '/admin', we want exact match because '/admin/calendar' exists.
-          
           let isActive = false;
           if (item.path === '/') {
              isActive = location.pathname === '/';
@@ -81,16 +77,11 @@ const AdminBottomNav: React.FC<AdminBottomNavProps> = () => {
           const Icon = isActive ? item.activeIcon : item.icon;
 
           return (
-            <div
+            <Link
               key={item.name}
+              to={item.path}
               className="relative flex flex-col items-center justify-center w-full h-full space-y-1"
             >
-              <Link 
-                to={item.path} 
-                className="absolute inset-0" 
-                aria-label={item.name}
-              />
-
               {isActive && (
                 <motion.div
                   layoutId="adminBottomNavActive"
@@ -107,7 +98,7 @@ const AdminBottomNav: React.FC<AdminBottomNavProps> = () => {
               <span className={`text-[10px] font-medium transition-colors duration-200 ${isActive ? 'text-[#9F9586]' : 'text-gray-400'}`}>
                 {item.name}
               </span>
-            </div>
+            </Link>
           );
         })}
       </div>
