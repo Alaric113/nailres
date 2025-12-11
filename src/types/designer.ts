@@ -1,4 +1,5 @@
 import type { BusinessHours } from './businessHours';
+import type { Timestamp } from 'firebase/firestore';
 
 export interface Designer {
   id: string;
@@ -14,6 +15,7 @@ export interface Designer {
   customBusinessHours?: BusinessHours; // 該設計師的獨立營業時間 (若無則使用全店預設)
   isActive: boolean; // 是否接受預約
   displayOrder: number; // 前台顯示順序
+  bookingDeadline?: Timestamp | null; // 最晚可預約日期 (該設計師專屬)
   
   // 價格設定 (預留)
   priceModifier?: number; // 例如 1.2 代表價格加成 20%
