@@ -5,6 +5,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import SummaryCard from '../components/admin/SummaryCard';
 import type { EnrichedUser } from '../types/user';
 import { useSearchParams } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore'; // Import useAuthStore
 import { 
   BellAlertIcon, 
   ClockIcon, 
@@ -16,37 +17,46 @@ import {
 } from '@heroicons/react/24/outline';
 
 // --- Notification Settings Sub-View ---
-// Note: onBack is handled by parent or layout if global header used.
-
 const NotificationSettingsView: React.FC = () => {
-  const [admins, setAdmins] = useState<EnrichedUser[]>([]);
+  const { userProfile, currentUser } = useAuthStore();
+  const isDesignerRole = userProfile?.role === 'designer';
+
+  const [notificationTargetUser, setNotificationTargetUser] = useState<EnrichedUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
-    const fetchAdmins = async () => {
+    const fetchUsers = async () => {
       setIsLoading(true);
       try {
-        const q = query(collection(db, 'users'), where('role', '==', 'admin'));
+        let q;
+        if (isDesignerRole && currentUser) {
+          // Designer only sees their own setting
+          q = query(collection(db, 'users'), where('__name__', '==', currentUser.uid));
+        } else {
+          // Admin/Manager sees all (admin/manager role)
+          q = query(collection(db, 'users'), where('role', 'in', ['admin', 'manager']));
+        }
+        
         const querySnapshot = await getDocs(q);
-        const adminList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EnrichedUser));
-        setAdmins(adminList);
+        const userList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EnrichedUser));
+        setNotificationTargetUser(userList);
       } catch (error) {
-        console.error("Error fetching admins:", error);
-        setMessage({ type: 'error', text: '讀取管理員列表失敗。' });
+        console.error("Error fetching notification target users:", error);
+        setMessage({ type: 'error', text: '讀取設定失敗。' });
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchAdmins();
-  }, []);
+    fetchUsers();
+  }, [isDesignerRole, currentUser]);
 
   const handleToggleNotification = async (userId: string, currentValue: boolean) => {
-    setAdmins(prevAdmins =>
-      prevAdmins.map(admin =>
-        admin.id === userId ? { ...admin, receivesAdminNotifications: !currentValue } : admin
+    setNotificationTargetUser(prevUsers =>
+      prevUsers.map(u =>
+        u.id === userId ? { ...u, receivesAdminNotifications: !currentValue } : u
       )
     );
     setMessage(null);
@@ -59,9 +69,9 @@ const NotificationSettingsView: React.FC = () => {
     } catch (error) {
       console.error("Error updating notification setting:", error);
       setMessage({ type: 'error', text: '更新失敗，請稍後再試。' });
-      setAdmins(prevAdmins =>
-        prevAdmins.map(admin =>
-          admin.id === userId ? { ...admin, receivesAdminNotifications: currentValue } : admin
+      setNotificationTargetUser(prevUsers =>
+        prevUsers.map(u =>
+          u.id === userId ? { ...u, receivesAdminNotifications: currentValue } : u
         )
       );
     }
@@ -105,7 +115,7 @@ const NotificationSettingsView: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-[#FAF9F6] p-4 rounded-lg border border-[#EFECE5]">
               <p className="text-gray-700 text-sm leading-relaxed">
-                勾選您希望接收 LINE 預約通知的管理員帳號。
+                勾選您希望接收 LINE 預約通知的帳號。
               </p>
             </div>
             
@@ -116,32 +126,32 @@ const NotificationSettingsView: React.FC = () => {
             )}
             
             <ul className="divide-y divide-gray-100">
-              {admins.map(admin => (
-                <li key={admin.id} className="py-4 flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
+              {notificationTargetUser.map(user => (
+                <li key={user.id} className="py-4 flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
                   <div className="flex items-center">                    
                     <img 
                       className="h-12 w-12 rounded-full mr-4 object-cover border-2 border-white shadow-sm" 
-                      src={admin.profile.avatarUrl || `https://ui-avatars.com/api/?name=${admin.profile.displayName}&background=random`} 
+                      src={user.profile.avatarUrl || `https://ui-avatars.com/api/?name=${user.profile.displayName}&background=random`} 
                       alt="" 
                       crossOrigin="anonymous"
                       referrerPolicy="no-referrer"
                     />
                     <div>
-                      <p className="text-base font-medium text-gray-900">{admin.profile.displayName}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">ID: {admin.id.slice(0, 8)}...</p>
+                      <p className="text-base font-medium text-gray-900">{user.profile.displayName}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">ID: {user.id.slice(0, 8)}...</p>
                     </div>
                   </div>
-                  <label htmlFor={`toggle-${admin.id}`} className="flex items-center cursor-pointer relative group">
+                  <label htmlFor={`toggle-${user.id}`} className="flex items-center cursor-pointer relative group">
                     <div className="relative">
                       <input
                         type="checkbox"
-                        id={`toggle-${admin.id}`}
+                        id={`toggle-${user.id}`}
                         className="sr-only"
-                        checked={!!admin.receivesAdminNotifications}
-                        onChange={() => handleToggleNotification(admin.id, !!admin.receivesAdminNotifications)}
+                        checked={!!user.receivesAdminNotifications}
+                        onChange={() => handleToggleNotification(user.id, !!user.receivesAdminNotifications)}
                       />
-                      <div className={`block w-12 h-7 rounded-full transition-colors duration-300 ${admin.receivesAdminNotifications ? 'bg-[#9F9586]' : 'bg-gray-200'}`}></div>
-                      <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm ${admin.receivesAdminNotifications ? 'translate-x-5' : ''}`}></div>
+                      <div className={`block w-12 h-7 rounded-full transition-colors duration-300 ${user.receivesAdminNotifications ? 'bg-[#9F9586]' : 'bg-gray-200'}`}></div>
+                      <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm ${user.receivesAdminNotifications ? 'translate-x-5' : ''}`}></div>
                     </div>
                   </label>
                 </li>
@@ -170,6 +180,72 @@ const NotificationSettingsView: React.FC = () => {
 const SettingsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentView = searchParams.get('view') || 'dashboard';
+  const { userProfile } = useAuthStore();
+
+  // Define cards available to all staff, then filter based on role
+  const allSettingsCards = [
+    { 
+      title: "通知設定", 
+      icon: BellAlertIcon, 
+      color: "bg-yellow-500", 
+      subtext: "設定 LINE 通知接收人員", 
+      onClick: () => setSearchParams({ view: 'notifications' }),
+      roles: ['admin', 'manager', 'designer']
+    },
+    { 
+      title: "營業時間", 
+      icon: ClockIcon, 
+      color: "bg-purple-500", 
+      linkTo: "/admin/hours", 
+      subtext: "管理排班與營業時間",
+      roles: ['admin', 'manager', 'designer']
+    },
+    { 
+      title: "用戶管理", 
+      icon: UserGroupIcon, 
+      color: "bg-indigo-500", 
+      linkTo: "/admin/customers", 
+      subtext: "查看與管理所有會員資料",
+      roles: ['admin', 'manager'] // Restricted to Admin/Manager
+    },
+    { 
+      title: "設計師管理", 
+      icon: UserCircleIcon, 
+      color: "bg-teal-500", 
+      linkTo: "/admin/staff", 
+      subtext: "管理設計師檔案與公開資訊",
+      roles: ['admin', 'manager'] // Restricted to Admin/Manager
+    },
+    { 
+      title: "服務項目", 
+      icon: CubeIcon, 
+      color: "bg-blue-500", 
+      linkTo: "/admin/services", 
+      subtext: "新增或修改服務項目與價格",
+      roles: ['admin', 'manager', 'designer']
+    },
+    { 
+      title: "作品集", 
+      icon: PhotoIcon, 
+      color: "bg-pink-500", 
+      linkTo: "/admin/portfolio", 
+      subtext: "管理作品集圖片與分類",
+      roles: ['admin', 'manager', 'designer']
+    },
+    { 
+      title: "優惠活動", 
+      icon: TicketIcon, 
+      color: "bg-green-500", 
+      linkTo: "/admin/promotions", 
+      subtext: "設定優惠券與促銷活動",
+      roles: ['admin', 'manager', 'designer']
+    },
+  ];
+
+  const filteredCards = allSettingsCards.filter(card => 
+    card.roles.includes(userProfile?.role || '')
+  );
+
 
   if (currentView === 'notifications') {
     return (
@@ -183,75 +259,18 @@ const SettingsPage: React.FC = () => {
     <div className="p-4 sm:p-6 lg:p-8">
        {/* Cards Grid */}
        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Notification Settings */}
-          <SummaryCard 
-            title="通知設定"
-            value=""
-            icon={<BellAlertIcon className="h-6 w-6" />}
-            color="bg-yellow-500"
-            onClick={() => setSearchParams({ view: 'notifications' })}
-            subtext="設定 LINE 通知接收人員"
-          />
-          
-          {/* Business Hours */}
-           <SummaryCard 
-            title="營業時間"
-            value=""
-            icon={<ClockIcon className="h-6 w-6" />}
-            color="bg-purple-500"
-            linkTo="/admin/hours"
-            subtext="管理每週營業時間與公休日"
-          />
-
-          {/* User Management */}
-          <SummaryCard 
-            title="用戶管理"
-            value=""
-            icon={<UserGroupIcon className="h-6 w-6" />}
-            color="bg-indigo-500"
-            linkTo="/admin/customers"
-            subtext="查看與管理所有會員資料"
-          />
-
-          {/* Designer Management */}
-          <SummaryCard 
-            title="設計師管理"
-            value=""
-            icon={<UserCircleIcon className="h-6 w-6" />}
-            color="bg-teal-500"
-            linkTo="/admin/staff"
-            subtext="新增設計師與連結系統帳號"
-          />
-
-          {/* Services */}
-           <SummaryCard 
-            title="服務項目"
-            value=""
-            icon={<CubeIcon className="h-6 w-6" />}
-            color="bg-blue-500"
-            linkTo="/admin/services"
-            subtext="新增或修改服務項目與價格"
-          />
-
-          {/* Portfolio */}
-           <SummaryCard 
-            title="作品集"
-            value=""
-            icon={<PhotoIcon className="h-6 w-6" />}
-            color="bg-pink-500"
-            linkTo="/admin/portfolio"
-            subtext="管理作品集圖片與分類"
-          />
-
-          {/* Promotions */}
-           <SummaryCard 
-            title="優惠活動"
-            value=""
-            icon={<TicketIcon className="h-6 w-6" />}
-            color="bg-green-500"
-            linkTo="/admin/promotions"
-            subtext="設定優惠券與促銷活動"
-          />
+          {filteredCards.map(card => (
+            <SummaryCard 
+              key={card.title}
+              title={card.title}
+              value=""
+              icon={React.createElement(card.icon, { className: "h-6 w-6" })} // Dynamically render icon
+              color={card.color}
+              onClick={card.onClick}
+              linkTo={card.linkTo}
+              subtext={card.subtext}
+            />
+          ))}
        </div>
     </div>
   );

@@ -64,8 +64,16 @@ const AdminBottomNav: React.FC<AdminBottomNavProps> = () => {
   ];
 
   const navItems = allNavItems.filter(item => {
-    if (userProfile?.role === 'designer' && item.name === '設定') return false;
-    return true;
+    // Admin and Manager see everything
+    if (userProfile?.role === 'admin' || userProfile?.role === 'manager') return true;
+
+    // Designer role restrictions
+    if (userProfile?.role === 'designer') {
+      // Designers should see: 前台, 行事曆, 首頁, 訂單
+      // This means hiding '設定'
+      return item.name !== '設定';
+    }
+    return false; // For other roles, hide all admin nav.
   });
 
   return (
