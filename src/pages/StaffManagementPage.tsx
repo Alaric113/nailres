@@ -20,6 +20,7 @@ const StaffManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDesigner, setEditingDesigner] = useState<Partial<Designer>>({});
+  const [useLinkedAvatar, setUseLinkedAvatar] = useState(false);
   
   // Fetch data
   useEffect(() => {
@@ -52,6 +53,16 @@ const StaffManagementPage: React.FC = () => {
     fetchData();
   }, []);
 
+  // Sync avatar when useLinkedAvatar is checked
+  useEffect(() => {
+    if (useLinkedAvatar && editingDesigner.linkedUserId) {
+        const linkedUser = users.find(u => u.id === editingDesigner.linkedUserId);
+        if (linkedUser?.profile.avatarUrl) {
+            setEditingDesigner(prev => ({ ...prev, avatarUrl: linkedUser.profile.avatarUrl! }));
+        }
+    }
+  }, [useLinkedAvatar, editingDesigner.linkedUserId, users]);
+
   const handleSave = async () => {
     if (!editingDesigner.name) return;
 
@@ -64,6 +75,7 @@ const StaffManagementPage: React.FC = () => {
       linkedUserId: editingDesigner.linkedUserId || null,
       isActive: editingDesigner.isActive ?? true,
       displayOrder: editingDesigner.displayOrder || designers.length + 1,
+      avatarUrl: editingDesigner.avatarUrl,
     };
 
     try {
@@ -93,6 +105,7 @@ const StaffManagementPage: React.FC = () => {
 
   const openModal = (designer?: Designer) => {
     setEditingDesigner(designer || { isActive: true });
+    setUseLinkedAvatar(false);
     setIsModalOpen(true);
   };
 
@@ -181,6 +194,16 @@ const StaffManagementPage: React.FC = () => {
         title={editingDesigner.id ? '編輯設計師' : '新增設計師'}
       >
           <div className="space-y-5 px-1 py-2">
+              <div className="flex justify-center mb-2">
+                   <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-2xl font-bold border border-gray-200 overflow-hidden relative">
+                        {editingDesigner.avatarUrl ? (
+                            <img src={editingDesigner.avatarUrl} alt="Avatar Preview" className="h-full w-full object-cover" />
+                        ) : (
+                            <UserCircleIcon className="h-10 w-10" />
+                        )}
+                   </div>
+              </div>
+
               <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">顯示名稱</label>
                   <input 
@@ -219,6 +242,22 @@ const StaffManagementPage: React.FC = () => {
                           </option>
                       ))}
                   </select>
+                  
+                  {editingDesigner.linkedUserId && (
+                    <div className="mt-2 flex items-center">
+                        <input
+                            id="useLinkedAvatar"
+                            type="checkbox"
+                            checked={useLinkedAvatar}
+                            onChange={e => setUseLinkedAvatar(e.target.checked)}
+                            className="h-4 w-4 text-[#9F9586] focus:ring-[#9F9586] border-gray-300 rounded cursor-pointer"
+                        />
+                        <label htmlFor="useLinkedAvatar" className="ml-2 block text-xs text-gray-600 cursor-pointer select-none">
+                            使用此連結帳號的頭像 (若有)
+                        </label>
+                    </div>
+                  )}
+
                   <p className="mt-1.5 text-xs text-gray-500">
                       連結後，該帳號將會收到此設計師的預約通知。
                   </p>
