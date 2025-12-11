@@ -1,29 +1,20 @@
 import React, { useState } from 'react';
-import type { EnrichedUser, UserRole } from '../../types/user';
+import type { EnrichedUser } from '../../types/user';
 
 interface UserCardProps {
   user: EnrichedUser;
-  isUpdatingRole: boolean;
-  onRoleChange: (userId: string, newRole: UserRole) => void;
   onSaveNote: (userId: string, note: string) => Promise<void>;
   onSaveError: (error: string | null) => void;
 }
 
-const roleMap: Record<UserRole, string> = {
-  admin: '管理員',
-  user: '一般會員',
-  platinum: '白金會員',
-  designer: '設計師'
-};
-
 const DEFAULT_AVATAR = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
 
-const UserCard: React.FC<UserCardProps> = ({ user, isUpdatingRole, onRoleChange, onSaveNote, onSaveError }) => {
+const UserCard: React.FC<UserCardProps> = ({ user, onSaveNote, onSaveError }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [noteText, setNoteText] = useState(user.notes || '');
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleEditClick = () => {
+  const handleEditClick = () => { // No arguments here
     setIsEditing(true);
     setNoteText(user.notes || '');
     onSaveError(null);
@@ -61,28 +52,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, isUpdatingRole, onRoleChange,
                   設計師
                 </span>
               )}
-              {user.role === 'admin' && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 border border-red-200 shrink-0">
-                  管理員
-                </span>
-              )}
             </h3>
-            <select
-              value={user.role}
-              onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}
-              disabled={isUpdatingRole}
-              className={`p-1 border rounded-md text-xs flex-shrink-0 ${
-                user.role === 'admin' ? 'bg-red-100 text-red-800 border-red-200' : 
-                user.role === 'platinum' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 
-                user.role === 'designer' ? 'bg-purple-100 text-purple-800 border-purple-200' :
-                'bg-gray-100 text-gray-800 border-gray-200'
-              }`}
-            >
-              <option value="admin">{roleMap.admin}</option>
-              <option value="user">{roleMap.user}</option>
-              <option value="platinum">{roleMap.platinum}</option>
-              <option value="designer">{roleMap.designer}</option>
-            </select>
           </div>
         </div>
         <div className="mt-2 pt-2 border-t border-gray-200">
