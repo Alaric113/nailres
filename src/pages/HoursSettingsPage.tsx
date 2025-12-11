@@ -25,8 +25,10 @@ type Tab = 'daily' | 'general';
 
 const HoursSettingsPage = () => {
   const { userProfile, currentUser } = useAuthStore();
-  const isAdminOrManager = ['admin', 'manager'].includes(userProfile?.role || '');
-  const isDesigner = userProfile?.role === 'designer';
+  const isTrulyAdminUser = userProfile?.role === 'admin';
+  const isManagerUser = userProfile?.role === 'manager';
+  const isDesignerUser = userProfile?.role === 'designer';
+  const canAdminAllDesigners = isTrulyAdminUser || isManagerUser; // Can see/edit all designers
 
   const [designers, setDesigners] = useState<Designer[]>([]);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
@@ -34,7 +36,7 @@ const HoursSettingsPage = () => {
   const [activeTab, setActiveTab] = useState<Tab>('daily');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  // Removed [message, setMessage] state
 
   // Daily Settings State
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -45,7 +47,7 @@ const HoursSettingsPage = () => {
 
   // General Settings State
   const [bookingDeadline, setBookingDeadline] = useState<Date | undefined>();
-  const { showToast } = useToast();
+  const { showToast } = useToast(); // Initialize useToast
 
   // 1. Initialize & Fetch Designers (Sync with Users)
   useEffect(() => {
@@ -54,24 +56,23 @@ const HoursSettingsPage = () => {
       try {
         let finalDesignersList: Designer[] = [];
 
-        if (isAdminOrManager) {
-          // 1. Fetch Users (Client-side filter for safety)
+        if (canAdminAllDesigners) {
+          // Admin/Manager: Fetch Users with 'manager' or 'designer' roles
           const usersSnap = await getDocs(collection(db, 'users'));
           const eligibleUsers = usersSnap.docs
             .map(doc => ({ id: doc.id, ...doc.data() } as EnrichedUser))
-            .filter(u => ['manager', 'designer'].includes(u.role));
+            .filter(u => ['manager', 'designer'].includes(u.role)); // Only manager/designer can have profiles
 
-          // 2. Fetch Existing Designers
+          // Fetch Existing Designer Profiles
           const designersSnap = await getDocs(collection(db, 'designers'));
           let currentDesigners = designersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Designer));
 
-          // 3. Sync: Create profiles for users who don't have one
+          // Sync: Create profiles for eligible users who don't have one
           const newDesigners: Designer[] = [];
           for (const user of eligibleUsers) {
             const existing = currentDesigners.find(d => d.linkedUserId === user.id);
             if (!existing) {
-               // Use user.id as doc ID to prevent duplicates (idempotent)
-               const newId = user.id;
+               const newId = user.id; // Use user.id as doc ID to prevent duplicates (idempotent)
                const newProfile: Designer = {
                   id: newId,
                   name: user.profile.displayName || '未命名',
@@ -81,7 +82,6 @@ const HoursSettingsPage = () => {
                   displayOrder: 99,
                   avatarUrl: user.profile.avatarUrl || undefined
                };
-               // Auto-create in Firestore
                await setDoc(doc(db, 'designers', newId), newProfile);
                newDesigners.push(newProfile);
             }
@@ -89,7 +89,7 @@ const HoursSettingsPage = () => {
           
           finalDesignersList = [...currentDesigners, ...newDesigners].sort((a, b) => a.displayOrder - b.displayOrder);
 
-        } else if (isDesigner && currentUser) {
+        } else if (isDesignerUser && currentUser) {
           // Designer: Fetch Own Profile
           const q = query(collection(db, 'designers'), where('linkedUserId', '==', currentUser.uid));
           const snap = await getDocs(q);
@@ -97,8 +97,7 @@ const HoursSettingsPage = () => {
             finalDesignersList = [{ id: snap.docs[0].id, ...snap.docs[0].data() } as Designer];
           } else {
              // If designer has no profile (edge case), create one
-             // Use uid as doc ID to prevent duplicates
-             const newId = currentUser.uid;
+             const newId = currentUser.uid; // Use uid as doc ID to prevent duplicates
              const newProfile: Designer = {
                 id: newId,
                 name: userProfile?.profile.displayName || '我',
@@ -118,9 +117,15 @@ const HoursSettingsPage = () => {
         // Restore selection or default
         if (finalDesignersList.length > 0) {
             // Keep selected if exists in new list, else select first
-            if (!selectedTargetId || !finalDesignersList.find(d => d.id === selectedTargetId)) {
+            if (isDesignerUser && currentUser) {
+                const myDesigner = finalDesignersList.find(d => d.linkedUserId === currentUser.uid);
+                if (myDesigner) setSelectedTargetId(myDesigner.id);
+                else showToast('您的設計師檔案尚未建立，無法設定營業時間。', 'error'); // Fallback if profile not created by auto-sync
+            } else if (!selectedTargetId || !finalDesignersList.find(d => d.id === selectedTargetId)) {
                 setSelectedTargetId(finalDesignersList[0].id);
             }
+        } else {
+            setSelectedTargetId(null); // No designers available
         }
       } catch (e) {
         console.error("Error initializing:", e);
@@ -130,7 +135,7 @@ const HoursSettingsPage = () => {
       }
     };
     init();
-  }, [isAdminOrManager, isDesigner, currentUser, userProfile]); // userProfile needed for fallback name
+  }, [canAdminAllDesigners, isDesignerUser, currentUser, userProfile, showToast]); // showToast is stable, so okay.
 
   // 2. Fetch General Settings (Deadline) for Selected Designer
   useEffect(() => {
@@ -154,7 +159,7 @@ const HoursSettingsPage = () => {
       }
     };
     fetchGeneralSettings();
-  }, [selectedTargetId]);
+  }, [selectedTargetId, showToast]);
 
   // 3. Listen to Calendar Modifiers (Closed Days)
   useEffect(() => {
@@ -200,20 +205,24 @@ const HoursSettingsPage = () => {
         }
       } catch (e) {
         console.error("Error fetching daily settings:", e);
-      }
+        showToast('讀取設定失敗！', 'error');
+      } // finally { setIsLoading(false); } // Don't set loading to false here, only init does
     };
     fetchDaily();
-  }, [selectedDate, selectedTargetId]);
+  }, [selectedDate, selectedTargetId, showToast]);
 
   // --- Handlers ---
 
   const handleSaveDaily = async () => {
-    if (!selectedTargetId || !selectedDate || !isValid(selectedDate)) {
+    if (!selectedTargetId) {
+        showToast('請先選擇設計師。', 'warning');
+        return;
+    }
+    if (!selectedDate || !isValid(selectedDate)) {
       showToast('請先選擇一個有效的日期。', 'warning');
       return;
     }
     setIsSaving(true);
-    setMessage(null);
 
     const docId = format(selectedDate, 'yyyy-MM-dd');
     const docRef = doc(db, `designers/${selectedTargetId}/businessHours`, docId);
@@ -236,9 +245,11 @@ const HoursSettingsPage = () => {
   };
 
   const handleSaveGeneral = async () => {
-    if (!selectedTargetId) return;
+    if (!selectedTargetId) {
+        showToast('請先選擇設計師。', 'warning');
+        return;
+    }
     setIsSaving(true);
-    setMessage(null);
 
     try {
       const docRef = doc(db, 'designers', selectedTargetId);
@@ -260,22 +271,39 @@ const HoursSettingsPage = () => {
     setTimeSlots(newSlots);
   };
 
+  const addTimeSlot = () => {
+    setTimeSlots(prev => [...prev, { start: '10:00', end: '19:00' }]);
+  };
+
+  const removeTimeSlot = (index: number) => {
+    setTimeSlots(prev => prev.filter((_, i) => i !== index));
+  };
+
+
   // --- Render Helpers ---
-  const selectedDesignerName = designers.find(d => d.id === selectedTargetId)?.name || '未選擇';
+  const selectedDesigner = designers.find(d => d.id === selectedTargetId);
+  const selectedDesignerName = selectedDesigner?.name || '未選擇';
 
   if (loading) return <LoadingSpinner />;
 
-  if (designers.length === 0) {
+  // Display error message if no designer profiles are found for the current user
+  if (designers.length === 0 && (isDesignerUser || canAdminAllDesigners)) {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-secondary-light p-4">
             <div className="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md">
                 <UserCircleIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h2 className="text-xl font-bold text-gray-900 mb-2">無法載入設計師資料</h2>
                 <p className="text-gray-500 mb-6">請確認您的帳號權限或聯繫管理員。</p>
+                {isTrulyAdminUser && (
+                  <p className="text-sm text-gray-600">管理員帳號不設定營業時間，請為管理設計師或設計師建立檔案。</p>
+                )}
             </div>
         </div>
     );
   }
+  
+  // Conditionally hide selector for plain admin
+  const showDesignerSelector = canAdminAllDesigners; // Only admin/manager can select different designers
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] flex flex-col lg:flex-row">
@@ -287,8 +315,8 @@ const HoursSettingsPage = () => {
                 <ClockIcon className="w-6 h-6 text-[#9F9586]" />
                 營業時間
             </h1>
-            {/* Mobile Designer Dropdown - Only if multiple */}
-            {designers.length > 1 && (
+            {/* Mobile Designer Dropdown */}
+            {showDesignerSelector && designers.length > 0 && (
                 <div className="lg:hidden">
                     <select 
                         value={selectedTargetId || ''} 
@@ -301,36 +329,69 @@ const HoursSettingsPage = () => {
                     </select>
                 </div>
             )}
+            {!showDesignerSelector && isDesignerUser && designers.length > 0 && ( // Designer user
+                 <div className="lg:hidden px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                    {designers[0].name} 的行程
+                </div>
+            )}
+            {!showDesignerSelector && isTrulyAdminUser && ( // Admin User
+                <div className="lg:hidden px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+                    純管理帳號
+                </div>
+            )}
         </div>
         
         {/* Designer List (Desktop) */}
-        <div className="hidden lg:flex flex-col gap-2 p-4 overflow-y-auto flex-1">
-            {designers.map(d => (
-                <button
-                    key={d.id}
-                    onClick={() => setSelectedTargetId(d.id)}
-                    className={`flex items-center gap-3 p-3 rounded-xl transition-all w-full text-left
-                        ${selectedTargetId === d.id 
-                            ? 'bg-[#9F9586] text-white shadow-md transform scale-[1.02]' 
-                            : 'hover:bg-gray-50 text-gray-600'
-                        }
-                    `}
-                >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 ${selectedTargetId === d.id ? 'border-white/30 bg-white/10' : 'border-gray-200 bg-gray-100 text-gray-400'}`}>
-                        {d.avatarUrl ? (
-                            <img src={d.avatarUrl} alt={d.name} className="w-full h-full rounded-full object-cover" />
-                        ) : d.name[0]}
+        {showDesignerSelector && designers.length > 0 && (
+            <div className="hidden lg:flex flex-col gap-2 p-4 overflow-y-auto flex-1">
+                {designers.map(d => (
+                    <button
+                        key={d.id}
+                        onClick={() => setSelectedTargetId(d.id)}
+                        className={`flex items-center gap-3 p-3 rounded-xl transition-all w-full text-left
+                            ${selectedTargetId === d.id 
+                                ? 'bg-[#9F9586] text-white shadow-md transform scale-[1.02]' 
+                                : 'hover:bg-gray-50 text-gray-600'
+                            }
+                        `}
+                    >
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 ${selectedTargetId === d.id ? 'border-white/30 bg-white/10' : 'border-gray-200 bg-gray-100 text-gray-400'}`}>
+                            {d.avatarUrl ? (
+                                <img src={d.avatarUrl} alt={d.name} className="w-full h-full rounded-full object-cover" />
+                            ) : d.name[0]}
+                        </div>
+                        <div className="min-w-0">
+                            <div className="font-bold truncate">{d.name}</div>
+                            <div className={`text-xs truncate ${selectedTargetId === d.id ? 'text-white/80' : 'text-gray-400'}`}>{d.title || '設計師'}</div>
+                        </div>
+                        {selectedTargetId === d.id && <ChevronRightIcon className="w-4 h-4 ml-auto" />}
+                    </button>
+                ))}
+            </div>
+        )}
+        {/* If not showDesignerSelector, but is DesignerUser, still show their info */}
+        {!showDesignerSelector && isDesignerUser && designers.length > 0 && (
+            <div className="hidden lg:flex flex-col gap-2 p-4 flex-1">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 text-purple-800 border border-purple-200">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200">
+                        {designers[0].avatarUrl ? (
+                            <img src={designers[0].avatarUrl} alt={designers[0].name} className="w-full h-full object-cover" />
+                        ) : designers[0].name[0]}
                     </div>
                     <div className="min-w-0">
-                        <div className="font-bold truncate">{d.name}</div>
-                        <div className={`text-xs truncate ${selectedTargetId === d.id ? 'text-white/80' : 'text-gray-400'}`}>{d.title || '設計師'}</div>
+                        <div className="font-bold truncate">{designers[0].name}</div>
+                        <div className="text-xs truncate text-purple-600">{designers[0].title || '設計師'}</div>
                     </div>
-                    {selectedTargetId === d.id && <ChevronRightIcon className="w-4 h-4 ml-auto" />}
-                </button>
-            ))}
-        </div>
-        
-        {/* Mobile Horizontal Scroll (If Sidebar hidden) - Alternative to Dropdown if preferred, but Dropdown is cleaner for space. keeping dropdown. */}
+                </div>
+            </div>
+        )}
+        {/* If truly admin, show a message */}
+        {!showDesignerSelector && isTrulyAdminUser && (
+            <div className="hidden lg:flex flex-col gap-2 p-4 flex-1 items-center justify-center text-center text-gray-500">
+                <UserCircleIcon className="w-10 h-10" />
+                <p className="text-sm font-medium">純管理帳號不設定個人營業時間</p>
+            </div>
+        )}
       </aside>
 
       {/* Main Content */}
@@ -369,13 +430,6 @@ const HoursSettingsPage = () => {
                     </button>
                 </div>
             </div>
-
-            {message && (
-                <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 animate-fade-in ${message.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                    <span className="text-lg">{message.type === 'success' ? '✓' : '!'}</span>
-                    {message.text}
-                </div>
-            )}
 
             {/* Daily Settings View */}
             {activeTab === 'daily' && (
@@ -466,10 +520,7 @@ const HoursSettingsPage = () => {
                                                 </div>
                                                 {timeSlots.length > 1 && (
                                                     <button 
-                                                        onClick={() => {
-                                                            const newSlots = timeSlots.filter((_, i) => i !== index);
-                                                            setTimeSlots(newSlots);
-                                                        }}
+                                                        onClick={() => removeTimeSlot(index)}
                                                         className="text-red-400 hover:text-red-600 p-2 sm:mb-1 hover:bg-red-50 rounded-lg transition-colors"
                                                     >
                                                         <TrashIcon className="w-5 h-5" />
@@ -479,7 +530,7 @@ const HoursSettingsPage = () => {
                                         ))}
                                         
                                         <button 
-                                            onClick={() => setTimeSlots([...timeSlots, { start: '10:00', end: '19:00' }])}
+                                            onClick={addTimeSlot}
                                             className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 font-medium hover:border-[#9F9586] hover:text-[#9F9586] transition-colors"
                                         >
                                             + 新增時段
