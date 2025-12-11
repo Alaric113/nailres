@@ -10,9 +10,20 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
     function isAdmin() {
-      // 確保使用者已登入，並且其在 'users' 集合中的文件 'role' 欄位為 'admin'
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+
+    function isDesigner() {
+      return isAuthenticated() && getUserRole() == 'designer';
+    }
+    
+    function isStaff() {
+      return isAuthenticated() && (getUserRole() == 'admin' || getUserRole() == 'designer');
     }
 
     // =============================================
@@ -21,98 +32,101 @@ service cloud.firestore {
 
     // 使用者集合
     match /users/{userId} {
-      // 管理員可讀取任何使用者資料；使用者僅能讀取自己的
-      allow get: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
-      // 僅管理員可列出所有使用者
-      allow list: if isAdmin();
+      // 管理員和設計師可讀取任何使用者資料 (用於查看客戶資料)；使用者僅能讀取自己的
+      allow get: if isAuthenticated() && (isStaff() || request.auth.uid == userId);
+      // 管理員和設計師可列出所有使用者
+      allow list: if isStaff();
       // 使用者可建立自己的文件，但角色必須是 'user'
       allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'user';
-      // 使用者可更新自己除了 'role' 以外的資料；管理員可更新任何資料
+      // 使用者可更新自己除了 'role' 以外的資料；管理員可更新任何資料；設計師僅能更新自己的資料
       allow update: if (isAuthenticated() && request.auth.uid == userId && !('role' in request.resource.data)) || isAdmin();
       // 不允許刪除使用者文件
       allow delete: if false;
 
-      // 使用者優惠券子集合 (正確的位置)
+      // 使用者優惠券子集合
       match /userCoupons/{userCouponId} {
-        // 使用者可以讀取自己的優惠券列表
-        allow read, list: if isAuthenticated() && request.auth.uid == userId;
-        // 使用者可以使用優惠券 (更新 isUsed 欄位)
-        allow update: if isAuthenticated() && request.auth.uid == userId;
-        // 只有管理員(透過後端)可以發放優惠券
-        allow create: if isAdmin();
-        // 不允許刪除
-        allow delete: if false;
+        allow read, list: if isAuthenticated() && (request.auth.uid == userId || isStaff());
+        allow update: if isAuthenticated() && (request.auth.uid == userId || isStaff());
+        allow create: if isStaff(); // 允許員工發放
+        allow delete: if isAdmin();
       }
+    }
+
+    // 設計師集合 (新增)
+    match /designers/{designerId} {
+      // 所有人可讀取設計師列表 (預約頁面需要)
+      allow read: if true;
+      // 僅管理員可建立或刪除設計師檔案
+      allow create, delete: if isAdmin();
+      // 更新規則：
+      // 1. 管理員可以更新任何欄位
+      // 2. 設計師只能更新「連結到自己帳號」的檔案，且不能修改 linkedUserId 本身 (防止竊取其他檔案)
+      allow update: if isAdmin() || (
+        isAuthenticated() && 
+        resource.data.linkedUserId == request.auth.uid && 
+        request.resource.data.linkedUserId == resource.data.linkedUserId
+      );
     }
 
     // 服務項目集合
     match /services/{serviceId} {
-      // 任何人都可以讀取服務項目
       allow read: if true;
-      // 僅管理員可寫入 (建立、更新、刪除)
-      allow write: if isAdmin();
+      allow write: if isAdmin(); // 服務項目仍由管理員統一管理
     }
 
-    // 服務分類集合 (新增)
+    // 服務分類集合
     match /serviceCategories/{categoryId} {
-      // 任何人都可以讀取服務分類 (用於預約頁面顯示)
       allow read: if true;
-      // 僅管理員可寫入 (建立、更新、刪除)
       allow write: if isAdmin();
     }
 
     // 預約集合
     match /bookings/{bookingId} {
-      // 管理員可讀取任何預約；使用者僅能讀取自己的
-      allow get: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
-      // 任何已登入使用者都可執行查詢 (安全性由前端 where 條件保證)
-      allow list: if isAuthenticated();
-      // 使用者僅能為自己建立預約
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      // 使用者可取消自己的預約；管理員可更新任何預約
-      allow update: if isAuthenticated() && ((resource.data.userId == request.auth.uid && request.resource.data.status == 'cancelled') || isAdmin());
-      // 不允許刪除預約記錄
+      // 管理員與設計師可讀取任何預約 (未來可細分只能讀取自己的)；使用者僅能讀取自己的
+      allow get: if isAuthenticated() && (isStaff() || resource.data.userId == request.auth.uid);
+      allow list: if isAuthenticated(); // 前端過濾
+      
+      // 使用者僅能為自己建立預約；員工可為客戶建立
+      allow create: if isAuthenticated() && (request.resource.data.userId == request.auth.uid || isStaff());
+      
+      // 使用者可取消自己的預約；員工可更新預約狀態
+      allow update: if isAuthenticated() && (
+        (resource.data.userId == request.auth.uid && request.resource.data.status == 'cancelled') || 
+        isStaff()
+      );
+      
       allow delete: if false;
     }
 
-    // 營業時間集合
+    // 全域營業時間集合 (預設營業時間)
     match /businessHours/{dateId} {
-      // 任何已登入使用者都可讀取營業時間 (用於預約頁面)
       allow read: if isAuthenticated();
-      // 僅管理員可寫入
       allow write: if isAdmin();
     }
     
+    // 優惠券
     match /coupons/{couponId} {
-      // 任何已登入使用者都可以讀取優惠券資訊
       allow read: if isAuthenticated();
-      // 僅管理員可寫入 (建立、更新、刪除)
       allow write: if isAdmin();
     }
     
+    // 點數紀錄
     match /loyaltyPointLogs/{logId} {
-      // 僅管理員可建立紀錄
-      allow create: if isAdmin();
-      // 不允許讀取、更新、刪除
-      allow read, update, delete: if false;
+      allow create: if isStaff(); // 允許員工操作點數
+      allow read: if isStaff() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow update, delete: if false;
     }
 
     match /banners/{bannerId} {
-      // 任何人都可以讀取 Banner (用於首頁顯示)
       allow read: if true;
-      // 僅管理員可寫入 (建立、更新、刪除)
       allow write: if isAdmin();
     }
 
-    // 作品集項目
     match /portfolioItems/{itemId} {
-      // 任何人都可以讀取作品集 (用於公開頁面)
       allow read: if true;
-      // 僅管理員可寫入
-      allow write: if isAdmin();
+      // 設計師也可以上傳作品
+      allow write: if isStaff();
     }
-
-    // --- 以下為未來可能使用的集合，暫時保留 ---
 
     match /schedules/{scheduleId} {
       allow read: if true;
