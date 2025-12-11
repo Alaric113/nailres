@@ -47,7 +47,7 @@ function RootLayout() {
   );
 }
 
-const RedirectIfLoggedIn = ({ children }: { children: JSX.Element }) => {
+const RedirectIfLoggedIn = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, userProfile } = useAuthStore();
   
   if (currentUser) {
