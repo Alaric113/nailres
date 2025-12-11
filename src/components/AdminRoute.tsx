@@ -14,9 +14,9 @@ const AdminRoute = () => {
     return <div>正在載入...</div>;
   }
 
-  // Check if user is logged in and has the 'admin' role
-  if (userProfile?.role === 'admin') {
-    console.log('[AdminRoute] User is an admin. Rendering admin content.');
+  // Check if user is logged in and has the 'admin' or 'designer' role
+  if (userProfile?.role === 'admin' || userProfile?.role === 'designer') {
+    console.log('[AdminRoute] User is authorized (admin/designer). Rendering admin content.');
     return <Outlet />; // Render the nested routes (e.g., AdminDashboard)
   }
 

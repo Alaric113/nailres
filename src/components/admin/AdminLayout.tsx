@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 import AdminMobileHeader from './AdminMobileHeader';
 import AdminBottomNav from './AdminBottomNav';
+import { useAuthStore } from '../../store/authStore';
 
 interface AdminLayoutProps {}
 
@@ -33,6 +34,16 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
   const location = useLocation();
   const matches = useMatches();
   const navigate = useNavigate();
+  const { userProfile } = useAuthStore();
+
+  const filteredNavigation = useMemo(() => {
+    if (userProfile?.role === 'admin') return navigation;
+    if (userProfile?.role === 'designer') {
+      // Hide Settings, Business Hours, Promotions for designers
+      return navigation.filter(item => !['營業時間', '優惠活動', '設定'].includes(item.name));
+    }
+    return [];
+  }, [userProfile]);
 
   const currentTitle = useMemo(() => {
     const lastMatch = matches[matches.length - 1];
@@ -79,7 +90,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
             </div>
             <nav className="mt-5 flex-1 px-2 bg-white">
               <div className="space-y-1">
-                {navigation.map((item) => (
+                {filteredNavigation.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}

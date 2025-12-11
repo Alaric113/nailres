@@ -1,6 +1,6 @@
 import type { Timestamp, FieldValue } from 'firebase/firestore';
 
-export type UserRole = 'user' | 'admin' | 'platinum';
+export type UserRole = 'user' | 'admin' | 'platinum' | 'designer';
 
 // This represents the data stored in the /users/{uid} document
 export interface UserDocument {

@@ -87,6 +87,7 @@ const CustomerListPage = () => {
   const tabs: { key: UserRole | 'all'; label: string }[] = [
     { key: 'all', label: '全部' },
     { key: 'admin', label: '管理員' },
+    { key: 'designer', label: '設計師' },
     { key: 'platinum', label: '白金會員' },
     { key: 'user', label: '一般會員' },
   ];
@@ -170,12 +171,14 @@ const CustomerListPage = () => {
                         className={`w-full p-1.5 border rounded-lg text-xs font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors ${
                           user.role === 'admin' ? 'bg-red-50 text-red-700 border-red-200' : 
                           user.role === 'platinum' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                          user.role === 'designer' ? 'bg-purple-50 text-purple-700 border-purple-200' :
                           'bg-gray-50 text-gray-600 border-gray-200'
                         }`}
                       >
                         <option value="admin">管理員</option>
                         <option value="user">一般會員</option>
                         <option value="platinum">白金會員</option>
+                        <option value="designer">設計師</option>
                       </select>
                     </td>
                     
