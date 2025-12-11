@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, doc, setDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Modal from '../components/common/Modal';
@@ -33,10 +33,14 @@ const StaffManagementPage: React.FC = () => {
         setDesigners(loadedDesigners.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)));
 
         // Fetch Potential Users to link (Admins or Designers)
+        // Temporary: Fetch all and filter client-side to avoid index/query issues
         const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('role', 'in', ['admin', 'designer']));
-        const usersSnapshot = await getDocs(q);
-        const loadedUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EnrichedUser));
+        const usersSnapshot = await getDocs(usersRef);
+        const loadedUsers = usersSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as EnrichedUser))
+            .filter(u => ['admin', 'designer'].includes(u.role));
+            
+        console.log("Fetched users for linking (client-filter):", loadedUsers);
         setUsers(loadedUsers);
 
       } catch (error) {
