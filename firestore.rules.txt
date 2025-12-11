@@ -23,7 +23,7 @@ service cloud.firestore {
     }
     
     function isStaff() {
-      return isAuthenticated() && (getUserRole() == 'admin' || getUserRole() == 'designer');
+      return isAuthenticated() && (getUserRole() == 'admin' || getUserRole() == 'manager' || getUserRole() == 'designer');
     }
 
     // =============================================

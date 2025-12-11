@@ -52,8 +52,8 @@ const RedirectIfLoggedIn = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, userProfile } = useAuthStore();
   
   if (currentUser) {
-    const isAdminOrDesigner = userProfile?.role === 'admin' || userProfile?.role === 'designer';
-    return <Navigate to={isAdminOrDesigner ? '/admin' : '/dashboard'} replace />;
+    const isAdminOrStaff = ['admin', 'manager', 'designer'].includes(userProfile?.role || '');
+    return <Navigate to={isAdminOrStaff ? '/admin' : '/dashboard'} replace />;
   }
   return children;
 };

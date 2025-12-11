@@ -37,7 +37,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
   const { userProfile } = useAuthStore();
 
   const filteredNavigation = useMemo(() => {
-    if (userProfile?.role === 'admin') return navigation;
+    // Admin and Manager see everything
+    if (userProfile?.role === 'admin' || userProfile?.role === 'manager') return navigation;
+    
     if (userProfile?.role === 'designer') {
       // Hide Settings, Business Hours, Promotions for designers
       return navigation.filter(item => !['營業時間', '優惠活動', '設定'].includes(item.name));

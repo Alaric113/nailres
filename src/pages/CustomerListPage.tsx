@@ -4,10 +4,9 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAllUsers } from "../hooks/useAllUsers";
 import type { UserRole } from '../types/user';
-import UserCard from '../components/admin/UserCard'; // 引入新的元件
+import UserCard from '../components/admin/UserCard';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
-// 預設頭像 URL
 const DEFAULT_AVATAR = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
 
 const CustomerListPage = () => {
@@ -16,6 +15,7 @@ const CustomerListPage = () => {
   const [noteText, setNoteText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false); // Restored
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
 
@@ -28,12 +28,9 @@ const CustomerListPage = () => {
   }
 
   const filteredUsers = users.filter(user => {
-    // Role filter
     if (roleFilter !== 'all' && user.role !== roleFilter) {
       return false;
     }
-
-    // Search term filter
     if (!searchTerm) {
       return true;
     }
@@ -68,9 +65,27 @@ const CustomerListPage = () => {
     }
   };  
 
+  // Restored Function
+  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+    setIsUpdatingRole(true);
+    setSaveError(null);
+
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await updateDoc(userDocRef, { role: newRole });
+    } catch (err) {
+      console.error("Error updating role:", err);
+      setSaveError("權限更新失敗，請稍後再試。");
+    } finally {
+      setIsUpdatingRole(false);
+    }
+  };
+
+  // Updated Tabs
   const tabs: { key: UserRole | 'all'; label: string }[] = [
     { key: 'all', label: '全部' },
     { key: 'admin', label: '管理員' },
+    { key: 'manager', label: '管理設計師' }, // New
     { key: 'designer', label: '設計師' },
     { key: 'platinum', label: '白金會員' },
     { key: 'user', label: '一般會員' },
@@ -82,10 +97,23 @@ const CustomerListPage = () => {
       : 'bg-white text-text-light hover:bg-secondary hover:text-text-main border border-secondary-dark/20';
   };
 
+  const getRoleBadge = (role: UserRole) => {
+    switch (role) {
+      case 'admin':
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200">管理員</span>;
+      case 'manager':
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">管理設計師</span>;
+      case 'designer':
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">設計師</span>;
+      case 'platinum':
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">白金會員</span>;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-secondary-light text-text-main">
-      
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="mb-8 space-y-6">
           <div className="relative max-w-md">
@@ -111,7 +139,6 @@ const CustomerListPage = () => {
               </button>
             ))}
           </div>
-          
         </div>
 
         {saveError && <p className="mb-4 text-red-500 bg-red-50 border border-red-200 p-3 rounded-lg">{saveError}</p>}
@@ -122,6 +149,7 @@ const CustomerListPage = () => {
               <thead className="bg-secondary">
                 <tr>
                   <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">客戶名稱</th>
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">角色設定</th>
                   <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">備註</th>
                 </tr>
               </thead>
@@ -142,15 +170,27 @@ const CustomerListPage = () => {
                         <div className="ml-4">
                           <div className="font-medium text-text-main flex items-center gap-2">
                             {user.profile.displayName || 'N/A'}
-                            {user.role === 'designer' && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                                設計師
-                              </span>
-                            )}
+                            {getRoleBadge(user.role)}
                           </div>
                           <div className="text-xs text-text-light">{user.email}</div>
                         </div>
                       </div>
+                    </td>
+                    
+                    {/* Restored Role Column */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">
+                      <select
+                        value={user.role}
+                        onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
+                        disabled={isUpdatingRole}
+                        className={`w-full p-1.5 border rounded-lg text-xs font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors bg-white border-gray-200`}
+                      >
+                        <option value="admin">管理員</option>
+                        <option value="manager">管理設計師</option>
+                        <option value="designer">設計師</option>
+                        <option value="platinum">白金會員</option>
+                        <option value="user">一般會員</option>
+                      </select>
                     </td>
                     
                     <td className="px-6 py-4 whitespace-normal text-sm text-text-light min-w-[250px]">
@@ -186,6 +226,8 @@ const CustomerListPage = () => {
             <UserCard
               key={user.id}
               user={user}
+              isUpdatingRole={isUpdatingRole}
+              onRoleChange={handleRoleChange}
               onSaveNote={handleSaveNote}
               onSaveError={setSaveError}
             />

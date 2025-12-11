@@ -1,20 +1,30 @@
 import React, { useState } from 'react';
-import type { EnrichedUser } from '../../types/user';
+import type { EnrichedUser, UserRole } from '../../types/user';
 
 interface UserCardProps {
   user: EnrichedUser;
+  isUpdatingRole: boolean; // Restore prop
+  onRoleChange: (userId: string, newRole: UserRole) => void; // Restore prop
   onSaveNote: (userId: string, note: string) => Promise<void>;
   onSaveError: (error: string | null) => void;
 }
 
+const roleMap: Record<UserRole, string> = {
+  admin: '管理員',
+  manager: '管理設計師',
+  designer: '設計師',
+  platinum: '白金會員',
+  user: '一般會員',
+};
+
 const DEFAULT_AVATAR = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
 
-const UserCard: React.FC<UserCardProps> = ({ user, onSaveNote, onSaveError }) => {
+const UserCard: React.FC<UserCardProps> = ({ user, isUpdatingRole, onRoleChange, onSaveNote, onSaveError }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [noteText, setNoteText] = useState(user.notes || '');
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleEditClick = () => { // No arguments here
+  const handleEditClick = () => {
     setIsEditing(true);
     setNoteText(user.notes || '');
     onSaveError(null);
@@ -35,6 +45,21 @@ const UserCard: React.FC<UserCardProps> = ({ user, onSaveNote, onSaveError }) =>
     }
   };
 
+  const getRoleBadge = (role: UserRole) => {
+    switch (role) {
+      case 'admin':
+        return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 border border-red-200 shrink-0">管理員</span>;
+      case 'manager':
+        return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">管理設計師</span>;
+      case 'designer':
+        return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800 border border-purple-200 shrink-0">設計師</span>;
+      case 'platinum':
+        return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200 shrink-0">白金會員</span>;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
       {/* Left: Avatar */}
@@ -45,15 +70,24 @@ const UserCard: React.FC<UserCardProps> = ({ user, onSaveNote, onSaveError }) =>
       <div className="p-3 flex-1 flex flex-col justify-between">
         <div>
           <div className="flex justify-between items-start mb-2">
-            <h3 className="font-bold text-lg text-gray-800 truncate pr-2 flex items-center gap-2">
+            <h3 className="font-bold text-lg text-gray-800 truncate pr-2 flex flex-wrap items-center gap-1">
               {user.profile.displayName || 'N/A'}
-              {user.role === 'designer' && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
-                  設計師
-                </span>
-              )}
+              {getRoleBadge(user.role)}
             </h3>
           </div>
+          {/* Mobile Dropdown */}
+          <select
+              value={user.role}
+              onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}
+              disabled={isUpdatingRole}
+              className="mt-1 block w-full p-1 border border-gray-300 rounded-md text-xs focus:ring-primary focus:border-primary"
+            >
+              <option value="admin">{roleMap.admin}</option>
+              <option value="manager">{roleMap.manager}</option>
+              <option value="designer">{roleMap.designer}</option>
+              <option value="platinum">{roleMap.platinum}</option>
+              <option value="user">{roleMap.user}</option>
+            </select>
         </div>
         <div className="mt-2 pt-2 border-t border-gray-200">
           <strong className="text-sm font-medium text-gray-600">備註:</strong>
