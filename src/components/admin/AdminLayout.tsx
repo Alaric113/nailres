@@ -62,7 +62,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
       '/admin/customers',
       '/admin/services',
       '/admin/portfolio',
-      '/admin/promotions'
+      '/admin/promotions',
+      '/admin/staff'
     ];
 
     if (subSettingPaths.includes(path)) {

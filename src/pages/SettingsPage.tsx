@@ -11,19 +11,12 @@ import {
   PhotoIcon, 
   CubeIcon, 
   TicketIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  UserCircleIcon
 } from '@heroicons/react/24/outline';
 
 // --- Notification Settings Sub-View ---
-// Note: onBack is handled by parent or layout if global header used, 
-// but here we might still want local back or just rely on global.
-// For now, I'll remove the local header since the user wants it in the "title line".
-// But wait, the user said "add a back button to the header". 
-// If I use the global header in AdminLayout, I don't need the local header here.
-// However, AdminLayout renders the content. 
-// I will KEEP the local header as a fallback or content title, 
-// but simplify it if the global header takes over. 
-// Actually, let's keep it simple: simpler content, global header handles navigation.
+// Note: onBack is handled by parent or layout if global header used.
 
 const NotificationSettingsView: React.FC = () => {
   const [admins, setAdmins] = useState<EnrichedUser[]>([]);
@@ -99,8 +92,6 @@ const NotificationSettingsView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Local Header (Optional, maybe redundant if global header exists, but good for context) */}
-      {/* I will remove the "Back" button from here since it will be in the main header */}
       <div className="mb-6">
         <h2 className="text-xl font-serif font-bold text-gray-900">LINE 通知設定</h2>
       </div>
@@ -220,6 +211,16 @@ const SettingsPage: React.FC = () => {
             color="bg-indigo-500"
             linkTo="/admin/customers"
             subtext="查看與管理所有會員資料"
+          />
+
+          {/* Designer Management */}
+          <SummaryCard 
+            title="設計師管理"
+            value=""
+            icon={<UserCircleIcon className="h-6 w-6" />}
+            color="bg-teal-500"
+            linkTo="/admin/staff"
+            subtext="新增設計師與連結系統帳號"
           />
 
           {/* Services */}

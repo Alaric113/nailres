@@ -18,6 +18,7 @@ import HoursSettingsPage from './pages/HoursSettingsPage';
 import OrderManagementPage from './pages/OrderManagementPage';
 import CalendarPage from './pages/CalendarPage';
 import SettingsPage from './pages/SettingsPage';
+import StaffManagementPage from './pages/StaffManagementPage';
 import PromotionsPage from './pages/PromotionsPage';
 
 import PortfolioManagementPage from './pages/PortfolioManagementPage';
@@ -107,6 +108,7 @@ const routes = [
               { path: 'orders', element: <OrderManagementPage />, handle: { title: '訂單管理' } },
               { path: 'calendar', element: <CalendarPage />, handle: { title: '行事曆' } },
               { path: 'settings', element: <SettingsPage />, handle: { title: '一般設定' } },
+              { path: 'staff', element: <StaffManagementPage />, handle: { title: '設計師管理' } },
               { path: 'portfolio', element: <PortfolioManagementPage />, handle: { title: '作品集管理' } },
               { path: 'promotions', element: <PromotionsPage />, handle: { title: '優惠活動' } },
             ],
