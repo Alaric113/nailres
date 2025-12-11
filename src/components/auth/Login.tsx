@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext'; // NEW IMPORT
 import { signInWithEmailAndPassword, signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { handleSocialSignIn } from '../../lib/socialAuth';
@@ -15,6 +16,7 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
 
   const isOAuthProcessing = useRef(false); // Flag to prevent double processing in Strict Mode
 
@@ -70,7 +72,7 @@ const Login = () => {
 
         } catch (err: any) {
           console.error('Error during LINE OAuth redirect handling:', err);
-          setError(`LINE 登入失敗：${err.message || '請稍後再試。'}`);
+          showToast(`LINE 登入失敗：${err.message || '請稍後再試。'}`, 'error');
           // Clean up URL even on error
           navigate(location.pathname, { replace: true });
           localStorage.removeItem('line_oauth_state'); // Also remove on error
@@ -111,7 +113,7 @@ const Login = () => {
 
   const socialSignInWrapper = async (provider: 'google' | 'line') => {
     setIsSubmitting(true);
-    setError(null);
+    setError(null); // Clear local error state
     try {
       if (provider === 'line') {
         if (isLiffBrowser()) {
@@ -141,10 +143,11 @@ const Login = () => {
       } else {
         // Use standard Firebase Auth for Google
         await handleSocialSignIn(provider);
+        showToast(`使用 ${provider === 'google' ? 'Google' : 'LINE'} 登入成功！`, 'success');
       }
     } catch (error: any) {
       console.error(`Social Sign-In Error (${provider}):`, error);
-      setError(`使用 ${provider === 'google' ? 'Google' : 'LINE'} 登入失敗：${error.message || '請稍後再試。'}`);
+      showToast(`使用 ${provider === 'google' ? 'Google' : 'LINE'} 登入失敗：${error.message || '請稍後再試。'}`, 'error');
     } finally {
       setIsSubmitting(false);
     }

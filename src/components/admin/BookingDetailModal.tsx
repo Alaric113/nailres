@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import type { EnrichedBooking } from '../../hooks/useAllBookings';
 import type { BookingStatus } from '../../types/booking';
+import { useToast } from '../../context/ToastContext'; // NEW IMPORT
 import { XMarkIcon, UserIcon, CalendarIcon, ClockIcon, CurrencyDollarIcon, PencilSquareIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/outline';
 
 interface BookingDetailModalProps {
@@ -13,15 +14,17 @@ interface BookingDetailModalProps {
 
 const BookingDetailModal: React.FC<BookingDetailModalProps> = ({ booking, onClose, onUpdateStatus }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const { showToast } = useToast(); // NEW HOOK USAGE
 
   const handleStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newStatus = e.target.value as BookingStatus;
     setIsUpdating(true);
     try {
       await onUpdateStatus(booking.id, newStatus);
+      showToast('訂單狀態已更新。', 'success'); // Success toast
     } catch (error) {
       console.error("Failed to update status from modal:", error);
-      alert('更新狀態失敗！');
+      showToast('更新狀態失敗！', 'error'); // Error toast
     } finally {
       setIsUpdating(false);
     }

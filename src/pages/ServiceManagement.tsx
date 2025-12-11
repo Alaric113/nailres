@@ -10,6 +10,7 @@ import ImageUploader from '../components/admin/ImageUploader'; // 引入圖片�
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ServiceMobileAccordionCard from '../components/admin/ServiceMobileAccordionCard'; // Import the new component
 import { PencilSquareIcon, EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { useToast } from '../context/ToastContext'; // NEW IMPORT
 
 const ServiceManagement = () => {
   const [formData, setFormData] = useState({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '' });
@@ -27,6 +28,7 @@ const ServiceManagement = () => {
   
   // Fetch service categories
   const { categories, isLoading: categoriesLoading, error: categoriesError } = useServiceCategories();
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (editingService) {
@@ -84,12 +86,14 @@ const ServiceManagement = () => {
           createdAt: serverTimestamp(),
         });
         setSuccess(`服務項目 "${formData.name}" 已成功新增！`);
+        showToast(`服務項目 "${formData.name}" 已成功新增！`, 'success');
         setIsServiceModalOpen(false); // 新增成功後關閉 Modal
       }
       resetForm();
     } catch (err) {
       console.error("Error adding service: ", err);
       setFormError('新增服務失敗，請稍後再試。');
+      showToast('操作失敗，請稍後再試。', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -122,9 +126,10 @@ const ServiceManagement = () => {
     const serviceRef = doc(db, 'services', service.id);
     try {
       await updateDoc(serviceRef, { available: !service.available });
+      showToast(`服務項目 "${service.name}" 狀態已更新。`, 'success');
     } catch (err) {
       console.error("Error toggling availability: ", err);
-      alert('更新狀態失敗！');
+      showToast('更新狀態失敗！', 'error');
     } finally {
       setIsToggling(null);
     }
@@ -139,10 +144,12 @@ const ServiceManagement = () => {
       const serviceRef = doc(db, 'services', serviceId);
       await deleteDoc(serviceRef);
       setSuccess(`服務項目 "${serviceName}" 已成功刪除！`);
+      showToast(`服務項目 "${serviceName}" 已成功刪除！`, 'success');
       if (editingService?.id === serviceId) setEditingService(null); // If deleting the one being edited
     } catch (err) {
       console.error("Error deleting service: ", err);
       setFormError('刪除服務失敗，請稍後再試。');
+      showToast('刪除服務失敗，請稍後再試。', 'error');
     } finally {
       setIsDeleting(null);
     }

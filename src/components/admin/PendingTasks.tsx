@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import type { EnrichedBooking } from '../../hooks/useAllBookings';
 import type { BookingStatus } from '../../types/booking';
+import { useToast } from '../../context/ToastContext'; // NEW IMPORT
 
 type FilterStatus = BookingStatus | 'all';
 
@@ -22,14 +23,17 @@ const statusTextMap: Record<BookingStatus, string> = {
 
 const PendingTasks: React.FC<PendingTasksProps> = ({ bookings, onUpdateStatus, activeFilter }) => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const { showToast } = useToast(); // NEW HOOK USAGE
+
 
   const handleUpdate = async (booking: EnrichedBooking, newStatus: BookingStatus) => {
     setUpdatingId(booking.id);
     try {
       await onUpdateStatus(booking, newStatus);
+      showToast('訂單狀態已更新。', 'success'); // Success toast
     } catch (error) {
       console.error("Failed to update booking status:", error);
-      alert('更新訂單狀態失敗！');
+      showToast('更新訂單狀態失敗！', 'error'); // Error toast
     } finally {
       setUpdatingId(null);
     }

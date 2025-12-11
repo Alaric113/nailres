@@ -4,6 +4,7 @@ import { db } from '../../lib/firebase';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import ImageUploader from './ImageUploader';
 import LoadingSpinner from '../common/LoadingSpinner';
+import { useToast } from '../../context/ToastContext'; // NEW IMPORT
 
 interface ImageManagementModalProps {
   onClose: () => void;
@@ -28,6 +29,7 @@ const ImageManagementModal: React.FC<ImageManagementModalProps> = ({ onClose }) 
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchImages = async () => {
@@ -53,11 +55,11 @@ const ImageManagementModal: React.FC<ImageManagementModalProps> = ({ onClose }) 
     try {
       const docRef = doc(db, 'globals', 'homepageImages');
       await setDoc(docRef, images, { merge: true });
-      alert('圖片已成功儲存！');
+      showToast('圖片已成功儲存！', 'success'); // Success toast
       onClose();
     } catch (error) {
       console.error("Error saving images:", error);
-      alert('儲存失敗，請稍後再試。');
+      showToast('儲存失敗，請稍後再試。', 'error'); // Error toast
     } finally {
       setIsSaving(false);
     }

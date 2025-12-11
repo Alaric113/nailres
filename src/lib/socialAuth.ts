@@ -46,8 +46,8 @@ export const handleSocialSignIn = async (
       await signInWithPopup(auth, provider);
     } catch (error) {
       console.error("Popup sign-in failed in PWA mode:", error);
-      // In PWA mode, we cannot fall back to redirect. We must inform the user.
-      alert("登入失敗。請確認您已允許本網站的彈出式視窗，然後再試一次。");
+      // In PWA mode, we cannot fall back to redirect. Throw error for caller to handle.
+      throw new Error("登入失敗。請確認您已允許本網站的彈出式視窗，然後再試一次。");
     }
   } else {
     // Case 3: Standard browser behavior. Try popup first, fall back to redirect.

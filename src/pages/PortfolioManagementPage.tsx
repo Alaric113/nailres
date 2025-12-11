@@ -7,11 +7,14 @@ import { db } from '../lib/firebase'; // Import db
 import { storage } from '../lib/firebase'; // Import storage
 import { doc, deleteDoc } from 'firebase/firestore'; // Import Firestore delete functions
 import { ref, deleteObject } from 'firebase/storage'; // Import Storage delete functions
+import { useToast } from '../context/ToastContext'; // NEW IMPORT
 
 
 const PortfolioManagementPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
+  const { showToast } = useToast(); // NEW HOOK USAGE
+
 
   const handleEditItem = (item: PortfolioItem) => {
     setEditingItem(item);
@@ -38,10 +41,10 @@ const PortfolioManagementPage = () => {
       // 2. Delete document from Firestore
       await deleteDoc(doc(db, 'portfolioItems', item.id));
 
-      alert('作品集項目已成功刪除！');
+      showToast('作品集項目已成功刪除！', 'success'); // Success toast
     } catch (error) {
       console.error('刪除作品集項目失敗：', error);
-      alert('刪除作品集項目失敗！');
+      showToast('刪除作品集項目失敗！', 'error'); // Error toast
     }
   };
 

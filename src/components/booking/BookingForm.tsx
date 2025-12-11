@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 import type { Service } from '../../types/service';
 import type { BookingStatus } from '../../types/booking';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext'; // NEW IMPORT
 import type { Coupon } from '../../types/coupon';
 
 interface BookingFormProps {
@@ -23,11 +24,13 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, designerId, dateTim
   const currentUser = useAuthStore((state) => state.currentUser);
   const userProfile = useAuthStore((state) => state.userProfile);
   const navigate = useNavigate();
+  const { showToast } = useToast(); // Use showToast
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
       setError('您必須登入才能預約。');
+      showToast('您必須登入才能預約。', 'error');
       return;
     }
     if (!designerId) {
@@ -92,12 +95,13 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, designerId, dateTim
         }),
       }).catch(err => console.error('Failed to send LINE notification:', err));
 
-      alert('預約成功！');
+      showToast('預約成功！我們已發送確認訊息給您。', 'success', 5000);
       onBookingSuccess();
       navigate('/dashboard'); // Or a confirmation page
     } catch (err) {
       console.error('Booking failed:', err);
       setError('預約失敗，請稍後再試。');
+      showToast('預約失敗，請稍後再試。', 'error');
     } finally {
       setIsSubmitting(false);
     }

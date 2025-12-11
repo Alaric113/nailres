@@ -6,6 +6,7 @@ import Modal from '../components/common/Modal';
 import type { Designer } from '../types/designer';
 import type { EnrichedUser } from '../types/user';
 import { v4 as uuidv4 } from 'uuid';
+import { useToast } from '../context/ToastContext'; // NEW IMPORT
 import { 
   PencilIcon, 
   CheckBadgeIcon
@@ -16,6 +17,7 @@ const StaffManagementPage: React.FC = () => {
   const [staffUsers, setStaffUsers] = useState<EnrichedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { showToast } = useToast();
   
   const [editingTarget, setEditingTarget] = useState<{ user: EnrichedUser; designer?: Designer } | null>(null);
   
@@ -68,7 +70,10 @@ const StaffManagementPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!editingTarget) return;
-    if (!formData.name) return alert("請輸入顯示名稱");
+    if (!formData.name) {
+      showToast("請輸入顯示名稱", 'warning'); // Use toast for validation
+      return;
+    }
 
     const { user, designer } = editingTarget;
     
@@ -95,9 +100,10 @@ const StaffManagementPage: React.FC = () => {
       
       setIsModalOpen(false);
       setEditingTarget(null);
+      showToast("設計師檔案已儲存", 'success'); // Success toast
     } catch (error) {
       console.error("Error saving designer:", error);
-      alert("儲存失敗");
+      showToast("儲存失敗", 'error'); // Error toast
     }
   };
 

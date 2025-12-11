@@ -1,15 +1,17 @@
-import { useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { useState } from 'react'; // ADDED
+import { doc, updateDoc } from 'firebase/firestore'; // ADDED
 import { db } from '../lib/firebase';
 import { useBookings } from '../hooks/useBookings';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { format } from 'date-fns';
 import { getBookingStatusChipClass, translateBookingStatus } from '../utils/bookingUtils';
 import { zhTW } from 'date-fns/locale';
+import { useToast } from '../context/ToastContext'; // NEW IMPORT
 
 const BookingHistoryPage = () => {
   const { bookings, isLoading, error } = useBookings();
   const [isCancelling, setIsCancelling] = useState<string | null>(null);
+  const { showToast } = useToast(); // NEW HOOK USAGE
 
   const handleCancelBooking = async (bookingId: string) => {
     if (!window.confirm('您確定要取消這次的預約嗎？')) {
@@ -17,14 +19,13 @@ const BookingHistoryPage = () => {
     }
     setIsCancelling(bookingId);
     try {
-      const bookingRef = doc(db, 'bookings', bookingId);
-      await updateDoc(bookingRef, {
-        status: 'cancelled',
-      });
-      // 因為 useBookings 使用 onSnapshot，UI 會自動更新
+      // Assuming cancelBooking exists in useBookings hook
+      // If not, need to implement the updateDoc logic here
+      await updateDoc(doc(db, 'bookings', bookingId), { status: 'cancelled' });
+      showToast('預約已成功取消。', 'success');
     } catch (err) {
       console.error('Error cancelling booking:', err);
-      alert('取消預約失敗，請稍後再試。');
+      showToast('取消預約失敗，請稍後再試。', 'error');
     } finally {
       setIsCancelling(null);
     }

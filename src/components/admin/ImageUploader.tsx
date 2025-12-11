@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; // Keep these for types and functions
 import { storage } from '../../lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
-import {  TrashIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { TrashIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { useToast } from '../../context/ToastContext'; // NEW IMPORT
 
 interface ImageUploaderProps {
   label: string;
@@ -14,7 +15,7 @@ interface ImageUploaderProps {
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageUrlChange, storagePath }) => {
   const [isUploading, setIsUploading] = useState(false);
-  
+  const { showToast } = useToast();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,13 +35,15 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
       if (oldImageUrl) {
         const oldImageRef = ref(storage, oldImageUrl);
         await deleteObject(oldImageRef).catch(error => {
-          // Log error if deletion fails, but don't block the user.
+          // Log error if deletion fails, but new image was uploaded successfully.
           console.warn("Failed to delete old image, but new image was uploaded successfully:", error);
+          showToast('舊圖片刪除失敗，新圖片已上傳。', 'warning');
         });
       }
+      showToast('圖片上傳成功！', 'success'); // Success toast
     } catch (error) {
       console.error("Upload failed:", error);
-      alert('圖片上傳失敗！');
+      showToast('圖片上傳失敗！', 'error'); // Error toast
     } finally {
       setIsUploading(false);
     }
@@ -52,10 +55,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
       const imageRef = ref(storage, imageUrl);
       onImageUrlChange('');
       await deleteObject(imageRef);
-      
+      showToast('圖片已成功刪除！', 'success'); // Success toast
     } catch (error) {
       console.error("Delete failed:", error);
-      alert('圖片刪除失敗！');
+      showToast('圖片刪除失敗！', 'error'); // Error toast
     }
   };
 

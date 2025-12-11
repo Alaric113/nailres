@@ -26,6 +26,7 @@ import PortfolioManagementPage from './pages/PortfolioManagementPage';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import AdminLayout from './components/admin/AdminLayout';
 import UserLayout from './layouts/UserLayout';
+import { ToastProvider } from './context/ToastContext'; // NEW IMPORT
 
 // Route Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -41,10 +42,10 @@ function RootLayout() {
   }
 
   return (
-    <>
+    <ToastProvider>
       <PwaUpdatePrompt />
       <Outlet /> {/* This Outlet will render the current route's element */}
-    </>
+    </ToastProvider>
   );
 }
 

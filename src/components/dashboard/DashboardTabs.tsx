@@ -2,6 +2,7 @@ import { useBookings } from '../../hooks/useBookings';
 import BookingCard from './BookingCard';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { Tab } from '@headlessui/react';
+import { useToast } from '../../context/ToastContext'; // NEW IMPORT
 import { 
   CalendarDaysIcon, 
   ArchiveBoxIcon, 
@@ -11,14 +12,16 @@ import {
 
 const DashboardTabs = () => {
   const { bookings, isLoading, error, cancelBooking } = useBookings();
+  const { showToast } = useToast(); // NEW HOOK USAGE
 
   const handleCancel = async (bookingId: string) => {
     if (window.confirm('您確定要取消這個預約嗎？')) {
       try {
         await cancelBooking(bookingId);
+        showToast('預約已取消', 'success'); // Success toast
       } catch (err) {
         console.error('取消失敗:', err);
-        alert('取消預約失敗，請稍後再試。');
+        showToast('取消預約失敗，請稍後再試。', 'error'); // Error toast
       }
     }
   };

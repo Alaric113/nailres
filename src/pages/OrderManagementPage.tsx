@@ -7,15 +7,14 @@ import { db } from '../lib/firebase';
 import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
 import type { BookingStatus } from '../types/booking';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-
-
-
+import { useToast } from '../context/ToastContext'; // NEW IMPORT
 
 const OrderManagementPage = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const statusFilter = queryParams.get('status') as BookingStatus | null;
+  const { showToast } = useToast(); // NEW HOOK USAGE
 
   const { bookings, loading, error } = useAllBookings(null); // Fetch all bookings
 
@@ -90,6 +89,8 @@ const OrderManagementPage = () => {
       // 步驟 3: 提交所有資料庫更新
       await batch.commit();
 
+      showToast('訂單狀態已更新。', 'success'); // Success toast
+
       // 步驟 4: 呼叫後端 API 發送 LINE 通知給使用者
       if (['confirmed', 'completed', 'cancelled'].includes(newStatus)) {
         // 注意：這裡的 fetch 是非同步的，但我們不需要等待它完成 (fire and forget)
@@ -99,7 +100,7 @@ const OrderManagementPage = () => {
 
     } catch (error) {
       console.error("Failed to update booking status:", error);
-      alert('更新訂單狀態失敗！');
+      showToast('更新訂單狀態失敗！', 'error'); // Error toast
     } finally {
       setUpdatingId(null);
     }

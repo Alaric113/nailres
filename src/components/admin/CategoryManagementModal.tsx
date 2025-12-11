@@ -4,6 +4,7 @@ import { db } from '../../lib/firebase';
 import Modal from '../common/Modal';
 import type { ServiceCategory } from '../../hooks/useServiceCategories';
 import type { Service } from '../../types/service';
+import { useToast } from '../../context/ToastContext'; // NEW IMPORT
 
 interface CategoryManagementModalProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
   const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast(); // NEW HOOK USAGE
+
 
   const resetForm = () => {
     setNewCategoryName('');
@@ -55,15 +58,16 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
     // Check if category is in use
     const isCategoryInUse = services.some(service => service.category === category.name);
     if (isCategoryInUse) {
-      alert(`無法刪除分類 "${category.name}"，因為尚有服務項目正在使用此分類。`);
+      showToast(`無法刪除分類 "${category.name}"，因為尚有服務項目正在使用此分類。`, 'error');
       return;
     }
 
     if (window.confirm(`您確定要刪除分類 "${category.name}" 嗎？`)) {
       try {
         await deleteDoc(doc(db, 'serviceCategories', category.id));
+        showToast(`分類 "${category.name}" 已成功刪除。`, 'success');
       } catch (err) {
-        alert('刪除失敗！');
+        showToast('刪除失敗！', 'error');
         console.error(err);
       }
     }
