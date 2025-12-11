@@ -14,19 +14,29 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
-    // 管理員或管理設計師 (擁有系統級別管理權限)
-    function hasFullAdminPrivileges() {
-      return isAuthenticated() && (getUserRole() == 'admin' || getUserRole() == 'manager');
+    // 真正的管理員 (非設計師身分，純管理)
+    function isTrulyAdmin() {
+      return isAuthenticated() && getUserRole() == 'admin';
     }
 
-    // 普通設計師 (擁有員工級別權限，可管理自己的工作)
-    function isDesignerRole() {
+    // 管理設計師 (可管理所有設計師，且本身為設計師)
+    function isManager() {
+      return isAuthenticated() && getUserRole() == 'manager';
+    }
+
+    // 普通設計師 (僅可管理自己的工作)
+    function isDesigner() {
       return isAuthenticated() && getUserRole() == 'designer';
     }
     
+    // 擁有全部設計師管理權限 (管理員或管理設計師)
+    function canAdminAllDesigners() {
+      return isTrulyAdmin() || isManager();
+    }
+
     // 任何員工角色 (管理員、管理設計師、設計師)
     function isStaff() {
-      return isAuthenticated() && (hasFullAdminPrivileges() || isDesignerRole());
+      return isTrulyAdmin() || isManager() || isDesigner();
     }
 
     // =============================================
@@ -42,7 +52,7 @@ service cloud.firestore {
       // 使用者可建立自己的文件，但角色必須是 'user'
       allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'user';
       // 使用者可更新自己除了 'role' 以外的資料；管理員/管理設計師可更新任何資料，包括修改角色
-      allow update: if (isAuthenticated() && request.auth.uid == userId && !('role' in request.resource.data)) || hasFullAdminPrivileges();
+      allow update: if (isAuthenticated() && request.auth.uid == userId && !('role' in request.resource.data)) || canAdminAllDesigners();
       // 不允許刪除使用者文件
       allow delete: if false;
 
@@ -51,7 +61,7 @@ service cloud.firestore {
         allow read, list: if isAuthenticated() && (request.auth.uid == userId || isStaff());
         allow update: if isAuthenticated() && (request.auth.uid == userId || isStaff());
         allow create: if isStaff(); // 允許員工發放
-        allow delete: if hasFullAdminPrivileges(); // 僅管理員/管理設計師可刪除
+        allow delete: if canAdminAllDesigners(); // 僅管理員/管理設計師可刪除
       }
     }
 
@@ -60,15 +70,16 @@ service cloud.firestore {
       // 所有人可讀取設計師列表 (預約頁面需要)
       allow read: if true;
       // 僅管理員/管理設計師可建立或刪除設計師檔案
-      allow create, delete: if hasFullAdminPrivileges();
+      allow create, delete: if canAdminAllDesigners();
       // 更新規則：
       // 1. 管理員/管理設計師可以更新任何欄位
       // 2. 普通設計師只能更新「連結到自己帳號」的檔案，且不能修改 linkedUserId 本身 (防止竊取其他檔案)
-      allow update: if hasFullAdminPrivileges() || (
-        isDesignerRole() && 
+      //    也不能修改 bookingDeadline (這是 Manager-level 設定)
+      allow update: if canAdminAllDesigners() || (
+        isDesigner() && 
         resource.data.linkedUserId == request.auth.uid && 
-        request.resource.data.linkedUserId == request.resource.data.linkedUserId
-        && !('bookingDeadline' in request.resource.data) // 設計師不能修改自己的預約截止日
+        request.resource.data.linkedUserId == resource.data.linkedUserId &&
+        !('bookingDeadline' in request.resource.data)
       );
     }
     
@@ -78,19 +89,19 @@ service cloud.firestore {
       allow read: if true;
       // 管理員/管理設計師可更新任何設計師的營業時間
       // 普通設計師只能更新自己檔案下的營業時間
-      allow write: if hasFullAdminPrivileges() || (isDesignerRole() && get(/databases/$(database)/documents/designers/$(designerId)).data.linkedUserId == request.auth.uid);
+      allow write: if canAdminAllDesigners() || (isDesigner() && get(/databases/$(database)/documents/designers/$(designerId)).data.linkedUserId == request.auth.uid);
     }
 
     // 服務項目集合
     match /services/{serviceId} {
       allow read: if true;
-      allow write: if hasFullAdminPrivileges(); // 服務項目由管理員/管理設計師統一管理
+      allow write: if canAdminAllDesigners(); // 服務項目由管理員/管理設計師統一管理
     }
 
     // 服務分類集合
     match /serviceCategories/{categoryId} {
       allow read: if true;
-      allow write: if hasFullAdminPrivileges();
+      allow write: if canAdminAllDesigners();
     }
 
     // 預約集合
@@ -114,13 +125,13 @@ service cloud.firestore {
     // 全域營業時間集合 (若仍有使用，由管理員/管理設計師管理)
     match /businessHours/{dateId} {
       allow read: if isAuthenticated();
-      allow write: if hasFullAdminPrivileges();
+      allow write: if canAdminAllDesigners();
     }
     
     // 優惠券
     match /coupons/{couponId} {
       allow read: if isAuthenticated();
-      allow write: if hasFullAdminPrivileges();
+      allow write: if canAdminAllDesigners();
     }
     
     // 點數紀錄
@@ -132,7 +143,7 @@ service cloud.firestore {
 
     match /banners/{bannerId} {
       allow read: if true;
-      allow write: if hasFullAdminPrivileges();
+      allow write: if canAdminAllDesigners();
     }
 
     match /portfolioItems/{itemId} {
@@ -146,12 +157,12 @@ service cloud.firestore {
     }
 
     match /settings/{settingId} {
-      allow read, write: if hasFullAdminPrivileges();
+      allow read, write: if canAdminAllDesigners();
     }
 
     match /globals/{document=**} {
       allow read: if true;
-      allow write: if hasFullAdminPrivileges();
+      allow write: if canAdminAllDesigners();
     }
   }
 }
