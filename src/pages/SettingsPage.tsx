@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Link } from 'react-router-dom';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import SummaryCard from '../components/admin/SummaryCard';
 import type { EnrichedUser } from '../types/user';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { 
+  ArrowLeftIcon, 
+  BellAlertIcon, 
+  ClockIcon, 
+  PhotoIcon, 
+  CubeIcon, 
+  TicketIcon
+} from '@heroicons/react/24/outline';
 
-const SettingsPage: React.FC = () => {
+// --- Notification Settings Sub-View ---
+interface NotificationSettingsViewProps {
+  onBack: () => void;
+}
+
+const NotificationSettingsView: React.FC<NotificationSettingsViewProps> = ({ onBack }) => {
   const [admins, setAdmins] = useState<EnrichedUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
-
 
   useEffect(() => {
     const fetchAdmins = async () => {
@@ -82,86 +93,155 @@ const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-secondary-light text-text-main">
-      <header className="bg-white/80 backdrop-blur-md border-b border-secondary-dark sticky top-0 z-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-serif font-bold text-text-main">
-            通知設定
-          </h1>
-          <Link to="/admin" className="flex items-center text-sm font-medium text-primary hover:text-primary-dark transition-colors">
-            <ArrowLeftIcon className="h-4 w-4 mr-1" />
-            返回儀表板
-          </Link>
-        </div>
-      </header>
+    <div className="space-y-6">
+      {/* Sub-view Header */}
+      <div className="flex items-center gap-2 mb-6">
+        <button 
+          onClick={onBack}
+          className="p-2 -ml-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Back"
+        >
+          <ArrowLeftIcon className="w-5 h-5" />
+        </button>
+        <h2 className="text-xl font-serif font-bold text-gray-900">LINE 通知設定</h2>
+      </div>
 
-      <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="bg-white rounded-xl shadow-sm border border-secondary-dark/50 p-6 max-w-3xl mx-auto">
-          {isLoading ? (
-            <div className="flex justify-center items-center p-12">
-              <LoadingSpinner />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="bg-secondary-light/30 p-4 rounded-lg border border-secondary-dark/20">
-                <p className="text-text-main text-sm leading-relaxed">
-                  勾選您希望接收 LINE 預約通知的管理員帳號。請確保這些帳號已透過 LINE 登入以綁定其 User ID。
-                </p>
-              </div>
-              
-              {message && (
-                <div className={`p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                  {message.text}
-                </div>
-              )}
-              
-              <ul className="divide-y divide-secondary-light">
-                {admins.map(admin => (
-                  <li key={admin.id} className="py-4 flex items-center justify-between hover:bg-secondary-light/10 -mx-2 px-2 rounded-lg transition-colors">
-                    <div className="flex items-center">                    
-                      <img 
-                        className="h-12 w-12 rounded-full mr-4 object-cover border-2 border-white shadow-sm" 
-                        src={admin.profile.avatarUrl || `https://ui-avatars.com/api/?name=${admin.profile.displayName}&background=random`} 
-                        alt="" 
-                        crossOrigin="anonymous"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div>
-                        <p className="text-base font-medium text-text-main">{admin.profile.displayName}</p>
-                        <p className="text-xs text-text-light mt-0.5">ID: {admin.id.slice(0, 8)}...</p>
-                      </div>
-                    </div>
-                    <label htmlFor={`toggle-${admin.id}`} className="flex items-center cursor-pointer relative group">
-                      <div className="relative">
-                        <input
-                          type="checkbox"
-                          id={`toggle-${admin.id}`}
-                          className="sr-only"
-                          checked={!!admin.receivesAdminNotifications}
-                          onChange={() => handleToggleNotification(admin.id, !!admin.receivesAdminNotifications)}
-                        />
-                        <div className={`block w-12 h-7 rounded-full transition-colors duration-300 ${admin.receivesAdminNotifications ? 'bg-primary' : 'bg-gray-200'}`}></div>
-                        <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm ${admin.receivesAdminNotifications ? 'translate-x-5' : ''}`}></div>
-                      </div>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className="mt-8 pt-6 border-t border-secondary-dark/20">
-            <h3 className="text-lg font-serif font-medium text-text-main mb-2">功能測試</h3>
-            <p className="text-sm text-text-light mb-4">點擊下方按鈕，向所有已啟用通知的管理員發送一則測試訊息。</p>
-            <button
-              onClick={handleSendTestMessage}
-              disabled={isTesting}
-              className="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-accent hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:bg-gray-300 transition-all"
-            >
-              {isTesting ? '正在發送...' : '發送測試訊息'}
-            </button>
+      <div className="bg-white rounded-xl shadow-sm border border-[#EFECE5] p-6 max-w-3xl mx-auto">
+        {isLoading ? (
+          <div className="flex justify-center items-center p-12">
+            <LoadingSpinner />
           </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="bg-[#FAF9F6] p-4 rounded-lg border border-[#EFECE5]">
+              <p className="text-gray-700 text-sm leading-relaxed">
+                勾選您希望接收 LINE 預約通知的管理員帳號。請確保這些帳號已透過 LINE 登入以綁定其 User ID。
+              </p>
+            </div>
+            
+            {message && (
+              <div className={`p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {message.text}
+              </div>
+            )}
+            
+            <ul className="divide-y divide-gray-100">
+              {admins.map(admin => (
+                <li key={admin.id} className="py-4 flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
+                  <div className="flex items-center">                    
+                    <img 
+                      className="h-12 w-12 rounded-full mr-4 object-cover border-2 border-white shadow-sm" 
+                      src={admin.profile.avatarUrl || `https://ui-avatars.com/api/?name=${admin.profile.displayName}&background=random`} 
+                      alt="" 
+                      crossOrigin="anonymous"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div>
+                      <p className="text-base font-medium text-gray-900">{admin.profile.displayName}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">ID: {admin.id.slice(0, 8)}...</p>
+                    </div>
+                  </div>
+                  <label htmlFor={`toggle-${admin.id}`} className="flex items-center cursor-pointer relative group">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        id={`toggle-${admin.id}`}
+                        className="sr-only"
+                        checked={!!admin.receivesAdminNotifications}
+                        onChange={() => handleToggleNotification(admin.id, !!admin.receivesAdminNotifications)}
+                      />
+                      <div className={`block w-12 h-7 rounded-full transition-colors duration-300 ${admin.receivesAdminNotifications ? 'bg-[#9F9586]' : 'bg-gray-200'}`}></div>
+                      <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm ${admin.receivesAdminNotifications ? 'translate-x-5' : ''}`}></div>
+                    </div>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="mt-8 pt-6 border-t border-gray-100">
+          <h3 className="text-lg font-serif font-medium text-gray-900 mb-2">功能測試</h3>
+          <p className="text-sm text-gray-500 mb-4">點擊下方按鈕，向所有已啟用通知的管理員發送一則測試訊息。</p>
+          <button
+            onClick={handleSendTestMessage}
+            disabled={isTesting}
+            className="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-[#9F9586] hover:bg-[#8a8175] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9F9586] disabled:bg-gray-300 transition-all"
+          >
+            {isTesting ? '正在發送...' : '發送測試訊息'}
+          </button>
         </div>
-      </main>
+      </div>
+    </div>
+  );
+};
+
+// --- Main Settings Dashboard ---
+
+const SettingsPage: React.FC = () => {
+  const [currentView, setCurrentView] = useState<'dashboard' | 'notifications'>('dashboard');
+
+  if (currentView === 'notifications') {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <NotificationSettingsView onBack={() => setCurrentView('dashboard')} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8">
+       {/* Cards Grid */}
+       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Notification Settings */}
+          <SummaryCard 
+            title="通知設定"
+            value=""
+            icon={<BellAlertIcon className="h-6 w-6" />}
+            color="bg-yellow-500"
+            onClick={() => setCurrentView('notifications')}
+            subtext="設定 LINE 通知接收人員"
+          />
+          
+          {/* Business Hours */}
+           <SummaryCard 
+            title="營業時間"
+            value=""
+            icon={<ClockIcon className="h-6 w-6" />}
+            color="bg-purple-500"
+            linkTo="/admin/hours"
+            subtext="管理每週營業時間與公休日"
+          />
+
+          {/* Services */}
+           <SummaryCard 
+            title="服務項目"
+            value=""
+            icon={<CubeIcon className="h-6 w-6" />}
+            color="bg-blue-500"
+            linkTo="/admin/services"
+            subtext="新增或修改服務項目與價格"
+          />
+
+          {/* Portfolio */}
+           <SummaryCard 
+            title="作品集"
+            value=""
+            icon={<PhotoIcon className="h-6 w-6" />}
+            color="bg-pink-500"
+            linkTo="/admin/portfolio"
+            subtext="管理作品集圖片與分類"
+          />
+
+          {/* Promotions */}
+           <SummaryCard 
+            title="優惠活動"
+            value=""
+            icon={<TicketIcon className="h-6 w-6" />}
+            color="bg-green-500"
+            linkTo="/admin/promotions"
+            subtext="設定優惠券與促銷活動"
+          />
+       </div>
     </div>
   );
 };
