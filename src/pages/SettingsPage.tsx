@@ -10,7 +10,8 @@ import {
   ClockIcon, 
   PhotoIcon, 
   CubeIcon, 
-  TicketIcon
+  TicketIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 
 // --- Notification Settings Sub-View ---
@@ -191,7 +192,7 @@ const SettingsPage: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
        {/* Cards Grid */}
-       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+       <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Notification Settings */}
           <SummaryCard 
             title="通知設定"
@@ -210,6 +211,16 @@ const SettingsPage: React.FC = () => {
             color="bg-purple-500"
             linkTo="/admin/hours"
             subtext="管理每週營業時間與公休日"
+          />
+
+          {/* User Management */}
+          <SummaryCard 
+            title="用戶管理"
+            value=""
+            icon={<UserGroupIcon className="h-6 w-6" />}
+            color="bg-indigo-500"
+            linkTo="/admin/customers"
+            subtext="查看與管理所有會員資料"
           />
 
           {/* Services */}
