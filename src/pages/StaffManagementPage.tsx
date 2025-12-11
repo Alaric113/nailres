@@ -193,8 +193,8 @@ const StaffManagementPage: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         title={editingDesigner.id ? '編輯設計師' : '新增設計師'}
       >
-          <div className="space-y-5 px-1 py-2">
-              <div className="flex justify-center mb-2">
+          <div className="space-y-3 px-1 py-2">
+              <div className="flex justify-center mb-1">
                    <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-2xl font-bold border border-gray-200 overflow-hidden relative">
                         {editingDesigner.avatarUrl ? (
                             <img src={editingDesigner.avatarUrl} alt="Avatar Preview" className="h-full w-full object-cover" />
@@ -243,20 +243,7 @@ const StaffManagementPage: React.FC = () => {
                       ))}
                   </select>
                   
-                  {editingDesigner.linkedUserId && (
-                    <div className="mt-2 flex items-center">
-                        <input
-                            id="useLinkedAvatar"
-                            type="checkbox"
-                            checked={useLinkedAvatar}
-                            onChange={e => setUseLinkedAvatar(e.target.checked)}
-                            className="h-4 w-4 text-[#9F9586] focus:ring-[#9F9586] border-gray-300 rounded cursor-pointer"
-                        />
-                        <label htmlFor="useLinkedAvatar" className="ml-2 block text-xs text-gray-600 cursor-pointer select-none">
-                            使用此連結帳號的頭像 (若有)
-                        </label>
-                    </div>
-                  )}
+                  
 
                   <p className="mt-1.5 text-xs text-gray-500">
                       連結後，該帳號將會收到此設計師的預約通知。
@@ -284,7 +271,22 @@ const StaffManagementPage: React.FC = () => {
                   <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900 cursor-pointer">
                       開放預約 (啟用狀態)
                   </label>
+                   {editingDesigner.linkedUserId && (
+                    <div className="ml-2 flex items-center">
+                        <input
+                            id="useLinkedAvatar"
+                            type="checkbox"
+                            checked={useLinkedAvatar}
+                            onChange={e => setUseLinkedAvatar(e.target.checked)}
+                            className="h-4 w-4 text-[#9F9586] focus:ring-[#9F9586] border-gray-300 rounded cursor-pointer"
+                        />
+                        <label htmlFor="useLinkedAvatar" className="ml-2 block text-xs text-gray-600 cursor-pointer select-none">
+                            使用此連結帳號的頭像 (若有)
+                        </label>
+                    </div>
+                  )}
               </div>
+              
 
               <div className="mt-8 flex gap-3 justify-end pt-2 border-t border-gray-100">
                   <button
