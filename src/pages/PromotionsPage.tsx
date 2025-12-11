@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import Modal from '../components/common/Modal';
 import CouponForm from '../components/admin/CouponForm';
-import CouponList from '../components/admin/CouponList';
 import LoyaltySettings from '../components/admin/LoyaltySettings';
 import CouponDistribution from '../components/admin/CouponDistribution';
+import CouponCard from '../components/admin/CouponCard'; // New import
+import { useCoupons } from '../hooks/useCoupons'; // New import
+import LoadingSpinner from '../components/common/LoadingSpinner'; // New import
 import type { Coupon } from '../types/coupon';
 
 type Tab = 'coupons' | 'distribution' | 'loyalty';
@@ -13,10 +15,20 @@ const PromotionsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
 
+  const { coupons, isLoading, error } = useCoupons(); // Moved here
+
   const handleEditCoupon = (coupon: Coupon) => {
     setEditingCoupon(coupon);
     setIsModalOpen(true);
   };
+
+  if (isLoading) {
+    return <div className="p-4 text-center"><LoadingSpinner /></div>;
+  }
+
+  if (error) {
+    return <p className="text-red-500 text-center p-4">{error}</p>;
+  }
 
   return (
     <div className="min-h-screen bg-secondary-light text-text-main">
@@ -47,7 +59,16 @@ const PromotionsPage = () => {
                 + 新增優惠券
               </button>
             </div>
-            <CouponList onEdit={handleEditCoupon} />
+            
+            {coupons.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">尚未建立任何優惠券。</p>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {coupons.map(coupon => (
+                        <CouponCard key={coupon.id} coupon={coupon} onEdit={handleEditCoupon} />
+                    ))}
+                </div>
+            )}
           </div>
         )}
         {activeTab === 'distribution' && <div className="bg-white p-6 rounded-xl shadow-sm border border-secondary-dark/50">
