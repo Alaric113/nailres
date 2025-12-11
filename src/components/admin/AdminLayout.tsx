@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Link, useLocation, Outlet, useMatches } from 'react-router-dom';
+import { Link, useLocation, Outlet, useMatches, useNavigate } from 'react-router-dom';
 import {
   HomeIcon,
   CalendarDaysIcon,
@@ -32,11 +32,39 @@ const navigation = [
 const AdminLayout: React.FC<AdminLayoutProps> = () => {
   const location = useLocation();
   const matches = useMatches();
+  const navigate = useNavigate();
 
   const currentTitle = useMemo(() => {
     const lastMatch = matches[matches.length - 1];
     return (lastMatch?.handle as { title?: string })?.title || '管理後台';
   }, [matches]);
+
+  // Logic to determine if we should show a back button
+  const backAction = useMemo(() => {
+    const path = location.pathname;
+    const search = location.search;
+
+    // List of paths that are considered "sub-settings" or deep pages reachable from Settings
+    // For these, we want to go back to the main Settings dashboard
+    const subSettingPaths = [
+      '/admin/hours',
+      '/admin/customers',
+      '/admin/services',
+      '/admin/portfolio',
+      '/admin/promotions'
+    ];
+
+    if (subSettingPaths.includes(path)) {
+      return () => navigate('/admin/settings');
+    }
+
+    // Special case for Settings sub-views (query params)
+    if (path === '/admin/settings' && search.includes('view=')) {
+      return () => navigate('/admin/settings'); // Clear query params
+    }
+
+    return undefined;
+  }, [location.pathname, location.search, navigate]);
 
   return (
     <div className="flex h-screen bg-[#FAF9F6]">
@@ -82,7 +110,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
 
       <div className="flex flex-1 flex-col">
         {/* Main Header (Mobile Only) */}
-        <AdminMobileHeader pageTitle={currentTitle} />
+        <AdminMobileHeader pageTitle={currentTitle} onBack={backAction} />
 
         {/* Page Title Header (Desktop) */}
         <div className="hidden lg:block border-b border-gray-200 bg-white px-4 py-4 sm:px-6 lg:px-8">

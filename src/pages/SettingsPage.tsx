@@ -4,8 +4,8 @@ import { db } from '../lib/firebase';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import SummaryCard from '../components/admin/SummaryCard';
 import type { EnrichedUser } from '../types/user';
+import { useSearchParams } from 'react-router-dom';
 import { 
-  ArrowLeftIcon, 
   BellAlertIcon, 
   ClockIcon, 
   PhotoIcon, 
@@ -15,11 +15,17 @@ import {
 } from '@heroicons/react/24/outline';
 
 // --- Notification Settings Sub-View ---
-interface NotificationSettingsViewProps {
-  onBack: () => void;
-}
+// Note: onBack is handled by parent or layout if global header used, 
+// but here we might still want local back or just rely on global.
+// For now, I'll remove the local header since the user wants it in the "title line".
+// But wait, the user said "add a back button to the header". 
+// If I use the global header in AdminLayout, I don't need the local header here.
+// However, AdminLayout renders the content. 
+// I will KEEP the local header as a fallback or content title, 
+// but simplify it if the global header takes over. 
+// Actually, let's keep it simple: simpler content, global header handles navigation.
 
-const NotificationSettingsView: React.FC<NotificationSettingsViewProps> = ({ onBack }) => {
+const NotificationSettingsView: React.FC = () => {
   const [admins, setAdmins] = useState<EnrichedUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -45,7 +51,6 @@ const NotificationSettingsView: React.FC<NotificationSettingsViewProps> = ({ onB
   }, []);
 
   const handleToggleNotification = async (userId: string, currentValue: boolean) => {
-    // Optimistically update UI
     setAdmins(prevAdmins =>
       prevAdmins.map(admin =>
         admin.id === userId ? { ...admin, receivesAdminNotifications: !currentValue } : admin
@@ -61,7 +66,6 @@ const NotificationSettingsView: React.FC<NotificationSettingsViewProps> = ({ onB
     } catch (error) {
       console.error("Error updating notification setting:", error);
       setMessage({ type: 'error', text: '更新失敗，請稍後再試。' });
-      // Revert UI on error
       setAdmins(prevAdmins =>
         prevAdmins.map(admin =>
           admin.id === userId ? { ...admin, receivesAdminNotifications: currentValue } : admin
@@ -95,15 +99,9 @@ const NotificationSettingsView: React.FC<NotificationSettingsViewProps> = ({ onB
 
   return (
     <div className="space-y-6">
-      {/* Sub-view Header */}
-      <div className="flex items-center gap-2 mb-6">
-        <button 
-          onClick={onBack}
-          className="p-2 -ml-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
-          aria-label="Back"
-        >
-          <ArrowLeftIcon className="w-5 h-5" />
-        </button>
+      {/* Local Header (Optional, maybe redundant if global header exists, but good for context) */}
+      {/* I will remove the "Back" button from here since it will be in the main header */}
+      <div className="mb-6">
         <h2 className="text-xl font-serif font-bold text-gray-900">LINE 通知設定</h2>
       </div>
 
@@ -116,7 +114,7 @@ const NotificationSettingsView: React.FC<NotificationSettingsViewProps> = ({ onB
           <div className="space-y-6">
             <div className="bg-[#FAF9F6] p-4 rounded-lg border border-[#EFECE5]">
               <p className="text-gray-700 text-sm leading-relaxed">
-                勾選您希望接收 LINE 預約通知的管理員帳號。請確保這些帳號已透過 LINE 登入以綁定其 User ID。
+                勾選您希望接收 LINE 預約通知的管理員帳號。
               </p>
             </div>
             
@@ -162,7 +160,7 @@ const NotificationSettingsView: React.FC<NotificationSettingsViewProps> = ({ onB
         )}
         <div className="mt-8 pt-6 border-t border-gray-100">
           <h3 className="text-lg font-serif font-medium text-gray-900 mb-2">功能測試</h3>
-          <p className="text-sm text-gray-500 mb-4">點擊下方按鈕，向所有已啟用通知的管理員發送一則測試訊息。</p>
+          <p className="text-sm text-gray-500 mb-4">發送測試訊息。</p>
           <button
             onClick={handleSendTestMessage}
             disabled={isTesting}
@@ -179,12 +177,13 @@ const NotificationSettingsView: React.FC<NotificationSettingsViewProps> = ({ onB
 // --- Main Settings Dashboard ---
 
 const SettingsPage: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'notifications'>('dashboard');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentView = searchParams.get('view') || 'dashboard';
 
   if (currentView === 'notifications') {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
-        <NotificationSettingsView onBack={() => setCurrentView('dashboard')} />
+        <NotificationSettingsView />
       </div>
     );
   }
@@ -199,7 +198,7 @@ const SettingsPage: React.FC = () => {
             value=""
             icon={<BellAlertIcon className="h-6 w-6" />}
             color="bg-yellow-500"
-            onClick={() => setCurrentView('notifications')}
+            onClick={() => setSearchParams({ view: 'notifications' })}
             subtext="設定 LINE 通知接收人員"
           />
           
