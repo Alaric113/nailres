@@ -8,7 +8,6 @@ import type { BusinessHours, TimeSlot } from '../types/businessHours';
 import { useAuthStore } from '../store/authStore';
 import type { Designer } from '../types/designer';
 import type { EnrichedUser } from '../types/user';
-import { v4 as uuidv4 } from 'uuid';
 import { 
   UserCircleIcon, 
   CalendarDaysIcon, 
@@ -69,7 +68,8 @@ const HoursSettingsPage = () => {
           for (const user of eligibleUsers) {
             const existing = currentDesigners.find(d => d.linkedUserId === user.id);
             if (!existing) {
-               const newId = uuidv4();
+               // Use user.id as doc ID to prevent duplicates (idempotent)
+               const newId = user.id;
                const newProfile: Designer = {
                   id: newId,
                   name: user.profile.displayName || '未命名',
@@ -95,7 +95,8 @@ const HoursSettingsPage = () => {
             finalDesignersList = [{ id: snap.docs[0].id, ...snap.docs[0].data() } as Designer];
           } else {
              // If designer has no profile (edge case), create one
-             const newId = uuidv4();
+             // Use uid as doc ID to prevent duplicates
+             const newId = currentUser.uid;
              const newProfile: Designer = {
                 id: newId,
                 name: userProfile?.profile.displayName || '我',
