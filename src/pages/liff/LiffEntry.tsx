@@ -5,6 +5,9 @@ import { initializeLiff, getLiffIdToken, liffLogin } from '../../lib/liff';
 import { signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { generateState, generateNonce } from '../../utils/lineAuth';
+
+const LINE_CHANNEL_ID = import.meta.env.VITE_LINE_CHANNEL_ID;
 
 const LiffEntry = () => {
     const navigate = useNavigate();
@@ -41,54 +44,45 @@ const LiffEntry = () => {
                    return;
                 }
 
-                // Logged in to LINE -> Get ID Token
-                setStatus('logging_in');
-                const idToken = getLiffIdToken();
+                // If we are here, we are logged in to LIFF (SDK) but might not have the 'code' for Firebase custom token exchange.
+                // Our backend /api/line-oauth-auth relies on 'code'.
+                // liff.login() inside the LINE app DOES NOT redirect by default, so we don't get the code.
+                // We must FORCE a standard OAuth redirect to get the code.
 
-                if (!idToken) {
-                    throw new Error('Failed to get ID token');
+                if (!code) {
+                     // Force manual redirect to LINE Login to get 'code'
+                     const state = generateState();
+                     const nonce = generateNonce();
+                     sessionStorage.setItem('line_auth_state', state);
+                     sessionStorage.setItem('line_auth_nonce', nonce);
+
+                     const redirectUri = window.location.origin + window.location.pathname + location.search;
+                     
+                     // Construct OAuth URL
+                     const params = new URLSearchParams({
+                        response_type: 'code',
+                        client_id: LINE_CHANNEL_ID || '',
+                        redirect_uri: redirectUri,
+                        state: state,
+                        scope: 'profile openid email',
+                        nonce: nonce,
+                        bot_prompt: 'normal',
+                     });
+
+                     const loginUrl = `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
+                     window.location.href = loginUrl;
+                     return;
                 }
-
-                // Verify ID Token with backend to get Firebase Custom Token
-                // Note: We're reusing the endpoint but adapting for ID Token if supported,
-                // OR we might need to use the access token.
-                // However, Login.tsx uses 'code' flow.
-                // For LIFF simple login, we might need a different endpoint OR 
-                // if we don't have a backend ID token verifier yet, we might need to assume 
-                // the user is authenticated if we trust the client (NOT SECURE).
-                // 
-                // WAIT -> The 'Login.tsx' uses `api/line-oauth-auth` which expects `code`.
-                // LIFF `liff.login()` does implicitly the same if we used `redirectUri`.
-                //
-                // Alternative: If we are in LIFF browser, we can get `liff.getAccessToken()`.
-                // But to sign in to Firebase `signInWithCustomToken`, we MUST have a backend minting it.
-                //
-                // Let's assume for now we use the SAME flow as `Login.tsx` logic if `code` is present.
-                // If `liff.init()` returns logged in, we verify if we have `code` in URL?
-                // `liff.login()` redirects back with `code`? -> Yes, if using Authorization Code flow option?
-                // Standard `liff.login()` might just set cookies.
-                //
-                // CRITICAL: If our backend ONLY accepts `code`, then `liff.login()` must act as OAuth.
-                // The `Login.tsx` logic for LIFF was: `liffLogin()` -> redirects.
-                //
-                // Let's check `lib/liff.ts` implementation of `liffLogin`.
-                // It calls `liff.login({ redirectUri })`.
-                //
-                // So if we are here, and `currentUser` is null, but `liff.isLoggedIn()` is true:
-                // It means we have a LIFF session.
-                // If we don't have a backend to swap ID Token -> Custom Token, we are stuck?
-                //
-                // Let's look at `Login.tsx` again.
-                // It has `useEffect` checking for `code` and `state`.
-                // If `LiffEntry` is the redirect target, checking `code` is correct.
-
-                const params = new URLSearchParams(window.location.search);
-                const code = params.get('code');
-                const state = params.get('state');
-
+                
+                // If we HAVE code, proceed to exchange it
                 if (code && state) {
-                    // We have auth code, exchange it like Login.tsx does
-                     const redirectUri = window.location.origin + window.location.pathname;
+                     // We have auth code, exchange it like Login.tsx does
+                     const storedState = sessionStorage.getItem('line_auth_state');
+                     // Note: You can enable state validation if you saved it before redirect
+                     // if (storedState && state !== storedState) throw new Error('State mismatch');
+
+                     const redirectUri = window.location.origin + window.location.pathname + location.search; // Must match exactly
+                     
                      const response = await fetch('/api/line-oauth-auth', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -101,24 +95,6 @@ const LiffEntry = () => {
                       
                       setStatus('redirecting');
                       navigate(redirectPath, { replace: true });
-                } else {
-                    // Logged in to LINE LIFF but no Auth Code (maybe session persisted?)
-                    // If we can't swap token, we might need to force re-login to get code?
-                    // OR implementing ID Token verification backend.
-                    // For now, let's force re-login to get the code if we aren't firebase-authed.
-                     if (!currentUser) {
-                         // Force login to get 'code'
-                         if (!liff.isLoggedIn()) {
-                            liffLogin(window.location.href);
-                         } else {
-                             // Already logged in LIFF but not Firebase.
-                             // Check for code again.
-                             if (!code) {
-                                 // Force login redirect to get code
-                                 liffLogin(window.location.href);
-                             }
-                         }
-                    }
                 }
 
             } catch (err: any) {
@@ -133,7 +109,7 @@ const LiffEntry = () => {
         } else {
              navigate(redirectPath, { replace: true });
         }
-    }, [currentUser, navigate, location]);
+    }, [currentUser, navigate, location, redirectPath]);
 
     if (status === 'error') {
         return (
