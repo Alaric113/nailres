@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Modal from '../components/common/Modal';
@@ -193,6 +193,64 @@ const StaffManagementPage: React.FC = () => {
             </div>
         )}
       </div>
+
+      {/* Orphan Designers Section - Profiles without a valid linked user */}
+      {(() => {
+        const orphanDesigners = designers.filter(d => !staffUsers.find(u => u.id === d.linkedUserId));
+        if (orphanDesigners.length === 0) return null;
+
+        return (
+          <div className="mt-12 border-t pt-8">
+            <h2 className="text-xl font-bold text-red-800 mb-4 flex items-center">
+              <span className="bg-red-100 p-1 rounded mr-2">⚠️</span>
+              異常資料 (未連結使用者的設計師檔案)
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              以下設計師檔案目前沒有對應的員工帳號 (可能帳號已被刪除或降級)。
+              這些檔案可能仍會顯示在預約頁面，建議刪除。
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {orphanDesigners.map(designer => (
+                 <div key={designer.id} className="relative bg-red-50 rounded-xl shadow-sm border border-red-200 p-6 flex flex-col opacity-75 hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center">
+                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold overflow-hidden">
+                                ?
+                            </div>
+                            <div className="ml-3">
+                                <h3 className="text-lg font-bold text-gray-900 line-through decoration-red-500">
+                                    {designer.name}
+                                </h3>
+                                <div className="text-xs text-red-600 font-bold">使用者連結失效</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex-1 text-sm text-gray-500 mb-4">
+                       {designer.bio || '無簡介'}
+                    </div>
+                    <button
+                        onClick={async () => {
+                            if (window.confirm(`確定要永久刪除已失效的設計師檔案 "${designer.name}" 嗎？`)) {
+                                try {
+                                    await deleteDoc(doc(db, 'designers', designer.id));
+                                    setDesigners(prev => prev.filter(d => d.id !== designer.id));
+                                    showToast('已刪除失效檔案', 'success');
+                                } catch (e) {
+                                    console.error(e);
+                                    showToast('刪除失敗', 'error');
+                                }
+                            }
+                        }}
+                        className="w-full py-2 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 font-medium text-sm transition-colors"
+                    >
+                        移除此異常檔案
+                    </button>
+                 </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       <Modal
         isOpen={isModalOpen}
