@@ -14,10 +14,13 @@ import {
   Cog6ToothIcon, 
   ClockIcon,
   ChevronRightIcon,
-  TrashIcon
+  ChevronDownIcon, // New
+  TrashIcon,
+  CheckIcon // New
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { useToast } from '../context/ToastContext'; // NEW IMPORT
+import { useToast } from '../context/ToastContext';
+import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/react'; // New Imports
 
 import 'react-day-picker/style.css';
 
@@ -44,6 +47,7 @@ const HoursSettingsPage = () => {
   const [isClosed, setIsClosed] = useState(false);
   const [closedDays, setClosedDays] = useState<Date[]>([]);
   const [customSettingDays, setCustomSettingDays] = useState<Date[]>([]);
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
 
   // General Settings State
   const [bookingDeadline, setBookingDeadline] = useState<Date | undefined>();
@@ -280,9 +284,8 @@ const HoursSettingsPage = () => {
   };
 
 
-  // --- Render Helpers ---
-  const selectedDesigner = designers.find(d => d.id === selectedTargetId);
-  const selectedDesignerName = selectedDesigner?.name || '未選擇';
+  // selectedDesigner removed as it is no longer used
+  // selectedDesignerName removed as it is no longer used in the simplified header
 
   if (loading) return <LoadingSpinner />;
 
@@ -310,33 +313,85 @@ const HoursSettingsPage = () => {
       
       {/* Sidebar (Desktop) / Header (Mobile) */}
       <aside className="lg:w-64 bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex-shrink-0 z-10 flex flex-col h-auto lg:h-screen sticky top-0 lg:static">
-        <div className="p-4 lg:p-6 border-b border-gray-100 flex items-center justify-between lg:block">
-            <h1 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2">
-                <ClockIcon className="w-6 h-6 text-[#9F9586]" />
-                營業時間
-            </h1>
-            {/* Mobile Designer Dropdown */}
-            {showDesignerSelector && designers.length > 0 && (
-                <div className="lg:hidden">
-                    <select 
-                        value={selectedTargetId || ''} 
-                        onChange={(e) => setSelectedTargetId(e.target.value)}
-                        className="text-sm border-none bg-gray-50 rounded-lg py-1 px-2 focus:ring-0 font-bold text-gray-700"
+        <div className="p-4 lg:p-6 border-b border-gray-100 flex items-center justify-between lg:block gap-3">
+            {/* Left Side: Icon + Dropdown/Title */}
+            <div className="flex items-center gap-3 flex-1 min-w-0 mr-2">
+                <ClockIcon className="w-6 h-6 text-[#9F9586] flex-shrink-0" />
+                
+                {/* Mobile: Show Dropdown if allowed, else Title */}
+                <div className="lg:hidden flex-1 min-w-0 relative">
+                    {showDesignerSelector && designers.length > 0 ? (
+                        <Listbox value={selectedTargetId} onChange={setSelectedTargetId}>
+                            <div className="relative">
+                                <ListboxButton className="w-full flex items-center gap-2 text-xl font-bold text-gray-900 bg-transparent border-none p-0 focus:ring-0">
+                                    <span className="truncate">{designers.find(d => d.id === selectedTargetId)?.name || '選擇設計師'}</span>
+                                    <ChevronDownIcon className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                                </ListboxButton>
+                                <ListboxOptions className="absolute z-50 mt-1 max-h-60 w-[200px] overflow-auto rounded-xl bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                    {designers.map((designer) => (
+                                        <ListboxOption
+                                            key={designer.id}
+                                            value={designer.id}
+                                            className={({ active, selected }) =>
+                                                `relative cursor-default select-none py-3 pl-10 pr-4 ${
+                                                active ? 'bg-[#FAF9F6] text-[#9F9586]' : 'text-gray-900'
+                                                } ${selected ? 'font-bold' : 'font-normal'}`
+                                            }
+                                        >
+                                            {({ selected }) => (
+                                                <>
+                                                    <span className={`block truncate ${selected ? 'font-bold' : 'font-normal'}`}>
+                                                        {designer.name}
+                                                    </span>
+                                                    {selected ? (
+                                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[#9F9586]">
+                                                            <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                                                        </span>
+                                                    ) : null}
+                                                </>
+                                            )}
+                                        </ListboxOption>
+                                    ))}
+                                </ListboxOptions>
+                            </div>
+                        </Listbox>
+                    ) : (
+                        <span className="text-xl font-serif font-bold text-gray-900">營業時間</span>
+                    )}
+                </div>
+
+                {/* Desktop: Title */}
+                <h1 className="hidden lg:flex text-xl font-serif font-bold text-gray-900 items-center gap-2 mt-2 lg:mt-0">
+                    <span className="lg:inline">營業時間</span>
+                </h1>
+            </div>
+
+            {/* Right Side: Tabs (Mobile Only) */}
+            <div className="lg:hidden flex-shrink-0">
+                <div className="bg-gray-100/80 p-1 rounded-lg flex">
+                    <button
+                        onClick={() => setActiveTab('daily')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${activeTab === 'daily' ? 'bg-white text-[#9F9586] shadow-sm' : 'text-gray-500'}`}
                     >
-                        {designers.map(d => (
-                            <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                    </select>
+                        排班
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('general')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${activeTab === 'general' ? 'bg-white text-[#9F9586] shadow-sm' : 'text-gray-500'}`}
+                    >
+                        設定
+                    </button>
+                </div>
+            </div>
+
+            {!showDesignerSelector && isDesignerUser && designers.length > 0 && ( // Designer user badge
+                 <div className="lg:hidden ml-auto px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium whitespace-nowrap">
+                    {designers[0].name}
                 </div>
             )}
-            {!showDesignerSelector && isDesignerUser && designers.length > 0 && ( // Designer user
-                 <div className="lg:hidden px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-                    {designers[0].name} 的行程
-                </div>
-            )}
-            {!showDesignerSelector && isTrulyAdminUser && ( // Admin User
-                <div className="lg:hidden px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
-                    純管理帳號
+            {!showDesignerSelector && isTrulyAdminUser && ( // Admin User badge
+                <div className="lg:hidden ml-auto px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium whitespace-nowrap">
+                    管理員
                 </div>
             )}
         </div>
@@ -397,17 +452,8 @@ const HoursSettingsPage = () => {
       {/* Main Content */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto h-auto lg:h-screen">
         <div className="max-w-4xl mx-auto pb-20 lg:pb-0">
-            {/* Header Area */}
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        {selectedDesignerName}
-                        <span className="text-xs font-normal px-2 py-1 bg-gray-100 rounded-full text-gray-500">
-                            {activeTab === 'daily' ? '每日排班' : '基本設定'}
-                        </span>
-                    </h2>
-                </div>
-                
+            {/* Header Area - Simplified: Only Tabs (Desktop only now) */}
+            <div className="mb-6 hidden lg:flex justify-end">
                 {/* Tabs */}
                 <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex">
                     <button
@@ -433,49 +479,85 @@ const HoursSettingsPage = () => {
 
             {/* Daily Settings View */}
             {activeTab === 'daily' && (
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                    {/* Calendar */}
-                    <div className="md:col-span-5 lg:col-span-4">
-                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 sticky top-4">
-                            <style>{`
-                                .rdp {
-                                    --rdp-cell-size: 40px;
-                                    --rdp-accent-color: #9F9586;
-                                    --rdp-background-color: #FDFBF7;
-                                    margin: 0;
-                                }
-                                .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
-                                    background-color: #F5F5F4;
-                                }
-                                .rdp-day_selected { 
-                                    font-weight: bold; 
-                                }
-                            `}</style>
-                            <DayPicker
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={setSelectedDate}
-                                locale={zhTW}
-                                modifiers={{
-                                    closed: closedDays,
-                                    custom: customSettingDays,
-                                }}
-                                modifiersStyles={{
-                                    closed: { color: '#ef4444', backgroundColor: '#fee2e2' },
-                                    custom: { fontWeight: 'bold', border: '2px solid #E7E5E4' },
-                                }}
-                                disabled={{ before: new Date() }}
-                            />
+                <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+                    {/* Collapsible Calendar Section */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300">
+                        {/* Calendar Header - Always Visible & Clickable */}
+                        <button 
+                            onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
+                            className="w-full flex items-center justify-between p-6 bg-white hover:bg-gray-50 transition-colors text-left"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${isCalendarExpanded ? 'bg-[#9F9586] text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                    <CalendarDaysIcon className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-900 text-lg">選擇日期</h3>
+                                    <p className="text-sm text-gray-500">
+                                        {selectedDate ? format(selectedDate, 'yyyy年MM月dd日 (EEEE)', { locale: zhTW }) : '尚未選擇'}
+                                    </p>
+                                </div>
+                            </div>
+                            <ChevronRightIcon className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isCalendarExpanded ? 'rotate-90' : ''}`} />
+                        </button>
+
+                        {/* Calendar Body - Collapsible */}
+                        <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isCalendarExpanded ? 'max-h-[500px] opacity-100 border-t border-gray-100' : 'max-h-0 opacity-0'}`}>
+                            <div className="p-6 flex justify-center bg-[#FDFBF7]">
+                                <style>{`
+                                    .rdp {
+                                        --rdp-cell-size: 45px; /* Larger hit area */
+                                        --rdp-accent-color: #9F9586;
+                                        --rdp-background-color: #FDFBF7;
+                                        margin: 0;
+                                    }
+                                    .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+                                        background-color: #F5F5F4;
+                                        font-weight: bold;
+                                    }
+                                    .rdp-day_selected { 
+                                        font-weight: bold; 
+                                    }
+                                `}</style>
+                                <DayPicker
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={(date) => {
+                                        setSelectedDate(date);
+                                        if (date) {
+                                            // Auto collapse after short delay
+                                            setTimeout(() => setIsCalendarExpanded(false), 200);
+                                        }
+                                    }}
+                                    locale={zhTW}
+                                    modifiers={{
+                                        closed: closedDays,
+                                        custom: customSettingDays,
+                                    }}
+                                    modifiersStyles={{
+                                        closed: { color: '#ef4444', backgroundColor: '#fee2e2' },
+                                        custom: { fontWeight: 'bold', border: '2px solid #E7E5E4' },
+                                    }}
+                                    disabled={{ before: new Date() }}
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Editor */}
-                    <div className="md:col-span-7 lg:col-span-8">
+                    {/* Settings Editor - Unfolds when Calendar Collapses */}
+                    <div className={`transition-all duration-500 ease-out ${!isCalendarExpanded && selectedDate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none hidden'}`}>
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                                <h3 className="font-bold text-gray-900 text-lg">
-                                    {selectedDate ? format(selectedDate, 'yyyy年MM月dd日') : '請選擇日期'}
+                            <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                                <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                                    <Cog6ToothIcon className="w-5 h-5 text-[#9F9586]" />
+                                    設定當日營業時間
                                 </h3>
+                                <button 
+                                    onClick={() => setIsCalendarExpanded(true)}
+                                    className="text-sm text-[#9F9586] hover:text-[#8a7f70] font-medium"
+                                >
+                                    重新選擇日期
+                                </button>
                             </div>
                             
                             <div className="p-6 space-y-6">
@@ -560,7 +642,7 @@ const HoursSettingsPage = () => {
                         <h3 className="font-bold text-gray-900 text-lg">基本預約規則</h3>
                     </div>
                     
-                    <div className="p-8 space-y-8">
+                    <div className="p-4 sm:p-8 space-y-8">
                         <div>
                             <label className="block font-bold text-gray-900 mb-2">最晚可預約日期 (Booking Deadline)</label>
                             <p className="text-sm text-gray-500 mb-4 leading-relaxed">
@@ -569,7 +651,7 @@ const HoursSettingsPage = () => {
                                 <br/>(通常用於控制開放預約的區間)
                             </p>
                             
-                            <div className="flex justify-center bg-[#FAF9F6] p-6 rounded-2xl border border-gray-200">
+                            <div className="w-full flex justify-center bg-[#FAF9F6] p-2 sm:p-6 rounded-2xl border border-gray-200">
                                 <style>{`
                                     .rdp { --rdp-accent-color: #9F9586; margin: 0; }
                                 `}</style>
