@@ -83,7 +83,21 @@ const LiffEntry = () => {
                      // const storedState = sessionStorage.getItem('line_auth_state');
                      // if (storedState && state !== storedState) throw new Error('State mismatch');
 
-                     const redirectUri = window.location.origin + window.location.pathname + location.search; // Must match exactly
+                     // Fix Token Exchange Error: Redirect URI Mismatch
+                     // We must reconstruct the EXACT redirect_uri used in the authorize request.
+                     // The authorize request used: origin + pathname + (original params).
+                     // But NOW, location.search contains code & state.
+                     // So we must STRIP code & state to get back to the original URI.
+                     
+                     const cleanParams = new URLSearchParams(location.search);
+                     cleanParams.delete('code');
+                     cleanParams.delete('state');
+                     cleanParams.delete('liffClientId');
+                     cleanParams.delete('liffRedirectUri');
+
+                     const baseSearch = cleanParams.toString();
+                     const searchPart = baseSearch ? `?${baseSearch}` : '';
+                     const redirectUri = window.location.origin + window.location.pathname + searchPart;
                      
                      const response = await fetch('/api/line-oauth-auth', {
                         method: 'POST',
