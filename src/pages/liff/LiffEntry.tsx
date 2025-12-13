@@ -22,10 +22,13 @@ const LiffEntry = () => {
         const code = queryParams.get('code');
         const state = queryParams.get('state');
 
+        console.log('[LiffEntry] Debug:', { search: location.search, redirectPath, code, hasUser: !!currentUser });
+
         const init = async () => {
             try {
                 // If user is already logged in to Firebase, go straight to target
                 if (currentUser) {
+                    console.log('[LiffEntry] User logged in, redirecting to:', redirectPath);
                     setStatus('redirecting');
                     navigate(redirectPath, { replace: true });
                     return;
@@ -109,6 +112,7 @@ const LiffEntry = () => {
                       const { firebaseCustomToken } = await response.json();
                       await signInWithCustomToken(auth, firebaseCustomToken);
                       
+                      console.log('[LiffEntry] Token exchanged, redirecting to:', redirectPath);
                       setStatus('redirecting');
                       navigate(redirectPath, { replace: true });
                 }
