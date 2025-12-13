@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Bars3Icon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
@@ -8,16 +8,31 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-
-    <nav className="fixed top-0 left-0 right-0 h-[64px] flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-secondary-light border-b border-secondary-dark z-50 transition-colors duration-300">
-
+    <nav 
+      className={`fixed top-0 left-0 right-0 h-16 md:h-[64px] flex items-center justify-between px-4 sm:px-6 lg:px-8 z-[9999] transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-secondary-light backdrop-blur-md shadow-soft border-b border-secondary-dark/50' 
+          : 'bg-secondary-light border-b border-secondary-dark'
+      }`}
+    >
       {/* Left: Menu Button */}
       <div className="flex-1 flex justify-start">
         <button
           onClick={onMenuClick}
-          className="hidden md:block p-2 rounded-md text-text-main hover:bg-secondary hover:text-primary-dark focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light transition-colors"
-          aria-label="Open menu"
+          className="hidden md:flex touch-target p-2 rounded-lg text-text-main hover:bg-secondary hover:text-primary-dark focus-ring transition-all tap-highlight-none"
+          aria-label="開啟選單"
         >
           <Bars3Icon className="h-6 w-6" />
         </button>
@@ -25,7 +40,10 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
 
       {/* Center: Logo */}
       <div className="flex-1 flex justify-center">
-        <Link to="/" className="text-2xl font-bold tracking-wide text-primary font-serif hover:text-primary-dark transition-colors">
+        <Link 
+          to="/" 
+          className="text-xl sm:text-2xl font-bold tracking-wide text-primary font-serif hover:text-primary-dark focus-ring transition-all tap-highlight-none px-2 py-1 rounded-lg"
+        >
           TREERING
         </Link>
       </div>
@@ -34,8 +52,8 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
       <div className="flex-1 flex justify-end">
         <button
           // onClick={() => { /* 之後實作搜尋功能 */ }}
-          className="hidden md:block p-2 rounded-md text-text-main hover:bg-secondary hover:text-primary-dark focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light transition-colors"
-          aria-label="Search"
+          className="hidden md:flex touch-target p-2 rounded-lg text-text-main hover:bg-secondary hover:text-primary-dark focus-ring transition-all tap-highlight-none"
+          aria-label="搜尋"
         >
           <MagnifyingGlassIcon className="h-6 w-6" />
         </button>

@@ -1,7 +1,12 @@
-import MemberTabs from '../components/member/MemberTabs';
 import LoyaltyCard from '../components/dashboard/LoyaltyCard';
 import { useAuthStore } from '../store/authStore';
-import { ArrowRightOnRectangleIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline';
+import { 
+  ArrowRightOnRectangleIcon, 
+  WrenchScrewdriverIcon,
+  ArchiveBoxIcon, 
+  GiftIcon, 
+  TicketIcon,
+} from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 
 const UserMemberPage = () => {
@@ -12,6 +17,30 @@ const UserMemberPage = () => {
     await logout();
     navigate('/login');
   };
+
+  const menuItems = [
+    { 
+      title: '歷史預約紀錄', 
+      subtitle: '查看過往服務紀錄',
+      icon: ArchiveBoxIcon, 
+      path: '/member/history',
+      color: 'bg-orange-50 text-orange-600'
+    },
+    { 
+      title: '點數兌換專區', 
+      subtitle: '使用點數兌換優惠',
+      icon: GiftIcon, 
+      path: '/member/rewards',
+      color: 'bg-blue-50 text-blue-600'
+    },
+    { 
+      title: '季卡/年卡方案', 
+      subtitle: '購買超值會員方案',
+      icon: TicketIcon, 
+      path: '/member/pass',
+      color: 'bg-green-50 text-green-600'
+    },
+  ];
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#FAF9F6] pb-24">
@@ -44,9 +73,25 @@ const UserMemberPage = () => {
           <LoyaltyCard />
         </section>
 
-        {/* 3. Main Content Tabs (History, Rewards, Pass) */}
-        <section className="flex-1 min-h-0">
-           <MemberTabs />
+        {/* 3. Function Menu */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-gray-900 px-1">會員功能</h2>
+          <div className="grid grid-cols-3 gap-3">
+            {menuItems.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className="bg-white p-4 rounded-2xl border border-[#EFECE5] flex flex-col items-center justify-center gap-3 hover:shadow-md transition-all active:scale-[0.95] aspect-square"
+              >
+                <div className={`w-12 h-12 rounded-xl ${item.color} flex items-center justify-center`}>
+                  <item.icon className="w-6 h-6" />
+                </div>
+                <div className="text-center">
+                  <h3 className="font-bold text-gray-900 text-sm">{item.title}</h3>
+                </div>
+              </button>
+            ))}
+          </div>
         </section>
       </div>
     </div>

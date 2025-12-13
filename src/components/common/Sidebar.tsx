@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { XMarkIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../../store/authStore';
 
 interface SidebarProps {
@@ -108,7 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Overlay with smooth fade */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity duration-300"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-modal-backdrop transition-opacity duration-300 tap-highlight-none"
           onClick={onClose}
           aria-hidden="true"
         ></div>
@@ -116,11 +116,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full w-80 bg-secondary-light shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
+        className={`fixed top-0 left-0 h-full w-[85vw] md:w-80 lg:w-[360px] bg-secondary-light shadow-strong z-modal transform transition-transform duration-300 ease-smooth flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         role="dialog"
-        aria-label="Navigation menu"
+        aria-label="導航選單"
       >
         {/* Header with user info */}
         <div className="flex-shrink-0 bg-secondary border-b border-secondary-dark">
@@ -129,7 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <h2 className="text-xl font-serif font-bold text-text-main">選單</h2>
               <button
                 onClick={onClose}
-                className="p-2 rounded-full text-text-light hover:bg-secondary-dark hover:text-primary-dark focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                className="touch-target p-2 rounded-full text-text-light hover:bg-secondary-dark hover:text-primary-dark focus-ring transition-all tap-highlight-none active:scale-95"
                 aria-label="關閉選單"
               >
                 <XMarkIcon className="h-6 w-6" />
@@ -138,13 +138,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             
             {/* User greeting */}
             {currentUser && userProfile && (
-              <div className="flex items-center space-x-3 p-3 bg-secondary-light rounded-lg shadow-sm border border-secondary-dark">
-                <img src={currentUser.photoURL||'https://firebasestorage.googleapis.com/v'} alt="" className='h-10 w-10 rounded-xl object-cover' />
+              <div className="flex items-center space-x-3 p-3 bg-secondary-light rounded-xl shadow-subtle border border-secondary-dark">
+                {currentUser.photoURL ? (
+                  <img 
+                    src={currentUser.photoURL} 
+                    alt={currentUser.displayName || '會員'} 
+                    className='h-10 w-10 rounded-xl object-cover' 
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <UserCircleIcon className="h-6 w-6 text-primary" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-text-main truncate">
-                    {currentUser.displayName|| '會員'}
+                    {currentUser.displayName || '會員'}
                   </p>
-                  
                 </div>
               </div>
             )}
@@ -160,7 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   <div>
                     <button
                       onClick={() => toggleCategory(index)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-serif font-semibold text-text-main hover:bg-secondary transition-all group"
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-serif font-semibold text-text-main hover:bg-secondary transition-all group tap-highlight-none active:scale-[0.98]"
                       aria-expanded={expandedCategories.has(index)}
                     >
                       <span className="flex items-center tracking-wide">
@@ -173,21 +182,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                       />
                     </button>
                     
-                    {/* Collapsible submenu */}
+                    {/* Collapsible submenu with improved animation */}
                     <div
-                      className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      className={`overflow-hidden transition-all duration-300 ease-smooth ${
                         expandedCategories.has(index) 
                           ? 'max-h-96 opacity-100 mt-1' 
                           : 'max-h-0 opacity-0'
                       }`}
                     >
-                      <ul className="ml-3 space-y-0.5 border-l border-primary/30">
+                      <ul className="ml-3 space-y-0.5 border-l-2 border-primary/30">
                         {item.subItems?.map((subItem, subIndex) => (
                           <li key={subIndex}>
                             <Link
                               to={subItem.link || '#'}
                               onClick={onClose}
-                              className="block pl-4 pr-3 py-2 rounded-r-lg text-sm text-text-light hover:bg-secondary hover:text-primary-dark hover:border-l-2 hover:border-primary transition-all"
+                              className="block pl-4 pr-3 py-2 rounded-r-lg text-sm text-text-light hover:bg-secondary hover:text-primary-dark hover:border-l-2 hover:border-primary transition-all tap-highlight-none active:bg-secondary-dark"
                             >
                               {subItem.label}
                             </Link>
@@ -200,7 +209,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   <Link
                     to={item.link || '#'}
                     onClick={onClose}
-                    className="flex items-center px-3 py-2.5 rounded-lg text-text-main hover:bg-secondary hover:text-primary-dark transition-all group"
+                    className="flex items-center px-3 py-2.5 rounded-lg text-text-main hover:bg-secondary hover:text-primary-dark transition-all group tap-highlight-none active:bg-secondary-dark"
                   >
                     {item.icon && (
                       <item.icon className="h-5 w-5 mr-3 text-text-light group-hover:text-primary transition-colors" />
@@ -221,7 +230,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <Link
                   to="/admin"
                   onClick={onClose}
-                  className="flex items-center justify-center px-4 py-2.5 rounded-lg text-white bg-primary hover:bg-primary-dark shadow-sm hover:shadow-md transition-all"
+                  className="flex items-center justify-center px-4 py-2.5 rounded-xl text-white bg-primary hover:bg-primary-dark shadow-soft hover:shadow-medium transition-all tap-highlight-none active:scale-95"
                 >
                   <Cog6ToothIcon className="h-5 w-5 mr-2" />
                   <span className="font-medium">管理後臺</span>
@@ -229,7 +238,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               )}
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center px-4 py-2.5 rounded-lg text-text-main bg-white border border-secondary-dark hover:bg-secondary-light transition-all"
+                className="w-full flex items-center justify-center px-4 py-2.5 rounded-xl text-text-main bg-white border border-secondary-dark hover:bg-secondary-light transition-all tap-highlight-none active:scale-95"
               >
                 <ArrowRightOnRectangleIcon className="h-5 w-5 mr-2" />
                 <span className="font-medium">登出</span>
@@ -249,14 +258,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <Link
                 to="/login"
                 onClick={onClose}
-                className="block w-full px-4 py-2.5 rounded-lg text-center text-white bg-primary hover:bg-primary-dark shadow-sm hover:shadow-md transition-all font-medium tracking-wide"
+                className="block w-full px-4 py-2.5 rounded-xl text-center text-white bg-primary hover:bg-primary-dark shadow-soft hover:shadow-medium transition-all font-medium tracking-wide tap-highlight-none active:scale-95"
               >
                 登入
               </Link>
               <Link
                 to="/register"
                 onClick={onClose}
-                className="block w-full px-4 py-2.5 rounded-lg text-center text-primary-dark bg-white border border-primary hover:bg-secondary-light transition-all font-medium"
+                className="block w-full px-4 py-2.5 rounded-xl text-center text-primary-dark bg-white border border-primary hover:bg-secondary-light transition-all font-medium tap-highlight-none active:scale-95"
               >
                 註冊新帳號
               </Link>

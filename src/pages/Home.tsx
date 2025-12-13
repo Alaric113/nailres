@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-
-import HeroSection from '../components/home/HeroSection';
-import ServiceHighlights from '../components/home/ServiceHighlights';
-import PortfolioSection from '../components/home/PortfolioSection';
-import Footer from '../components/home/Footer';
+import { Sparkles, Calendar, Image as ImageIcon, ChevronRight } from 'lucide-react';
+import Card from '../components/common/Card';
 
 const Home = () => {
   const [homepageImages, setHomepageImages] = useState<{
@@ -20,7 +18,6 @@ const Home = () => {
     browImages: [],
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [heroImage, setHeroImage] = useState('');
 
   useEffect(() => {
     const fetchImages = async () => {
@@ -30,10 +27,6 @@ const Home = () => {
         if (docSnap.exists()) {
           const data = docSnap.data() as any;
           setHomepageImages(data);
-          // Select a random hero image from lashes if available
-          if (data.lashImages && data.lashImages.length > 0) {
-            setHeroImage(data.lashImages[Math.floor(Math.random() * data.lashImages.length)]);
-          }
         }
       } catch (error) {
         console.error("Error fetching homepage images:", error);
@@ -45,51 +38,201 @@ const Home = () => {
   }, []);
 
   // Services Data
-  const categories = [
+  const services = [
     {
+      id: 1,
       title: '韓式霧眉',
       price: 5500,
       description: 'POWDER BROWS',
-      highlights: ['日式嫁接', '自然濃密', '持久舒適'],
-      link: '/booking?category=霧眉',
-      imglink: homepageImages.browImages[0] || ''
+      category: '霧眉',
+      image: homepageImages.browImages[0] || '',
+      icon: '💅',
     },
     {
+      id: 2,
       title: '日式美睫',
       price: 1000,
       description: 'EYELASH',
-      highlights: ['韓式霧眉', '客製設計', '自然妝感'],
-      link: '/booking?category=美睫',
-      imglink: homepageImages.lashImages[0] || ''
+      category: '美睫',
+      image: homepageImages.lashImages[0] || '',
+      icon: '👁️',
     },
     {
+      id: 3,
       title: '質感美甲',
       price: 1000,
       description: 'NAILS',
-      highlights: ['凝膠指甲', '手繪設計', '保養護理'],
-      link: '/booking?category=美甲',
-      imglink: homepageImages.nailImages[0] || ''
+      category: '美甲',
+      image: homepageImages.nailImages[0] || '',
+      icon: '💅',
     },
   ];
 
   return (
-    // Main Container with Snap Scroll
-    <div className="bg-secondary-light text-text-main h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
-      
-      <HeroSection heroImage={heroImage} />
+    <div className="min-h-screen bg-secondary-light pb-24">
+      {/* Main Content */}
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            to="/booking"
+            className="bg-white rounded-2xl p-4 shadow-soft hover:shadow-medium transition-all active:scale-95 tap-highlight-none"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                  <Calendar className="w-5 h-5 text-primary" />
+                </div>
+                <h3 className="font-medium text-text-main">立即預約</h3>
+                <p className="text-xs text-text-light mt-0.5">Book Now</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-text-light" />
+            </div>
+          </Link>
 
-      <ServiceHighlights categories={categories} />
+          <Link
+            to="/portfolio"
+            className="bg-white rounded-2xl p-4 shadow-soft hover:shadow-medium transition-all active:scale-95 tap-highlight-none"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                  <ImageIcon className="w-5 h-5 text-primary" />
+                </div>
+                <h3 className="font-medium text-text-main">作品集</h3>
+                <p className="text-xs text-text-light mt-0.5">Portfolio</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-text-light" />
+            </div>
+          </Link>
+        </div>
 
-      <PortfolioSection 
-        beforeAfter={homepageImages.beforeAfter} 
-        galleryImages={[...homepageImages.lashImages, ...homepageImages.nailImages].slice(0, 8)} // Combine for gallery, limit to 8
-        isLoading={isLoading} 
-      />
+        {/* Featured Services */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-serif font-bold text-text-main flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              熱門服務
+            </h2>
+            <Link to="/booking" className="text-sm text-primary hover:text-primary-dark transition-colors">
+              查看全部
+            </Link>
+          </div>
 
-      {/* About / Placeholder Section can be added here if needed */}
+          <div className="space-y-3">
+            {services.map((service) => (
+              <Link
+                key={service.id}
+                to={`/booking?category=${service.category}`}
+                className="block"
+              >
+                <Card hoverable className="overflow-hidden">
+                  <div className="flex items-center gap-4 p-0">
+                    {/* Service Image */}
+                    <div className="w-24 h-24 flex-shrink-0 bg-secondary-dark overflow-hidden">
+                      {service.image ? (
+                        <img
+                          src={service.image}
+                          alt={service.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-3xl">
+                          {service.icon}
+                        </div>
+                      )}
+                    </div>
 
-      <Footer />
+                    {/* Service Info */}
+                    <div className="flex-1 py-3 pr-4">
+                      <h3 className="font-serif font-bold text-text-main mb-1">
+                        {service.title}
+                      </h3>
+                      <p className="text-xs text-text-light mb-2">{service.description}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-primary font-bold">NT$ {service.price.toLocaleString()}</span>
+                        <ChevronRight className="w-4 h-4 text-text-light" />
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
 
+        {/* Portfolio Preview */}
+        {!isLoading && homepageImages.lashImages.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-serif font-bold text-text-main">
+                精選作品
+              </h2>
+              <Link to="/portfolio" className="text-sm text-primary hover:text-primary-dark transition-colors">
+                查看更多
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {[...homepageImages.lashImages, ...homepageImages.nailImages, ...homepageImages.browImages]
+                .slice(0, 6)
+                .map((image, index) => (
+                  <Link
+                    key={index}
+                    to="/portfolio"
+                    className="aspect-square rounded-xl overflow-hidden shadow-soft hover:shadow-medium transition-all active:scale-95"
+                  >
+                    <img
+                      src={image}
+                      alt={`作品 ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </Link>
+                ))}
+            </div>
+          </section>
+        )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="aspect-square rounded-xl bg-secondary-dark animate-pulse"
+              ></div>
+            ))}
+          </div>
+        )}
+
+        {/* About Section */}
+        <section className="bg-white rounded-2xl p-6 shadow-soft">
+          <h2 className="text-lg font-serif font-bold text-text-main mb-3">
+            關於 TREERING
+          </h2>
+          <p className="text-sm text-text-light leading-relaxed mb-4">
+            我們致力於提供最專業的美甲、美睫與霧眉服務，
+            以自然、精緻的手法，為每位客人打造獨特的美麗風格。
+          </p>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold text-primary mb-1">5+</div>
+              <div className="text-xs text-text-light">年經驗</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-primary mb-1">1000+</div>
+              <div className="text-xs text-text-light">滿意客戶</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-primary mb-1">100%</div>
+              <div className="text-xs text-text-light">專業認證</div>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   );
 };

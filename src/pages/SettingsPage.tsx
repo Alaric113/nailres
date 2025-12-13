@@ -177,6 +177,12 @@ const NotificationSettingsView: React.FC = () => {
 
 // --- Main Settings Dashboard ---
 
+import SeasonPassSettings from '../components/admin/settings/SeasonPassSettings';
+
+// ... (existing imports)
+
+// --- Main Settings Dashboard ---
+
 const SettingsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentView = searchParams.get('view') || 'dashboard';
@@ -193,6 +199,14 @@ const SettingsPage: React.FC = () => {
       roles: ['admin', 'manager', 'designer']
     },
     { 
+      title: "會員方案", 
+      icon: TicketIcon, 
+      color: "bg-rose-500", 
+      subtext: "設定季卡/年卡方案與價格", 
+      onClick: () => setSearchParams({ view: 'season-pass' }),
+      roles: ['admin', 'manager']
+    },
+    { 
       title: "營業時間", 
       icon: ClockIcon, 
       color: "bg-purple-500", 
@@ -200,6 +214,7 @@ const SettingsPage: React.FC = () => {
       subtext: "管理排班與營業時間",
       roles: ['admin', 'manager', 'designer']
     },
+    // ... (other existing cards)
     { 
       title: "用戶管理", 
       icon: UserGroupIcon, 
@@ -251,6 +266,14 @@ const SettingsPage: React.FC = () => {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <NotificationSettingsView />
+      </div>
+    );
+  }
+
+  if (currentView === 'season-pass') {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <SeasonPassSettings />
       </div>
     );
   }

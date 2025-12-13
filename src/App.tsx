@@ -2,15 +2,18 @@ import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-rou
 import { useAuth } from './hooks/useAuth';
 import { useAuthStore } from './store/authStore';
 
+import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
 import Login from './components/auth/Login';
 import Register from './pages/Register';
 import PortfolioGalleryPage from './pages/PortfolioGalleryPage';
 
 // Page Components
-import Dashboard from './pages/Dashboard';
 import BookingPage from './pages/BookingPage';
 import UserMemberPage from './pages/UserMemberPage';
+import MemberHistoryPage from './pages/member/MemberHistoryPage';
+import MemberRewardsPage from './pages/member/MemberRewardsPage';
+import MemberPassPage from './pages/member/MemberPassPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ServiceManagement from './pages/ServiceManagement';
 import CustomerListPage from './pages/CustomerListPage';
@@ -67,14 +70,22 @@ const routes = [
       {
         element: <UserLayout />,
         children: [
-          { path: '/', element: <Home /> },
+          { path: '/', element: <LandingPage /> },
           { path: 'portfolio', element: <PortfolioGalleryPage /> },
           {
             element: <ProtectedRoute />,
             children: [
-              { path: 'dashboard', element: <Dashboard /> },
+              { path: 'dashboard', element: <Home /> },
               { path: 'booking', element: <BookingPage /> },
-              { path: 'member', element: <UserMemberPage /> },
+              { 
+                path: 'member', 
+                children: [
+                  { index: true, element: <UserMemberPage /> },
+                  { path: 'history', element: <MemberHistoryPage /> },
+                  { path: 'rewards', element: <MemberRewardsPage /> },
+                  { path: 'pass', element: <MemberPassPage /> },
+                ]
+              },
             ],
           },
         ],

@@ -164,5 +164,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if canAdminAllDesigners();
     }
+
+    // Season Passes
+    match /season_passes/{passId} {
+      allow read: if true; // Publicly visible (or use isAuthenticated() if strictly member-only, but keeping consistent with services/portfolio)
+      allow write: if isStaff(); // Admins/Staff can manage
+    }
   }
 }

@@ -56,7 +56,7 @@ const BookingProgressBar: React.FC<BookingProgressBarProps> = ({ currentStep, to
                 )}
               </motion.button>
               
-              <span className={`absolute top-10 text-[10px] whitespace-nowrap font-medium transition-colors duration-300
+              <span className={`absolute top-9 text-[10px] whitespace-nowrap font-medium transition-colors duration-300
                 ${isActive || isCompleted ? 'text-[#9F9586]' : 'text-gray-400'}`}>
                 {step.name}
               </span>

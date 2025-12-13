@@ -21,7 +21,7 @@ const BottomNav = () => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-lg border-t border-gray-100 pb-safe-area shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-fixed bg-white/95 backdrop-blur-lg border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden">
       <div className="flex justify-around items-center px-2 py-3">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
@@ -32,22 +32,26 @@ const BottomNav = () => {
             <Link
               key={item.name}
               to={item.path}
-              className="relative flex flex-col items-center justify-center w-full h-full space-y-1"
+              className="relative flex flex-col items-center justify-center w-full h-full space-y-1 touch-target tap-highlight-none"
             >
               {isActive && (
                 <motion.div
                   layoutId="bottomNavActive"
-                  className="absolute top-1 w-12 h-8 bg-[#9F9586]/10 rounded-full"
+                  className="absolute top-1 w-12 h-8 bg-primary/10 rounded-full"
                   initial={false}
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
               
-              <div className="relative z-10 p-1">
-                <Icon className={`w-6 h-6 transition-colors duration-200 ${isActive ? 'text-[#9F9586]' : 'text-gray-400'}`} />
-              </div>
+              <motion.div 
+                className="relative z-10 p-1"
+                animate={{ scale: isActive ? 1.1 : 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Icon className={`w-6 h-6 transition-colors duration-200 ${isActive ? 'text-primary' : 'text-gray-400'}`} />
+              </motion.div>
               
-              <span className={`text-[10px] font-medium transition-colors duration-200 ${isActive ? 'text-[#9F9586]' : 'text-gray-400'}`}>
+              <span className={`text-[10px] font-medium transition-colors duration-200 ${isActive ? 'text-primary' : 'text-gray-400'}`}>
                 {item.name}
               </span>
             </Link>
@@ -55,7 +59,7 @@ const BottomNav = () => {
         })}
       </div>
       {/* Safe area spacer for iPhone Home Indicator */}
-      <div className="h-[env(safe-area-inset-bottom)]" />
+      <div className="pb-safe-area" />
     </div>
   );
 };
