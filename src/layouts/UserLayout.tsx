@@ -5,11 +5,15 @@ import Sidebar from '../components/common/Sidebar';
 import MainLayout from '../components/MainLayout';
 import AnnouncementBanner from '../components/common/AnnouncementBanner';
 import { useAuthStore } from '../store/authStore';
+import { isLiffBrowser } from '../lib/liff';
 
 const UserLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const { currentUser } = useAuthStore();
+
+  // Check once on mount/render if it's LIFF
+  const [isLiff] = useState(isLiffBrowser());
 
   const toggleSidebar = useCallback(() => {
     setIsSidebarOpen(prev => !prev);
@@ -19,7 +23,7 @@ const UserLayout: React.FC = () => {
 
   return (
     <>
-      <Navbar onMenuClick={toggleSidebar} />
+      {!isLiff && <Navbar onMenuClick={toggleSidebar} />}
       {showAnnouncementBanner && <AnnouncementBanner />}
       <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
       <MainLayout showAnnouncementBanner={showAnnouncementBanner}>

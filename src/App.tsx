@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Login from './components/auth/Login';
 import Register from './pages/Register';
 import PortfolioGalleryPage from './pages/PortfolioGalleryPage';
+import LiffEntry from './pages/liff/LiffEntry';
 
 // Page Components
 import BookingPage from './pages/BookingPage';
@@ -88,6 +89,7 @@ const routes = [
               },
             ],
           },
+          { path: 'liff', element: <LiffEntry /> },
         ],
       },
       {
