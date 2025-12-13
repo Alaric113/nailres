@@ -112,9 +112,9 @@ const LiffEntry = () => {
                       const { firebaseCustomToken } = await response.json();
                       await signInWithCustomToken(auth, firebaseCustomToken);
                       
-                      console.log('[LiffEntry] Token exchanged, redirecting to:', redirectPath);
-                      setStatus('redirecting');
-                      navigate(redirectPath, { replace: true });
+                      console.log('[LiffEntry] Token exchanged success. Waiting for auth state to propagate...');
+                      // Do NOT navigate here. Wait for currentUser to update and trigger the effect re-run.
+                      // navigate(redirectPath, { replace: true });
                 }
 
             } catch (err: any) {
