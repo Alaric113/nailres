@@ -10,8 +10,19 @@ if (!admin.apps.length) {
   if (!FIREBASE_SERVICE_ACCOUNT) {
     throw new Error('Firebase service account is not configured.');
   }
+
+  let serviceAccountJson = FIREBASE_SERVICE_ACCOUNT;
+  // Check if base64 encoded (starts with 'e' commonly for {"type"...) or doesn't start with '{'
+  if (!serviceAccountJson.trim().startsWith('{')) {
+    try {
+      serviceAccountJson = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
+    } catch (e) {
+      console.warn("Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
+    }
+  }
+
   admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(FIREBASE_SERVICE_ACCOUNT)),
+    credential: admin.credential.cert(JSON.parse(serviceAccountJson)),
   });
 }
 
@@ -157,7 +168,11 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
   }
 
   try {
-    const body = JSON.parse(event.body || '{}');
+    let bodyContent = event.body || '{}';
+    if (event.isBase64Encoded) {
+      bodyContent = Buffer.from(bodyContent, 'base64').toString('utf-8');
+    }
+    const body = JSON.parse(bodyContent);
     const { type, userId, serviceNames, dateTime, amount, notes, status } = body;
 
     // 1. Get all Admins who want to receive notifications

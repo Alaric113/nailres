@@ -240,6 +240,10 @@ const HoursSettingsPage = () => {
     try {
       await setDoc(docRef, newSettings);
       showToast('每日設定已儲存', 'success');
+      setIsCalendarExpanded(true); // Auto expand date picker to choose next date
+      // Optional: setSelectedDate(undefined); // If user wants to FORCE re-select. 
+      // But keeping it selected allows them to quick-check what they just did. 
+      // User said "re-select date", expanding is the key action.
     } catch (e) {
       console.error(e);
       showToast('儲存失敗', 'error');
