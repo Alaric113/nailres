@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { initializeLiff, getLiffIdToken, liffLogin } from '../../lib/liff';
+import { initializeLiff, liffLogin } from '../../lib/liff';
 import { signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -19,6 +19,8 @@ const LiffEntry = () => {
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
         const redirectPath = queryParams.get('redirect') || '/booking';
+        const code = queryParams.get('code');
+        const state = queryParams.get('state');
 
         const init = async () => {
             try {
@@ -77,8 +79,8 @@ const LiffEntry = () => {
                 // If we HAVE code, proceed to exchange it
                 if (code && state) {
                      // We have auth code, exchange it like Login.tsx does
-                     const storedState = sessionStorage.getItem('line_auth_state');
                      // Note: You can enable state validation if you saved it before redirect
+                     // const storedState = sessionStorage.getItem('line_auth_state');
                      // if (storedState && state !== storedState) throw new Error('State mismatch');
 
                      const redirectUri = window.location.origin + window.location.pathname + location.search; // Must match exactly
@@ -109,7 +111,7 @@ const LiffEntry = () => {
         } else {
              navigate(redirectPath, { replace: true });
         }
-    }, [currentUser, navigate, location, redirectPath]);
+    }, [currentUser, navigate, location]);
 
     if (status === 'error') {
         return (
