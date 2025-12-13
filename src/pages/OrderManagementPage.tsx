@@ -1,73 +1,113 @@
 import { useState, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, isToday } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { doc, getDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
 import type { BookingStatus } from '../types/booking';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { useToast } from '../context/ToastContext'; // NEW IMPORT
+import { useToast } from '../context/ToastContext';
+import { 
+  BanknotesIcon, 
+  ClockIcon, 
+  CheckCircleIcon, 
+  CalendarDaysIcon,
+  FunnelIcon
+} from '@heroicons/react/24/outline';
+
+// Stats Card Component
+const StatCard = ({ title, value, icon: Icon, color, bgColor }: { title: string, value: string | number, icon: any, color: string, bgColor: string }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition-transform hover:scale-[1.02]">
+    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${bgColor} ${color}`}>
+      <Icon className="w-6 h-6" />
+    </div>
+    <div>
+      <p className="text-sm font-medium text-gray-500">{title}</p>
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
+    </div>
+  </div>
+);
 
 const OrderManagementPage = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const statusFilter = queryParams.get('status') as BookingStatus | null;
-  const { showToast } = useToast(); // NEW HOOK USAGE
+  const [activeTab, setActiveTab] = useState<BookingStatus | 'all'>((queryParams.get('status') as BookingStatus) || 'all');
+  
+  const { showToast } = useToast();
+  const { bookings, loading, error } = useAllBookings(null);
 
-  const { bookings, loading, error } = useAllBookings(null); // Fetch all bookings
+  // --- Stats Calculation ---
+  const stats = useMemo(() => {
+    const todayRevenue = bookings
+      .filter(b => isToday(b.dateTime) && b.status !== 'cancelled')
+      .reduce((acc, curr) => acc + curr.amount, 0);
+    
+    const pendingCount = bookings.filter(b => b.status === 'pending_confirmation' || b.status === 'pending_payment').length;
+    const confirmedCount = bookings.filter(b => b.status === 'confirmed').length;
+    const completedCount = bookings.filter(b => b.status === 'completed').length;
 
+    return { todayRevenue, pendingCount, confirmedCount, completedCount };
+  }, [bookings]);
+
+  // --- Filter Logic ---
   const filteredBookings = useMemo(() => {
-    if (!statusFilter) return [];
-    return bookings
-      .filter(b => b.status === statusFilter)
-      .sort((a, b) => {
-        // Show most recent completed bookings first
-        if (statusFilter === 'completed') {
-          return b.dateTime.getTime() - a.dateTime.getTime();
-        }
-        // Show oldest pending bookings first for other statuses
-        return a.dateTime.getTime() - b.dateTime.getTime();
-      });
-  }, [bookings, statusFilter]);
+    let result = bookings;
+    if (activeTab !== 'all') {
+      result = result.filter(b => b.status === activeTab);
+    }
+    
+    return result.sort((a, b) => {
+        if (a.status.includes('pending') && !b.status.includes('pending')) return -1;
+        if (!a.status.includes('pending') && b.status.includes('pending')) return 1;
+        return b.dateTime.getTime() - a.dateTime.getTime();
+    });
+  }, [bookings, activeTab]);
 
-  // 輔助函式：發放點數
+  // --- Actions ---
   const grantLoyaltyPoints = async (batch: ReturnType<typeof writeBatch>, booking: EnrichedBooking) => {
     if (!booking.userId || booking.amount <= 0) return;
+    try {
+        const settingsRef = doc(db, 'globals', 'settings');
+        const settingsSnap = await getDoc(settingsRef);
+        const loyaltySettings = settingsSnap.data()?.loyaltySettings;
 
-    const settingsRef = doc(db, 'globals', 'settings');
-    const settingsSnap = await getDoc(settingsRef);
-    const loyaltySettings = settingsSnap.data()?.loyaltySettings;
+        if (loyaltySettings && loyaltySettings.pointsPerAmount > 0) {
+        const pointsEarned = Math.floor(booking.amount / loyaltySettings.pointsPerAmount);
 
-    if (loyaltySettings && loyaltySettings.pointsPerAmount > 0) {
-      const pointsEarned = Math.floor(booking.amount / loyaltySettings.pointsPerAmount);
+        if (pointsEarned > 0) {
+            const userRef = doc(db, 'users', booking.userId);
+            const userSnap = await getDoc(userRef);
+            const currentPoints = userSnap.data()?.loyaltyPoints || 0;
+            batch.update(userRef, { loyaltyPoints: currentPoints + pointsEarned });
 
-      if (pointsEarned > 0) {
-        const userRef = doc(db, 'users', booking.userId);
-        const userSnap = await getDoc(userRef);
-        const currentPoints = userSnap.data()?.loyaltyPoints || 0;
-        batch.update(userRef, { loyaltyPoints: currentPoints + pointsEarned });
-
-        const logRef = doc(db, 'loyaltyPointLogs', `${booking.id}_${Date.now()}`);
-        batch.set(logRef, {
-          userId: booking.userId,
-          pointsChange: pointsEarned,
-          reason: `完成預約 #${booking.id.substring(0, 6)}`,
-          createdAt: new Date(),
-        });
-      }
+            const logRef = doc(db, 'loyaltyPointLogs', `${booking.id}_${Date.now()}`);
+            batch.set(logRef, {
+            userId: booking.userId,
+            pointsChange: pointsEarned,
+            reason: `完成預約 #${booking.id.substring(0, 6)}`,
+            createdAt: new Date(),
+            });
+        }
+        }
+    } catch (e) {
+        console.error("Error granting points:", e);
     }
   };
 
-  // 輔助函式：發送 LINE 通知
   const sendLineNotification = (booking: EnrichedBooking, status: BookingStatus) => {
     fetch('/api/send-line-message', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        bookingId: booking.id, // 傳遞 bookingId 可能更有用
-        status: status,
+        bookingId: booking.id,
+        type: 'booking_notification',
+        userId: booking.userId,
+        serviceNames: booking.serviceNames,
+        dateTime: booking.dateTime.toISOString(),
+        amount: booking.amount,
+        status: status
       }),
     }).catch(err => console.error("Failed to send LINE notification:", err));
   };
@@ -76,89 +116,181 @@ const OrderManagementPage = () => {
     setUpdatingId(booking.id);
     try {
       const batch = writeBatch(db);
-
-      // 步驟 1: 更新訂單狀態
       const bookingRef = doc(db, 'bookings', booking.id);
       batch.update(bookingRef, { status: newStatus });
 
-      // 步驟 2: 如果是「已完成」，則發放點數
       if (newStatus === 'completed' && booking.userId && booking.amount > 0) {
         await grantLoyaltyPoints(batch, booking);
       }
 
-      // 步驟 3: 提交所有資料庫更新
       await batch.commit();
-
-      showToast('訂單狀態已更新。', 'success'); // Success toast
-
-      // 步驟 4: 呼叫後端 API 發送 LINE 通知給使用者
+      showToast(`訂單已更新：${getStatusLabel(newStatus)}`, 'success');
+      
       if (['confirmed', 'completed', 'cancelled'].includes(newStatus)) {
-        // 注意：這裡的 fetch 是非同步的，但我們不需要等待它完成 (fire and forget)
-        // 所以不需要加 await，這樣可以讓 UI 更快地解除鎖定狀態
         sendLineNotification(booking, newStatus);
       }
 
     } catch (error) {
       console.error("Failed to update booking status:", error);
-      showToast('更新訂單狀態失敗！', 'error'); // Error toast
+      showToast('更新失敗', 'error');
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const renderButtons = (booking: EnrichedBooking) => {
-    const isUpdating = updatingId === booking.id;
-    switch (booking.status) {
-      case 'pending_confirmation':
-        return (
-          <div className="flex gap-2">
-            <button onClick={() => handleUpdateStatus(booking, 'confirmed')} disabled={isUpdating} className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-300 transition-colors shadow-sm">{isUpdating ? '...' : '確認'}</button>
-            <button onClick={() => handleUpdateStatus(booking, 'cancelled')} disabled={isUpdating} className="px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:bg-gray-300 transition-colors shadow-sm">{isUpdating ? '...' : '取消'}</button>
-          </div>
-        );
-      case 'pending_payment':
-        return <button onClick={() => handleUpdateStatus(booking, 'confirmed')} disabled={isUpdating} className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 transition-colors shadow-sm">{isUpdating ? '...' : '標記已付'}</button>;
-      case 'confirmed':
-        return <button onClick={() => handleUpdateStatus(booking, 'completed')} disabled={isUpdating} className="px-3 py-1.5 text-xs font-medium text-white bg-primary-dark rounded-lg hover:bg-primary disabled:bg-gray-300 transition-colors shadow-sm">{isUpdating ? '...' : '標記完成'}</button>;
-      default:
-        return null;
+  const getStatusLabel = (status: string) => {
+      switch(status) {
+          case 'pending_confirmation': return '待確認';
+          case 'pending_payment': return '待付款';
+          case 'confirmed': return '已確認';
+          case 'completed': return '已完成';
+          case 'cancelled': return '已取消';
+          default: return status;
+      }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+        case 'pending_confirmation': return 'bg-orange-50 text-orange-700 border border-orange-100';
+        case 'pending_payment': return 'bg-yellow-50 text-yellow-700 border border-yellow-100';
+        case 'confirmed': return 'bg-green-50 text-green-700 border border-green-100';
+        case 'completed': return 'bg-blue-50 text-blue-700 border border-blue-100';
+        case 'cancelled': return 'bg-gray-50 text-gray-500 border border-gray-200';
+        default: return 'bg-gray-50 text-gray-700';
     }
   };
 
-  
+  const tabs = [
+      { id: 'all', label: '全部' },
+      { id: 'pending_confirmation', label: '待確認' },
+      { id: 'pending_payment', label: '待付款' },
+      { id: 'confirmed', label: '已確認' },
+      { id: 'completed', label: '已完成' },
+      { id: 'cancelled', label: '已取消' },
+  ];
 
-  if (loading) return <div className="flex justify-center items-center h-screen bg-secondary-light"><LoadingSpinner /></div>;
-  if (error) return <div className="text-red-500 text-center mt-10">讀取訂單時發生錯誤: {error}</div>;
+  if (loading) return <div className="flex justify-center items-center h-full min-h-[50vh] bg-[#FAF9F6]"><LoadingSpinner /></div>;
+  if (error) return <div className="text-red-500 text-center mt-10 p-4">讀取錯誤: {typeof error === 'string' ? error : JSON.stringify(error)}</div>;
 
   return (
-    <div className="min-h-screen bg-secondary-light text-text-main">
-      
-      <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="bg-white rounded-xl shadow-sm border border-secondary-dark overflow-hidden">
-          <div className="max-h-[75vh] overflow-y-auto p-2">
-            {filteredBookings.length > 0 ? filteredBookings.map(b => (
-              <div key={b.id} className="p-4 border-b border-secondary-light last:border-b-0 hover:bg-secondary-light/20 transition-colors flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                <div>
-                  <p className="font-medium text-text-main mb-1">
-                    {b.userName} <span className="text-text-light mx-1">|</span> {b.serviceNames.join(', ')} <span className="text-text-light mx-1">|</span> <span className="text-accent font-bold">${b.amount}</span>
-                  </p>
-                  <p className="text-xs text-text-light font-mono tracking-wide">
-                    {format(b.dateTime, 'yyyy/MM/dd HH:mm', { locale: zhTW })}
-                  </p>
+    <div className="min-h-full bg-[#FAF9F6] pb-24 md:pb-12 pt-4 md:pt-8 w-full">
+      <main className="container mx-auto px-4 max-w-3xl space-y-6">
+        
+        {/* 1. Header & Stats (Horizontal Scroll on Mobile) */}
+        <div className="space-y-4">
+            <h1 className="text-2xl font-serif font-bold text-gray-900 px-1">訂單管理</h1>
+            
+            <section className=" overflow-x-auto snap-x snap-mandatory gap-3 pb-2 -mx-4 px-4 hide-scrollbar grid grid-cols-2 md:grid-cols-4 sm:gap-4 sm:pb-0 sm:mx-0 sm:px-0">
+                <div className="snap-center shrink-0 w-[85vw] sm:w-auto">
+                    <StatCard title="今日營收" value={`$${stats.todayRevenue.toLocaleString()}`} icon={BanknotesIcon} bgColor="bg-green-50" color="text-green-600" />
                 </div>
-                <div className="flex gap-2 self-end sm:self-center">{renderButtons(b)}</div>
-              </div>
-            )) : (
-              <div className="flex flex-col items-center justify-center py-12 text-text-light">
-                <p className="text-lg font-serif">沒有符合條件的訂單</p>
-                <p className="text-sm opacity-60">目前此類別下沒有任何資料</p>
-              </div>
-            )}
-          </div>
+                <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
+                    <StatCard title="待處理" value={stats.pendingCount} icon={ClockIcon} bgColor="bg-orange-50" color="text-orange-600" />
+                </div>
+                <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
+                    <StatCard title="即將到來" value={stats.confirmedCount} icon={CalendarDaysIcon} bgColor="bg-blue-50" color="text-blue-600" />
+                </div>
+                <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
+                    <StatCard title="累積完成" value={stats.completedCount} icon={CheckCircleIcon} bgColor="bg-indigo-50" color="text-indigo-600" />
+                </div>
+            </section>
+        </div>
+
+        {/* 2. Main Content Area */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100/50 overflow-hidden flex flex-col min-h-[60vh]">
+            {/* Sticky Tabs Header */}
+            <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-100 flex overflow-x-auto hide-scrollbar p-1">
+                {tabs.map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`flex-shrink-0 px-4 py-3 text-sm font-bold transition-all relative ${
+                            activeTab === tab.id 
+                            ? 'text-[#9F9586]' 
+                            : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                    >
+                        {tab.label}
+                        {activeTab === tab.id && (
+                            <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-[#9F9586] rounded-t-full" />
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            {/* Order List */}
+            <div className="flex-1 bg-gray-50/30 p-4 space-y-3">
+                {filteredBookings.length > 0 ? (
+                    filteredBookings.map(booking => (
+                        <div key={booking.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm active:scale-[0.99] transition-transform duration-200">
+                            {/* Top Row: ID & Status */}
+                            <div className="flex justify-between items-start mb-3">
+                                <span className="text-[10px] text-gray-400 font-mono bg-gray-50 px-1.5 py-0.5 rounded">
+                                    #{booking.id.slice(0,6)}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getStatusColor(booking.status)}`}>
+                                    {getStatusLabel(booking.status)}
+                                </span>
+                            </div>
+
+                            {/* Middle Row: Content */}
+                            <div className="flex gap-3 mb-3">
+                                {/* Avatar */}
+                                <div className="w-10 h-10 rounded-full bg-[#9F9586]/10 flex-shrink-0 flex items-center justify-center text-[#9F9586] font-bold text-sm">
+                                    {booking.userName?.[0] || '客'}
+                                </div>
+                                
+                                {/* Details */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-baseline mb-1">
+                                        <h4 className="font-bold text-gray-900 text-sm truncate pr-2">{booking.userName}</h4>
+                                        <span className="text-sm font-bold text-[#9F9586] whitespace-nowrap">${booking.amount}</span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 flex items-center gap-1 mb-1">
+                                        <CalendarDaysIcon className="w-3 h-3" />
+                                        {format(booking.dateTime, 'yyyy/MM/dd HH:mm', { locale: zhTW })}
+                                    </p>
+                                    <p className="text-xs text-gray-600 bg-gray-50 p-1.5 rounded-lg line-clamp-2 break-all">
+                                        {booking.serviceNames.join(', ')}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Bottom Row: Actions */}
+                            <div className="pt-2 border-t border-gray-50 flex justify-end gap-2">
+                                {updatingId === booking.id ? (
+                                    <span className="text-xs text-gray-400 py-1.5 px-2">處理中...</span>
+                                ) : (
+                                    <>
+                                        {booking.status === 'pending_confirmation' && (
+                                            <>
+                                                <button onClick={() => handleUpdateStatus(booking, 'cancelled')} className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-500 bg-red-50">拒絕</button>
+                                                <button onClick={() => handleUpdateStatus(booking, 'confirmed')} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#9F9586]">確認</button>
+                                            </>
+                                        )}
+                                        {booking.status === 'pending_payment' && (
+                                            <button onClick={() => handleUpdateStatus(booking, 'confirmed')} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-600">確認收款</button>
+                                        )}
+                                        {booking.status === 'confirmed' && (
+                                            <button onClick={() => handleUpdateStatus(booking, 'completed')} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-green-600">完成</button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">
+                        <FunnelIcon className="w-12 h-12 text-gray-300 mb-2" />
+                        <p className="text-sm text-gray-500">此分類無訂單</p>
+                    </div>
+                )}
+            </div>
         </div>
       </main>
     </div>
   );
 };
+
 
 export default OrderManagementPage;

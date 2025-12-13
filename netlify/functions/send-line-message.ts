@@ -64,91 +64,185 @@ const sendLineMessage = async (to: string, message: object, altText: string) => 
   }
 };
 
-const statusStyles: Record<string, { titleText: string; titleColor: string; tagText?: string; tagBackgroundColor?: string; tagBorderColor?: string; }> = {
+const statusStyles: Record<string, {
+  headerColor: string;
+  titleText: string;
+  statusText: string;
+  statusTextColor: string;
+  themeColor: string;
+}> = {
   pending_payment: {
-    titleText: '預約資訊',
-    titleColor: '#ff9800', // Orange
-    tagText: '待付訂金',
-    tagBackgroundColor: '#fff3e0',
-    tagBorderColor: '#ffe0b2',
+    headerColor: '#F5F3EF', // Soft cream
+    titleText: '預約確認中',
+    statusText: '待付訂金',
+    statusTextColor: '#B45309', // Amber 700
+    themeColor: '#D97706', // Amber 600
   },
   confirmed: {
-    titleText: '預約資訊',
-    titleColor: '#28a745', // Green
-    tagText: '預約成功/已收訂金',
-    tagBackgroundColor: '#d4edda',
-    tagBorderColor: '#c3e6cb',
+    headerColor: '#F0F2F0', // Soft Greenish
+    titleText: '預約成功',
+    statusText: '已確認',
+    statusTextColor: '#9F9586', // Brand Olive
+    themeColor: '#9F9586',
   },
   completed: {
-    titleText: '預約資訊',
-    titleColor: '#007bff', // Blue
-    tagText: '已完成',
-    tagBackgroundColor: '#d1ecf1',
-    tagBorderColor: '#bee5eb',
+    headerColor: '#F3F4F6', // Gray
+    titleText: '服務完成',
+    statusText: '已完成',
+    statusTextColor: '#4B5563',
+    themeColor: '#6B7280',
   },
   cancelled: {
-    titleText: '預約資訊',
-    titleColor: '#dc3545', // Red
-    tagText: '已取消',
-    tagBackgroundColor: '#f8d7da',
-    tagBorderColor: '#f5c6cb',
+    headerColor: '#FEF2F2', // Red fade
+    titleText: '預約已取消',
+    statusText: '已取消',
+    statusTextColor: '#DC2626',
+    themeColor: '#EF4444',
   },
   default: {
+    headerColor: '#F3F4F6',
     titleText: '預約資訊',
-    titleColor: '#6c757d', // Gray
+    statusText: '狀態未知',
+    statusTextColor: '#6B7280',
+    themeColor: '#9CA3AF',
   },
 };
 
 const createBookingConfirmationFlex = (customerName: string, serviceNames: string[], formattedDateTime: string, amount: number, status: string) => {
   const style = statusStyles[status] || statusStyles.default;
 
-  const footerContent = style.tagText ? {
-    footer: {
+  return {
+    type: 'bubble',
+    size: 'giga', // Maximized width
+    header: {
       type: 'box',
       layout: 'vertical',
-      spacing: 'sm',
       contents: [
         {
           type: 'box',
-          layout: 'vertical',
-          contents: [{ type: 'text', text: style.tagText, margin: 'none', size: 'sm', align: 'center' }],
-          borderWidth: '1px',
-          borderColor: style.tagBorderColor || '#dee2e6',
-          cornerRadius: '50px',
-          spacing: 'none',
-          paddingAll: '5px',
-          backgroundColor: style.tagBackgroundColor || '#e9ecef',
+          layout: 'horizontal',
+          contents: [
+            {
+              type: 'text',
+              text: style.titleText,
+              weight: 'bold',
+              size: 'xl',
+              color: style.themeColor,
+              flex: 1
+            },
+            {
+              type: 'text',
+              text: style.statusText,
+              weight: 'bold',
+              size: 'sm',
+              color: style.statusTextColor,
+              align: 'end',
+              gravity: 'center'
+            }
+          ]
         },
+        {
+          type: 'separator',
+          margin: 'md',
+          color: style.themeColor
+        }
       ],
-      flex: 0,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderWidth: 'none',
-    }
-  } : {};
-
-  return {
-    type: 'bubble',
+      backgroundColor: '#FFFFFF',
+      paddingTop: '20px',
+      paddingBottom: '10px',
+      paddingStart: '20px',
+      paddingEnd: '20px'
+    },
     body: {
       type: 'box',
       layout: 'vertical',
       contents: [
-        { type: 'text', text: style.titleText, weight: 'bold', size: 'xl', color: style.titleColor, align: 'center' },
-        { type: 'separator', margin: 'md' },
+        {
+          type: 'text',
+          text: `Hi, ${customerName}`,
+          weight: 'bold',
+          size: 'md',
+          margin: 'md',
+          color: '#1F2937'
+        },
+        {
+          type: 'text',
+          text: '感謝您的預約，以下是您的詳細資訊：',
+          size: 'xs',
+          color: '#6B7280',
+          margin: 'sm',
+          wrap: true
+        },
         {
           type: 'box',
           layout: 'vertical',
-          margin: 'lg',
-          spacing: 'sm',
+          margin: 'xl',
+          spacing: 'md',
           contents: [
-            { type: 'box', layout: 'baseline', spacing: 'sm', contents: [{ type: 'text', text: '項目', color: '#aaaaaa', size: 'sm', flex: 1 }, { type: 'text', text: serviceNames.join('\n'), wrap: true, color: '#666666', size: 'sm', flex: 4 }] },
-            { type: 'box', layout: 'baseline', spacing: 'sm', contents: [{ type: 'text', text: '時間', color: '#aaaaaa', size: 'sm', flex: 1 }, { type: 'text', text: formattedDateTime, wrap: true, color: '#666666', size: 'sm', flex: 4 }] },
-            { type: 'box', layout: 'baseline', spacing: 'sm', contents: [{ type: 'text', text: '金額', color: '#aaaaaa', size: 'sm', flex: 1 }, { type: 'text', text: `$${amount}`, wrap: true, color: '#666666', size: 'sm', flex: 4 }] },
-          ],
-        },
+            {
+              type: 'box',
+              layout: 'baseline',
+              spacing: 'sm',
+              contents: [
+                { type: 'text', text: '服務項目', color: '#9CA3AF', size: 'xs', flex: 2 },
+                { type: 'text', text: serviceNames.join('、'), wrap: true, color: '#374151', size: 'sm', flex: 5, weight: 'bold' }
+              ]
+            },
+            {
+              type: 'box',
+              layout: 'baseline',
+              spacing: 'sm',
+              contents: [
+                { type: 'text', text: '預約時間', color: '#9CA3AF', size: 'xs', flex: 2 },
+                { type: 'text', text: formattedDateTime, wrap: true, color: '#374151', size: 'sm', flex: 5 }
+              ]
+            },
+            {
+              type: 'box',
+              layout: 'baseline',
+              spacing: 'sm',
+              contents: [
+                { type: 'text', text: '金額合計', color: '#9CA3AF', size: 'xs', flex: 2 },
+                { type: 'text', text: `NT$ ${amount}`, wrap: true, color: '#9F9586', size: 'lg', flex: 5, weight: 'bold' }
+              ]
+            }
+          ]
+        }
       ],
+      backgroundColor: '#FFFFFF'
     },
-    ...footerContent,
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'button',
+          action: {
+            type: 'uri',
+            label: '查看詳細資訊',
+            uri: 'https://liff.line.me/' + process.env.VITE_LIFF_ID // Assuming this or similar link
+          },
+          style: 'primary', // Filled button
+          color: '#9F9586',
+          height: 'sm'
+        },
+        {
+          type: 'text',
+          text: '如需更改或取消，請提前聯繫我們。',
+          size: 'xxs',
+          color: '#9CA3AF',
+          align: 'center',
+          margin: 'md',
+          wrap: true
+        }
+      ],
+      paddingAll: '20px'
+    },
+    styles: {
+      footer: {
+        separator: false
+      }
+    }
   };
 };
 
