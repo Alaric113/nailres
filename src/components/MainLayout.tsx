@@ -4,11 +4,27 @@ import BottomNav from './common/BottomNav';
 interface MainLayoutProps {
   children: React.ReactNode;
   showAnnouncementBanner?: boolean;
+  isLiff?: boolean;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children, showAnnouncementBanner = false }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({ children, showAnnouncementBanner = false, isLiff = false }) => {
   // Navbar is 64px. Banner is 48px.
-  const topPadding = showAnnouncementBanner ? 'pt-[112px]' : 'pt-[64px]';
+  // If LIFF, Navbar is hidden (0px).
+  // If Banner shown, add 48px.
+  
+  let paddingTopClass = 'pt-[64px]'; // Default
+  if (isLiff) {
+      paddingTopClass = 'pt-0';
+  }
+  
+  if (showAnnouncementBanner) {
+      // If Banner is shown...
+      // Normal: 64 + 48 = 112
+      // LIFF: 0 + 48 = 48
+      paddingTopClass = isLiff ? 'pt-[48px]' : 'pt-[112px]';
+  }
+
+  const topPadding = paddingTopClass;
 
   return (
     <>

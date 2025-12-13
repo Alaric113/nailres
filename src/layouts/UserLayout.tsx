@@ -26,7 +26,7 @@ const UserLayout: React.FC = () => {
       {!isLiff && <Navbar onMenuClick={toggleSidebar} />}
       {showAnnouncementBanner && <AnnouncementBanner />}
       <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
-      <MainLayout showAnnouncementBanner={showAnnouncementBanner}>
+      <MainLayout showAnnouncementBanner={showAnnouncementBanner} isLiff={isLiff}>
         <Outlet /> {/* Nested routes will render here */}
       </MainLayout>
     </>

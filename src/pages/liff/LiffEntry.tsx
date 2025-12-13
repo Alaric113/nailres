@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { initializeLiff, getLiffIdToken, liffLogin } from '../../lib/liff';
 import { signInWithCustomToken } from 'firebase/auth';
@@ -8,17 +8,21 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const LiffEntry = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { currentUser } = useAuthStore();
     const [status, setStatus] = useState<'initializing' | 'logging_in' | 'redirecting' | 'error'>('initializing');
     const [errorMessage, setErrorMessage] = useState('');
 
     useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        const redirectPath = queryParams.get('redirect') || '/booking';
+
         const init = async () => {
             try {
-                // If user is already logged in to Firebase, go straight to booking
+                // If user is already logged in to Firebase, go straight to target
                 if (currentUser) {
                     setStatus('redirecting');
-                    navigate('/booking', { replace: true });
+                    navigate(redirectPath, { replace: true });
                     return;
                 }
 
@@ -96,7 +100,7 @@ const LiffEntry = () => {
                       await signInWithCustomToken(auth, firebaseCustomToken);
                       
                       setStatus('redirecting');
-                      navigate('/booking', { replace: true });
+                      navigate(redirectPath, { replace: true });
                 } else {
                     // Logged in to LINE LIFF but no Auth Code (maybe session persisted?)
                     // If we can't swap token, we might need to force re-login to get code?
@@ -104,32 +108,6 @@ const LiffEntry = () => {
                     // For now, let's force re-login to get the code if we aren't firebase-authed.
                      if (!currentUser) {
                          // Force login to get 'code'
-                         // We need to ensure liff.login asks for code?
-                         // Default liff.login() uses implicit flow? No, it depends on Line Login channel settings.
-                         // But usually it redirects if not inside LINE.
-                         // Inside LINE, it might just be "logged in".
-                         
-                         // If we are INSIDE LINE app, we can't easily get 'code' without redirect.
-                         // But `liff.login()` inside LINE app does nothing if already logged in.
-                         //
-                         // We will rely on `Login.tsx`'s logic:
-                         // "Frontend sending OAuth code to Netlify function"
-                         
-                         // If we are strictly implementing "Auto Login", and we are inside LINE:
-                         // We need to send `liff.getIDToken()` to backend.
-                         // If backend only supports `code`, we might need to update backend.
-                         //
-                         // ASSUMPTION: The user wants this to work. I will assume I need to direct them to `Login` page logic 
-                         // or reuse the `code` exchange logic. 
-                         // If I can't get code, I might redirect to `/login` which handles it robustly?
-                         // But user wants "/liff".
-                         
-                         // Let's try to just redirect to `/login` if we are stuck?
-                         // No, user wants direct booking.
-                         
-                         // Let's try to get code by `liff.login` even if logged in?
-                         // liff.login() params: `redirectUri`.
-                         
                          if (!liff.isLoggedIn()) {
                             liffLogin(window.location.href);
                          } else {
@@ -153,9 +131,9 @@ const LiffEntry = () => {
         if (!currentUser) {
              init();
         } else {
-             navigate('/booking', { replace: true });
+             navigate(redirectPath, { replace: true });
         }
-    }, [currentUser, navigate]);
+    }, [currentUser, navigate, location]);
 
     if (status === 'error') {
         return (
