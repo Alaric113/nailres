@@ -4,9 +4,12 @@ const LIFF_ID = import.meta.env.VITE_LIFF_ID || 'YOUR_LIFF_ID_HERE'; // Use envi
 
 export const initializeLiff = async () => {
   try {
-    if (!liff.isInClient()) {
-      await liff.init({ liffId: LIFF_ID });
+    if (!LIFF_ID || LIFF_ID === 'YOUR_LIFF_ID_HERE') {
+      console.warn('LIFF ID is invalid or missing:', LIFF_ID);
     }
+    // Always initialize LIFF
+    await liff.init({ liffId: LIFF_ID });
+
     return liff; // Return liff instance
   } catch (error) {
     console.error('LIFF initialization failed', error);
