@@ -48,7 +48,7 @@ const UserMemberPage = () => {
       <div className="px-6 pt-6 pb-4 flex justify-between items-center">
         <h1 className="text-2xl font-serif font-bold text-gray-900">會員中心</h1>
         <div className="flex gap-3">
-            {(userProfile?.role === 'admin' || userProfile?.role === 'manager') && (
+            {['admin', 'manager', 'designer'].includes(userProfile?.role || '') && (
               <button 
                 onClick={() => navigate('/admin')}
                 className="p-2 rounded-full bg-white border border-[#EFECE5] text-gray-600 hover:bg-[#9F9586] hover:text-white transition-colors"

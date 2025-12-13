@@ -15,6 +15,7 @@ export interface EnrichedBooking extends Omit<BookingDocument, 'dateTime' | 'cre
   serviceName?: string;
   serviceDuration?: number;
   isConflicting?: boolean;
+  designerId?: string;
 }
 
 /**
@@ -29,7 +30,7 @@ export const useAllBookings = (dateRange: { start: Date; end: Date } | null) => 
   useEffect(() => {
     setLoading(true);
     const bookingsRef = collection(db, 'bookings');
-    
+
     let q;
     if (dateRange) {
       q = query(
@@ -85,7 +86,7 @@ export const useAllBookings = (dateRange: { start: Date; end: Date } | null) => 
           } else {
             userName = '無使用者ID';
           }
-          
+
           return {
             ...booking,
             userName,

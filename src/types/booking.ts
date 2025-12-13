@@ -5,6 +5,7 @@ export type BookingStatus = 'pending_payment' | 'pending_confirmation' | 'confir
 // This represents the data stored in the /bookings/{bookingId} document
 export interface BookingDocument {
   userId: string;
+  designerId?: string; // ID of the assigned designer
   serviceIds: string[];
   serviceNames: string[];
   dateTime: Timestamp;
