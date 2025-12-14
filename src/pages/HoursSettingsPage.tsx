@@ -507,13 +507,18 @@ const HoursSettingsPage = () => {
 
                         {/* Calendar Body - Collapsible */}
                         <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isCalendarExpanded ? 'max-h-[500px] opacity-100 border-t border-gray-100' : 'max-h-0 opacity-0'}`}>
-                            <div className="p-6 flex justify-center bg-[#FDFBF7]">
+                            <div className="p-2 sm:p-6 flex justify-center bg-[#FDFBF7]">
                                 <style>{`
                                     .rdp {
-                                        --rdp-cell-size: 45px; /* Larger hit area */
+                                        --rdp-cell-size: 40px; /* Mobile size */
                                         --rdp-accent-color: #9F9586;
                                         --rdp-background-color: #FDFBF7;
                                         margin: 0;
+                                    }
+                                    @media (min-width: 640px) {
+                                        .rdp {
+                                            --rdp-cell-size: 45px; /* Desktop size */
+                                        }
                                     }
                                     .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
                                         background-color: #F5F5F4;
@@ -657,7 +662,10 @@ const HoursSettingsPage = () => {
                             
                             <div className="w-full flex justify-center bg-[#FAF9F6] p-2 sm:p-6 rounded-2xl border border-gray-200">
                                 <style>{`
-                                    .rdp { --rdp-accent-color: #9F9586; margin: 0; }
+                                    .rdp { --rdp-accent-color: #9F9586; margin: 0; --rdp-cell-size: 40px; }
+                                    @media (min-width: 640px) {
+                                        .rdp { --rdp-cell-size: 45px; }
+                                    }
                                 `}</style>
                                 <DayPicker 
                                     mode="single" 

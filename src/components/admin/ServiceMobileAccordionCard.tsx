@@ -30,11 +30,11 @@ const ServiceMobileAccordionCard: React.FC<ServiceMobileAccordionCardProps> = ({
         className="flex justify-between items-center w-full focus:outline-none"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center">
+        <div className="flex items-center flex-1 min-w-0 pr-2">
           <div className="flex-shrink-0 h-12 w-12 mr-3">
             <img className="h-12 w-12 rounded-md object-cover border border-secondary-dark/20" src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.name} />
           </div>
-          <h3 className="font-bold text-lg text-text-main break-words font-serif text-left">{service.name}</h3>
+          <h3 className="font-bold text-lg text-text-main break-words font-serif text-left min-w-0">{service.name}</h3>
         </div>
         {isExpanded ? (
           <ChevronUpIcon className="h-5 w-5 text-gray-500" />

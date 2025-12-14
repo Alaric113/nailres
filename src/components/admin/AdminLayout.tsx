@@ -86,7 +86,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
   }, [location.pathname, location.search, navigate]);
 
   return (
-    <div className="flex h-screen bg-[#FAF9F6]">
+    <div className="flex h-[100dvh] bg-[#FAF9F6] overflow-hidden">
       {/* Static sidebar for desktop */}
       <div className="hidden lg:flex lg:flex-shrink-0">
         <div className="flex w-64 flex-col">

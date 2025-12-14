@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { isWithinInterval, startOfDay, endOfDay, addDays, format } from 'date-fns';
+import { isWithinInterval, startOfDay, endOfDay, addDays, format, differenceInDays } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
 import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
@@ -263,40 +263,94 @@ const AdminDashboard = () => {
       {targetDesignerProfile ? (
           <div className="space-y-4 animate-fade-in-up">
                {/* Alert: Unset Business Hours / Deadline */}
-               {(!targetDesignerProfile.bookingDeadline) ? (
-                   <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-start gap-4">
-                       <div className="bg-orange-100 p-2 rounded-full text-orange-600 shrink-0">
-                           <ExclamationTriangleIcon className="w-6 h-6" />
-                       </div>
-                       <div className="flex-1">
-                           <h3 className="font-bold text-orange-800 text-lg">尚未設定預約期限</h3>
-                           <p className="text-sm text-orange-700 mt-1">
-                               為了讓客戶能夠預約，請前往「營業時間」設定可預約的截止日期 (Booking Deadline)。
-                           </p>
-                           <Link to="/admin/hours" className="inline-block mt-3 px-4 py-2 bg-orange-600 text-white text-sm font-bold rounded-lg hover:bg-orange-700 transition-colors">
-                               前往設定
-                           </Link>
-                       </div>
-                   </div>
-               ) : (
-                   /* Reminder for Unset Days */
-                   unsetDaysCount > 0 && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex items-start gap-4">
-                            <div className="bg-yellow-100 p-2 rounded-full text-yellow-600 shrink-0">
-                                <ClockIcon className="w-6 h-6" />
+               {/* Alert Logic */}
+               {(() => {
+                   const today = startOfDay(new Date());
+                   const deadlineDate = targetDesignerProfile.bookingDeadline ? startOfDay(targetDesignerProfile.bookingDeadline.toDate()) : null;
+                   const daysRemaining = deadlineDate ? differenceInDays(deadlineDate, today) : null;
+                   
+                   // 1. Not Set
+                   if (!deadlineDate) {
+                       return (
+                           <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-start gap-4">
+                               <div className="bg-orange-100 p-2 rounded-full text-orange-600 shrink-0">
+                                   <ExclamationTriangleIcon className="w-6 h-6" />
+                               </div>
+                               <div className="flex-1">
+                                   <h3 className="font-bold text-orange-800 text-lg">尚未設定預約期限</h3>
+                                   <p className="text-sm text-orange-700 mt-1">
+                                       為了讓客戶能夠預約，請前往「營業時間」設定可預約的截止日期 (Booking Deadline)。
+                                   </p>
+                                   <Link to="/admin/hours" className="inline-block mt-3 px-4 py-2 bg-orange-600 text-white text-sm font-bold rounded-lg hover:bg-orange-700 transition-colors">
+                                       前往設定
+                                   </Link>
+                               </div>
+                           </div>
+                       );
+                   }
+
+                   // 2. Expired
+                   if (daysRemaining !== null && daysRemaining < 0) {
+                        return (
+                           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-4">
+                               <div className="bg-red-100 p-2 rounded-full text-red-600 shrink-0">
+                                   <ExclamationTriangleIcon className="w-6 h-6" />
+                               </div>
+                               <div className="flex-1">
+                                   <h3 className="font-bold text-red-800 text-lg">預約期限已過期</h3>
+                                   <p className="text-sm text-red-700 mt-1">
+                                       目前的預約期限 ({format(deadlineDate, 'MM/dd')}) 已經過期，客戶目前無法進行新的預約。請立即更新期限。
+                                   </p>
+                                   <Link to="/admin/hours" className="inline-block mt-3 px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 transition-colors">
+                                       立即更新
+                                   </Link>
+                               </div>
+                           </div>
+                        );
+                   }
+
+                   // 3. Expiring Soon (<= 10 days)
+                   if (daysRemaining !== null && daysRemaining <= 10) {
+                        return (
+                           <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-start gap-4">
+                               <div className="bg-orange-100 p-2 rounded-full text-orange-600 shrink-0">
+                                   <ClockIcon className="w-6 h-6" />
+                               </div>
+                               <div className="flex-1">
+                                   <h3 className="font-bold text-orange-800 text-lg">預約期限即將到期</h3>
+                                   <p className="text-sm text-orange-700 mt-1">
+                                       距離預約截止日 ({format(deadlineDate, 'MM/dd')}) 僅剩 {daysRemaining} 天。建議您提早更新班表與期限，以免影響客戶預約權益。
+                                   </p>
+                                   <Link to="/admin/hours" className="inline-block mt-3 px-4 py-2 bg-orange-600 text-white text-sm font-bold rounded-lg hover:bg-orange-700 transition-colors">
+                                       延長期限
+                                   </Link>
+                               </div>
+                           </div>
+                        );
+                   }
+
+                   // 4. Unset Days Gap (Only if deadline is valid and active)
+                   if (unsetDaysCount > 0) {
+                        return (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex items-start gap-4">
+                                <div className="bg-yellow-100 p-2 rounded-full text-yellow-600 shrink-0">
+                                    <ExclamationTriangleIcon className="w-6 h-6" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-yellow-800 text-lg">有 {unsetDaysCount} 天班表未確認</h3>
+                                    <p className="text-sm text-yellow-700 mt-1">
+                                        在目前設定的截止日期 ({format(deadlineDate, 'MM/dd')}) 之前，尚有部分日期未設定營業時間。系統將預設為「開放預約」，請確認是否正確。
+                                    </p>
+                                    <Link to="/admin/hours" className="inline-block mt-3 px-4 py-2 bg-yellow-600 text-white text-sm font-bold rounded-lg hover:bg-yellow-700 transition-colors">
+                                        檢查班表
+                                    </Link>
+                                </div>
                             </div>
-                            <div className="flex-1">
-                                <h3 className="font-bold text-yellow-800 text-lg">有 {unsetDaysCount} 天班表未確認</h3>
-                                <p className="text-sm text-yellow-700 mt-1">
-                                    在目前設定的截止日期 ({format(targetDesignerProfile.bookingDeadline.toDate(), 'MM/dd')}) 之前，尚有部分日期未設定營業時間。系統將預設為「開放預約」，請確認是否正確。
-                                </p>
-                                <Link to="/admin/hours" className="inline-block mt-3 px-4 py-2 bg-yellow-600 text-white text-sm font-bold rounded-lg hover:bg-yellow-700 transition-colors">
-                                    檢查班表
-                                </Link>
-                            </div>
-                        </div>
-                   )
-               )}
+                        );
+                   }
+                   
+                   return null;
+               })()}
 
                {/* Personal Quick Stats */}
                <h2 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2 px-1">

@@ -170,17 +170,17 @@ const ServiceManagement = () => {
     }
   }, [categories, activeCategoryTab]);
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="w-full h-full">
       
-      <main className="container mx-auto p-4 sm:p-6 lg:p-8 relative bg-secondary-light text-text-main pb-20"> {/* Added bg-secondary-light text-text-main pb-20 */}
-        {/* Floating Action Button */}
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 relative bg-secondary-light text-text-main">
+        {/* Floating Action Button - Positioned above bottom nav on mobile */}
         <button
           onClick={() => {
             setEditingService(null); // Reset for new service
             resetForm(); // Clear form fields
             setIsServiceModalOpen(true);
           }}
-          className="fixed bottom-8 right-8 bg-primary text-white p-4 rounded-full shadow-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-300 z-50"
+          className="fixed bottom-24 right-4 md:bottom-8 md:right-8 bg-primary text-white p-4 rounded-full shadow-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-300 z-50"
           aria-label="新增服務項目"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -336,7 +336,7 @@ const ServiceManagement = () => {
                     <tbody className="bg-white divide-y divide-secondary-light">
                       {filteredServices.map((service) => (
                         <tr key={service.id} className="hover:bg-secondary-light/20 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-text-main">
+                          <td className="px-6 py-4 text-sm font-medium text-text-main break-words max-w-xs">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 h-10 w-10">
                                 <img className="h-10 w-10 rounded-md object-cover border border-secondary-dark/20" src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.name} />
@@ -401,7 +401,7 @@ const ServiceManagement = () => {
             )}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
