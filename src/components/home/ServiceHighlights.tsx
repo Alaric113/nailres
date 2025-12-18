@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 interface ServiceHighlight {
   title: string;
   description: string;
-  price: string;
+  price: string | number;
   link: string;
   imglink?: string;
   highlights: string[];
