@@ -13,8 +13,11 @@ import {
   ClockIcon, 
   CheckCircleIcon, 
   CalendarDaysIcon,
-  FunnelIcon
+ 
+  FunnelIcon,
+  PencilSquareIcon // New import
 } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom'; // New import
 
 // Stats Card Component
 const StatCard = ({ title, value, icon: Icon, color, bgColor }: { title: string, value: string | number, icon: any, color: string, bgColor: string }) => (
@@ -32,6 +35,7 @@ const StatCard = ({ title, value, icon: Icon, color, bgColor }: { title: string,
 const OrderManagementPage = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const location = useLocation();
+  const navigate = useNavigate(); // Initialize hook
   const queryParams = new URLSearchParams(location.search);
   const [activeTab, setActiveTab] = useState<BookingStatus | 'all'>((queryParams.get('status') as BookingStatus) || 'all');
   
@@ -258,6 +262,18 @@ const OrderManagementPage = () => {
 
                             {/* Bottom Row: Actions */}
                             <div className="pt-2 border-t border-gray-50 flex justify-end gap-2">
+                                {/* Edit Button (New) */}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/admin/orders/${booking.id}/edit`);
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 flex items-center gap-1"
+                                >
+                                    <PencilSquareIcon className="w-3.5 h-3.5" />
+                                    編輯
+                                </button>
+
                                 {updatingId === booking.id ? (
                                     <span className="text-xs text-gray-400 py-1.5 px-2">處理中...</span>
                                 ) : (

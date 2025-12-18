@@ -98,15 +98,28 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({ item, onClose, onSave }) 
     <form onSubmit={handleSubmit} className="space-y-4 p-4">
       {error && <div className="text-red-500 text-sm">{error}</div>}
 
+      {item?.orderId && (
+        <div className="bg-blue-50 border border-blue-100 p-3 rounded-md flex flex-col gap-1 text-sm text-blue-700">
+           <p className="font-bold flex items-center gap-1">
+             <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+             自動連結訂單
+           </p>
+           <p>此作品來自訂單 #{item.orderId.slice(0, 6)}，標題與分類由系統自動代入。</p>
+           {item.serviceName && <p>服務：{item.serviceName}</p>}
+           {item.designerName && <p>設計師：{item.designerName}</p>}
+        </div>
+      )}
+
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700">標題 <span className="text-red-500">*</span></label>
         <input
           type="text"
           id="title"
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+          className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${item?.orderId ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed' : 'border-gray-300'}`}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
+          readOnly={!!item?.orderId}
         />
       </div>
 
@@ -114,15 +127,20 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({ item, onClose, onSave }) 
         <label htmlFor="category" className="block text-sm font-medium text-gray-700">分類 <span className="text-red-500">*</span></label>
         <select
           id="category"
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+          className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${item?.orderId ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed' : 'border-gray-300'}`}
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           required
+          disabled={!!item?.orderId}
         >
           <option value="">請選擇分類</option>
           {categories.map((cat) => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
+          {/* Ensure current category is shown even if not in default list */}
+          {item?.category && !categories.includes(item.category) && (
+              <option value={item.category}>{item.category}</option>
+          )}
         </select>
       </div>
 

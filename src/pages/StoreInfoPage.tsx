@@ -1,5 +1,5 @@
-import React, { useMemo, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo, useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { BuildingStorefrontIcon, PaperAirplaneIcon } from '@heroicons/react/24/solid';
@@ -22,21 +22,32 @@ const MapFix = () => {
 const StoreInfoPage: React.FC = () => {
   const { currentUser } = useAuthStore();
   const position: [number, number] = [25.08800, 121.47539]; // Coordinates from previous iframe
+  const [showAppSelection, setShowAppSelection] = useState(false);
 
   const heightClass = !currentUser 
     ? 'h-[calc(100dvh-112px)]'
     : 'h-[calc(100dvh-144px)] md:h-[calc(100dvh-64px)]';
 
   const handleNavigate = () => {
-    const destination = `${position[0]},${position[1]}`;
     // Simple iOS detection
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     
     if (isIOS) {
-      window.open(`http://maps.apple.com/?daddr=${destination}`, '_blank');
+      setShowAppSelection(true);
     } else {
+      const destination = `${position[0]},${position[1]}`;
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank');
     }
+  };
+
+  const openMapApp = (type: 'google' | 'apple') => {
+    const destination = `${position[0]},${position[1]}`;
+    if (type === 'google') {
+       window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank');
+    } else {
+       window.open(`http://maps.apple.com/?daddr=${destination}`, '_blank');
+    }
+    setShowAppSelection(false);
   };
 
   // Create custom icon
@@ -64,6 +75,52 @@ const StoreInfoPage: React.FC = () => {
 
   return (
     <div className={`${heightClass} bg-[#FAF9F6] text-[#2C2825] overflow-hidden flex flex-col relative`}>
+      {/* Map App Selection Modal */}
+      <AnimatePresence>
+        {showAppSelection && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAppSelection(false)}
+              className="absolute inset-0 bg-black/40 z-[2000] backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[2001] p-6 pb-12 shadow-2xl"
+            >
+              <h3 className="text-center font-serif text-xl text-[#2C2825] mb-6">選擇導航應用程式</h3>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => openMapApp('apple')}
+                  className="flex items-center justify-center gap-3 w-full bg-[#2C2825] text-white p-4 rounded-xl active:scale-95 transition-transform"
+                >
+                  <i className="fa-brands fa-apple text-2xl"></i>
+                  <span className="font-bold">Apple Maps</span>
+                </button>
+                <button 
+                  onClick={() => openMapApp('google')}
+                  className="flex items-center justify-center gap-3 w-full bg-white border border-[#2C2825]/10 text-[#2C2825] p-4 rounded-xl active:scale-95 transition-transform hover:bg-gray-50"
+                >
+                  <i className="fa-brands fa-google text-2xl"></i>
+                  <span className="font-bold">Google Maps</span>
+                </button>
+                <button 
+                  onClick={() => setShowAppSelection(false)}
+                  className="mt-2 text-[#8A8175] text-sm py-2"
+                >
+                  取消
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* --- Map Section (Top) --- */}
       <div className="h-[60%] w-full relative z-0 shrink-0 group">
         <MapContainer 

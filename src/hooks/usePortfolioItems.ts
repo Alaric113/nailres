@@ -27,6 +27,14 @@ const usePortfolioItems = () => {
             isActive: data.isActive ?? true, // Default to true if not set
             createdAt: data.createdAt,
             updatedAt: data.updatedAt || null,
+            // Linked Data
+            orderId: data.orderId || null,
+            serviceId: data.serviceId || null,
+            serviceName: data.serviceName || null,
+            designerId: data.designerId || null,
+            designerName: data.designerName || null,
+            customerName: data.customerName || null,
+            bookingDate: data.bookingDate || null,
           };
         });
         setPortfolioItems(items);

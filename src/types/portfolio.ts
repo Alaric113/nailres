@@ -11,4 +11,13 @@ export interface PortfolioItem {
   isActive: boolean; // To control visibility on the frontend
   createdAt: Timestamp;
   updatedAt?: Timestamp;
+
+  // Link to Order/Service
+  orderId?: string;
+  serviceId?: string;
+  serviceName?: string;
+  designerId?: string;
+  designerName?: string;
+  customerName?: string;
+  bookingDate?: Timestamp;
 }
