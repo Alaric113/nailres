@@ -2,12 +2,16 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   HomeIcon, 
   CalendarDaysIcon, 
-  UserIcon 
+  UserIcon,
+  PhotoIcon,
+  BuildingStorefrontIcon
 } from '@heroicons/react/24/outline';
 import { 
   HomeIcon as HomeIconSolid, 
   CalendarDaysIcon as CalendarDaysIconSolid, 
-  UserIcon as UserIconSolid 
+  UserIcon as UserIconSolid,
+  PhotoIcon as PhotoIconSolid,
+  BuildingStorefrontIcon as BuildingStorefrontIconSolid
 } from '@heroicons/react/24/solid';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
@@ -20,12 +24,14 @@ const BottomNav = () => {
 
   const navItems = [
     { name: '預約', path: '/booking', icon: CalendarDaysIcon, activeIcon: CalendarDaysIconSolid },
+    { name: '作品', path: '/portfolio', icon: PhotoIcon, activeIcon: PhotoIconSolid },
     { name: '首頁', path: '/dashboard', icon: HomeIcon, activeIcon: HomeIconSolid },
+    { name: '店鋪資訊', path: '/store', icon: BuildingStorefrontIcon, activeIcon: BuildingStorefrontIconSolid },
     { name: '會員', path: '/member', icon: UserIcon, activeIcon: UserIconSolid }, 
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-fixed bg-white/95 backdrop-blur-lg border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/95 backdrop-blur-lg border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden">
       <div className="flex justify-around items-center px-2 py-3">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
