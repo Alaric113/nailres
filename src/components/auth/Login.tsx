@@ -1,4 +1,5 @@
 import  { useState, useEffect, useRef } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
 import { signInWithCustomToken } from 'firebase/auth';
@@ -9,7 +10,7 @@ import { motion } from 'framer-motion';
 
 const LINE_CHANNEL_ID = import.meta.env.VITE_LINE_CHANNEL_ID;
 
-const Login = () => {
+export const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -79,6 +80,15 @@ const Login = () => {
         <div className="absolute top-[-10%] left-[-10%] w-[50vh] h-[50vh] bg-[#9F9586]/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[50vh] h-[50vh] bg-[#9F9586]/10 rounded-full blur-3xl"></div>
 
+        {/* Back to Home Button - Top Left */}
+        <button
+          onClick={() => navigate('/')}
+          className="absolute top-6 left-6 z-20 flex items-center space-x-2 text-[#9F9586] hover:text-[#4A4238] transition-colors duration-300 group"
+        >
+            <ArrowLeft className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform duration-300" />
+            <span className="text-sm font-medium tracking-wide">返回首頁</span>
+        </button>
+
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -124,4 +134,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+
