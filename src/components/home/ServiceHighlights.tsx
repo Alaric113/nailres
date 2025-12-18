@@ -1,80 +1,98 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
-interface Category {
+interface ServiceHighlight {
   title: string;
-  price: number;
   description: string;
-  highlights: string[];
+  price: string;
   link: string;
-  imglink: string;
+  imglink?: string;
+  highlights: string[];
 }
+
+interface Category extends ServiceHighlight {}
 
 interface ServiceHighlightsProps {
   categories: Category[];
 }
 
 const ServiceHighlights: React.FC<ServiceHighlightsProps> = ({ categories }) => {
+  // Distinct background colors for the cards
+  const bgColors = [
+    'bg-[#2C2825]', // Deepest Dark
+    'bg-[#3E3935]', // Medium Dark
+    'bg-[#504945]'  // Lighter Dark
+  ];
+
   return (
-    <section id="services" className="min-h-screen flex items-center py-20 bg-secondary-light snap-start snap-always relative overflow-hidden">
-       {/* Decorative background elements */}
-       <div className="absolute top-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
-       <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
+    <section id="services" className="min-h-screen w-full snap-start flex flex-col bg-[#FAF9F6] relative overflow-hidden pt-16 pb-12 md:pt-24 md:pb-20">
+      
+      {/* Editorial Title */}
+      <div className="container mx-auto px-6 mb-8 md:mb-12">
+         <motion.div 
+           initial={{ opacity: 0, y: 30 }}
+           whileInView={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.8 }}
+           className="flex flex-col items-start border-t border-[#2C2825] pt-4"
+         >
+            <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] text-[#8A8175] uppercase mb-1">Our expertise</span>
+            <h2 className="text-4xl md:text-6xl font-serif text-[#2C2825] leading-none">
+              Services <span className="italic font-light text-[#8A8175]">&</span> Craft
+            </h2>
+         </motion.div>
+      </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-4xl sm:text-5xl font-serif font-medium mb-4 text-text-main">
-            Our Services
-          </h2>
-          <div className="w-16 h-0.5 bg-primary mx-auto opacity-60"></div>
-          <p className="mt-4 text-text-light tracking-wide text-sm sm:text-base">
-            專屬您的美學設計，展現自然自信光采
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 lg:gap-12 max-w-6xl mx-auto">
-          {categories.map((category) => (
-            <Link
-              to={category.link}
-              key={category.title}
-              className="group relative block bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2"
-            >
-              {/* Image Container */}
-              <div className="aspect-[4/5] w-full overflow-hidden relative">
-                <img
-                  src={category.imglink || '/default-service.jpg'}
-                  alt={category.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 filter saturate-[0.9] group-hover:saturate-100"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500"></div>
-                
-                {/* Price Tag */}
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-sm font-serif text-text-main font-medium shadow-sm opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 delay-100">
-                  NT$ {category.price} 起
-                </div>
+      {/* Cards Container */}
+      <div className="container mx-auto px-6 grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-6 w-full">
+        {categories.map((category, index) => (
+           <Link 
+              to={category.link} 
+              key={category.title} 
+              className={`group relative flex flex-col justify-between  ${bgColors[index % bgColors.length]} transition-all duration-500 hover:-translate-y-2 h-[420px] md:h-auto md:aspect-[3/4]`}
+           >
+              {/* Service Image (Top of Card) */}
+              <div className="w-full h-32 md:h-40 overflow-hidden rounded-sm mb-6 relative opacity-80 group-hover:opacity-100 transition-opacity duration-500">
+                  <img src={category.imglink} alt={category.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
               </div>
 
-              {/* Content */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white pt-12">
-                 <h3 className="text-2xl font-serif mb-1 tracking-wide group-hover:text-secondary transition-colors">
-                  {category.title}
-                </h3>
-                <p className="text-xs font-light tracking-[0.2em] uppercase text-secondary/80 mb-3">
-                  {category.description}
-                </p>
-                <div className="h-0 group-hover:h-auto overflow-hidden transition-all duration-300 opacity-0 group-hover:opacity-100">
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {category.highlights.map((tag) => (
-                      <span key={tag} className="text-xs bg-white/20 backdrop-blur-sm px-2 py-1 rounded-md text-white/90">
-                        {tag}
-                      </span>
+              {/* Number & Title */}
+              <div className='px-6'>
+                 <div className="flex items-center gap-3 text-[#D4C5B0] opacity-80 mb-2">
+                    
+                    
+                    <span className="text-xs tracking-[0.2em] uppercase truncate">{category.description}</span> 
+                 </div>
+
+                 {/* Reduced text size to prevent wrapping on small screens, ensuring card height is consistent */}
+                 <h3 className="text-2xl md:text-3xl text-[#FAF9F6] font-medium tracking-wide mb-3 whitespace-nowrap">
+                    {category.title}
+                 </h3>
+
+                 {/* Tags */}
+                 <div className="flex flex-wrap gap-2 opacity-80 group-hover:opacity-100 transition-opacity mb-4">
+                    {category.highlights.slice(0, 2).map(tag => (
+                       <span key={tag} className="px-2 py-1 rounded-full border border-[#D4C5B0]/30 text-[#D4C5B0] text-[10px] tracking-wider font-light">
+                          {tag}
+                       </span>
                     ))}
-                  </div>
-                </div>
+                 </div>
               </div>
-            </Link>
-          ))}
-        </div>
+
+              {/* Bottom: Price & Action */}
+              <div className="mt-auto p-6 pt-4 border-t border-[#FAF9F6]/20 flex flex-col items-start justify-between w-full">
+                 <span className="font-serif italic text-lg text-[#FAF9F6] mb-2">
+                    NT$ <span className="not-italic font-sans">{category.price} +</span>
+                 </span>
+                 <span className="text-[#D4C5B0] text-xs tracking-widest group-hover:translate-x-2 transition-transform duration-300 flex items-center gap-2">
+                    EXPLORE <span className="text-lg">→</span>
+                 </span>
+              </div>
+              
+              {/* Interactive Hover Overlay (Desktop) */}
+              <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+           </Link>
+        ))}
       </div>
     </section>
   );

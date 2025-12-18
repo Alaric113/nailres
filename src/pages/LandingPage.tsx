@@ -74,7 +74,8 @@ const LandingPage = () => {
 
   return (
     // Main Container with Snap Scroll
-    <div className="bg-secondary-light text-text-main h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
+    // Main Container - Magazine Style with Snap Scroll
+    <div className="bg-[#FAF9F6] text-text-main h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth selection:bg-primary/20">
       
       <HeroSection heroImage={heroImage} />
 

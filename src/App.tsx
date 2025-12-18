@@ -4,7 +4,7 @@ import { useAuthStore } from './store/authStore';
 
 import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
-import Login from './components/auth/Login';
+import { Login } from './components/auth/Login';
 import Register from './pages/Register';
 import PortfolioGalleryPage from './pages/PortfolioGalleryPage';
 import LiffEntry from './pages/liff/LiffEntry';

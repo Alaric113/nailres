@@ -10,9 +10,13 @@ import {
   UserIcon as UserIconSolid 
 } from '@heroicons/react/24/solid';
 import { motion } from 'framer-motion';
+import { useAuthStore } from '../../store/authStore';
 
 const BottomNav = () => {
   const location = useLocation();
+  const { currentUser } = useAuthStore();
+
+  if (!currentUser) return null;
 
   const navItems = [
     { name: '預約', path: '/booking', icon: CalendarDaysIcon, activeIcon: CalendarDaysIconSolid },

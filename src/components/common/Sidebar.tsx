@@ -108,7 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Overlay with smooth fade */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-modal-backdrop transition-opacity duration-300 tap-highlight-none"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[9999] transition-opacity duration-300 tap-highlight-none"
           onClick={onClose}
           aria-hidden="true"
         ></div>
@@ -116,7 +116,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full w-[85vw] md:w-80 lg:w-[360px] bg-secondary-light shadow-strong z-modal transform transition-transform duration-300 ease-smooth flex flex-col ${
+        className={`fixed top-0 left-0 h-full w-[85vw] md:w-80 lg:w-[360px] bg-secondary-light shadow-strong z-[10000] transform transition-transform duration-300 ease-smooth flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         role="dialog"

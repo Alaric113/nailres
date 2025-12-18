@@ -1,62 +1,61 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useScroll, useTransform } from 'framer-motion';
 
 interface HeroSectionProps {
   heroImage: string;
 }
 
 const HeroSection: React.FC<HeroSectionProps> = ({ heroImage }) => {
+  const { scrollYProgress } = useScroll();
   return (
-    <header className="relative h-screen min-h-[600px] flex items-center justify-center text-center text-white overflow-hidden snap-start snap-always">
-      {/* Background Image with Parallax-like feel */}
-      <div
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 ease-out scale-105"
-        style={{
-          backgroundImage: heroImage ? `url(${heroImage})` : "bg-secondary", // Fallback color if no image
-          filter: 'brightness(0.85) saturate(0.9)', // Slightly desaturated for natural look
-        }}
-      ></div>
+    <header className="relative h-screen flex flex-col justify-end pb-20 px-6 overflow-hidden snap-start">
+      {/* Background Image - Asymmetrical Placement with Parallax */}
+      <div className="absolute top-0 right-0 w-[85%] h-[85%] z-0">
+         <motion.div 
+            className="w-full h-full bg-cover bg-center grayscale-[20%] contrast-[1.1]"
+            style={{
+              backgroundImage: heroImage ? `url(${heroImage})` : "bg-[#E5E0D8]", 
+              y: useTransform(scrollYProgress, [0, 1], ['0%', '20%'])
+            }}
+         />
+         {/* Decorative colored block */}
+         <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-[#D4C5B0]/30 -z-10 backdrop-blur-sm" />
+      </div>
 
-      {/* Gradient Overlay - Earth Tones */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-secondary/20"></div>
+      {/* Main Content - Overlapping & Asymmetrical */}
+      {/* Text Container with Background */}
+      <div className="relative z-10 mt-auto ml-2 max-w-lg bg-[#FAF9F6]/80 backdrop-blur-md p-8 rounded-tr-3xl shadow-sm">
+        {/* Tiny Label */}
+        <p className="text-xs font-bold tracking-[0.3em] text-[#8A8175] mb-4 uppercase flex items-center gap-3">
+           <span className="w-8 h-[1px] bg-[#8A8175]"></span>
+           Est. 2024
+        </p>
 
-      {/* Content */}
-      <div className="relative z-10 px-4 sm:px-8 flex flex-col items-center">
-        <h1
-          className="text-5xl sm:text-7xl md:text-8xl font-serif tracking-tight mb-6 text-white opacity-90"
-          style={{ textShadow: '0 4px 20px rgba(0,0,0,0.3)' }}
-        >
-          HELLO <br />
-          <span className="tracking-widest">TREERING</span>
+        {/* Big Typography */}
+        <h1 className="text-6xl sm:text-7xl md:text-8xl font-serif text-[#2C2825] leading-[0.9] tracking-tighter mb-6 mix-blend-multiply">
+          The <br/>
+          <span className="italic font-light ml-8">Art of</span> <br/>
+          Beauty.
         </h1>
 
-        <div className="w-24 h-1 bg-primary/80 mb-8 rounded-full backdrop-blur-sm"></div>
-
-        <p className="max-w-xl mx-auto text-lg sm:text-xl md:text-2xl text-secondary-light font-light tracking-wide mb-10 leading-relaxed drop-shadow-md">
-          EYELASH EXTENSION & BEAUTY SALON
+        <p className="text-sm sm:text-base text-[#5E5850] font-light max-w-xs leading-relaxed ml-1 mb-10 pl-4 border-l border-[#8A8175]/50">
+           重新定義您的美麗日常。<br/>
+           專屬客製化美睫、美甲與霧眉設計。
         </p>
 
         <Link
-          to="/booking"
-          className="inline-block bg-white/90 hover:bg-white text-primary-dark font-serif font-medium rounded-full py-3 px-10 text-lg shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95"
+          to="/dashboard"
+          className="group inline-flex items-center gap-3 px-8 py-4 bg-[#2C2825] text-[#FAF9F6] text-sm tracking-widest hover:bg-[#4A4238] transition-all duration-500 rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
         >
-          立即預約
+          <span>START JOURNEY</span>
+          <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
         </Link>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce">
-        <svg
-          className="w-8 h-8 text-white/60"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.5"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-        </svg>
+      {/* Vertical Japanese Text Decor */}
+      <div className="absolute top-12 left-6 text-[#D4C5B0] text-xs writing-vertical-rl tracking-[0.5em] font-serif hidden sm:block opacity-60">
+        美しさの探求
       </div>
     </header>
   );
