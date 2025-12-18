@@ -130,7 +130,7 @@ const StoreInfoPage: React.FC = () => {
                    <div className="text-left">
                       <h3 className="font-serif text-base text-[#2C2825] mb-1">Address</h3>
                       <p className="text-[#8A8175] text-sm leading-snug">新北市蘆洲區民權路68巷16號1樓</p>
-                      <p className="text-[10px] text-[#8A8175]/60 mt-1">三民高中捷運站2號出口 步行5分鐘</p>
+                      <p className="text-[12px] text-[#8A8175]/60 mt-1">三民高中捷運站2號出口 步行5分鐘</p>
                    </div>
                 </div>
 
