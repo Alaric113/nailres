@@ -2,7 +2,7 @@ import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-rou
 import { useAuth } from './hooks/useAuth';
 import { useAuthStore } from './store/authStore';
 
-import LandingPage from './pages/LandingPage';
+// import LandingPage from './pages/LandingPage'; // Removed, used in RootRedirect
 import Home from './pages/Home';
 import { Login } from './components/auth/Login';
 import Register from './pages/Register';
@@ -31,16 +31,17 @@ import PortfolioManagementPage from './pages/PortfolioManagementPage';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import AdminLayout from './components/admin/AdminLayout';
 import UserLayout from './layouts/UserLayout';
-import { ToastProvider } from './context/ToastContext'; // NEW IMPORT
+import { ToastProvider } from './context/ToastContext';
 
 // Route Components
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PwaUpdatePrompt from './components/PwaUpdatePrompt';
+import RootRedirect from './components/auth/RootRedirect'; // New Import
 
 function RootLayout() {
   const { isCheckingRedirect } = useAuth();
-  const { authIsLoading } = useAuthStore(); // Removed currentUser, userProfile
+  const { authIsLoading } = useAuthStore();
 
   if (authIsLoading || isCheckingRedirect) {
     return <LoadingSpinner size='lg' text='正在載入中...' fullScreen />;
@@ -72,7 +73,7 @@ const routes = [
       {
         element: <UserLayout />,
         children: [
-          { path: '/', element: <LandingPage /> },
+          { path: '/', element: <RootRedirect /> }, // Changed
           { path: 'portfolio', element: <PortfolioGalleryPage /> },
           {
             element: <ProtectedRoute />,
