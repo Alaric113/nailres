@@ -28,7 +28,7 @@ const AdminBottomNav: React.FC<AdminBottomNavProps> = () => {
   const allNavItems = [
     { 
       name: '前台', 
-      path: '/', 
+      path: '/dashboard', 
       icon: ArrowUturnLeftIcon, 
       activeIcon: ArrowUturnLeftIconSolid,
       action: null 

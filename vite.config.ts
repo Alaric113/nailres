@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
-import {VitePWA} from 'vite-plugin-pwa'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -11,6 +11,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg}'],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // Increase to 4MB
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
@@ -48,7 +49,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-   server: {
+  server: {
     proxy: {
       // 將 /api 的請求代理到 Netlify functions 的本地開發伺服器 (port 8888)
       '/api': {
