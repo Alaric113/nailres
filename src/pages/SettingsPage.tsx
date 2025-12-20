@@ -16,15 +16,22 @@ import {
   UserCircleIcon
 } from '@heroicons/react/24/outline';
 
+// Import useNotification
+import { useNotification } from '../hooks/useNotification';
+
 // --- Notification Settings Sub-View ---
 const NotificationSettingsView: React.FC = () => {
   const { userProfile, currentUser } = useAuthStore();
+  const { requestPermission, permission, fcmToken } = useNotification(); // Use the hook
   const isDesignerRole = userProfile?.role === 'designer';
 
   const [notificationTargetUser, setNotificationTargetUser] = useState<EnrichedUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
+  
+  // PWA Test State
+  const [isSendingPwaTest, setIsSendingPwaTest] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -92,85 +99,172 @@ const NotificationSettingsView: React.FC = () => {
         throw new Error(errorData.message || '發送失敗');
       }
 
-      setMessage({ type: 'success', text: '測試訊息已成功發送！' });
+      setMessage({ type: 'success', text: 'LINE 測試訊息已成功發送！' });
     } catch (error: any) {
-      setMessage({ type: 'error', text: `發送測試訊息失敗: ${error.message}` });
+      setMessage({ type: 'error', text: `發送 LINE 測試訊息失敗: ${error.message}` });
     } finally {
       setIsTesting(false);
     }
   };
 
+  const handleSendPwaTest = async () => {
+      if (!fcmToken) {
+          setMessage({ type: 'error', text: '尚未取得推播權限或 Token，請先啟用通知。' });
+          return;
+      }
+      setIsSendingPwaTest(true);
+      setMessage(null);
+      try {
+          const response = await fetch('/api/notify-booking', { // Use notify-booking for FCM
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                  type: 'test_notification',
+                  targetToken: fcmToken 
+              }),
+          });
+          
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || errorData.message || '發送失敗');
+          }
+          
+          setMessage({ type: 'success', text: 'PWA 推播已發送，請檢查您的裝置通知列 (iOS 需滑下通知中心)。' });
+      } catch (e: any) {
+          console.error(e);
+          setMessage({ type: 'error', text: `PWA 測試失敗: ${e.message}` });
+      } finally {
+          setIsSendingPwaTest(false);
+      }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-serif font-bold text-gray-900">LINE 通知設定</h2>
+    <div className="space-y-8">
+      
+      {/* 1. LINE Notification Settings */}
+      <div>
+           <div className="mb-4">
+             <h2 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2">
+                 <i className="fa-brands fa-line text-[#06C755]"></i> LINE 通知設定
+             </h2>
+           </div>
+
+           <div className="bg-white rounded-xl shadow-sm border border-[#EFECE5] p-6 max-w-3xl mx-auto">
+             {isLoading ? (
+               <div className="flex justify-center items-center p-12">
+                 <LoadingSpinner />
+               </div>
+             ) : (
+               <div className="space-y-6">
+                 <div className="bg-[#FAF9F6] p-4 rounded-lg border border-[#EFECE5]">
+                   <p className="text-gray-700 text-sm leading-relaxed">
+                     勾選您希望接收 LINE 預約通知的帳號。
+                   </p>
+                 </div>
+                 
+                 {message && (
+                   <div className={`p-3 rounded-lg text-sm flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                      {message.type === 'success' ? <i className="fa-solid fa-check-circle"></i> : <i className="fa-solid fa-circle-exclamation"></i>}
+                     {message.text}
+                   </div>
+                 )}
+                 
+                 <ul className="divide-y divide-gray-100">
+                   {notificationTargetUser.map(user => (
+                     <li key={user.id} className="py-4 flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
+                       <div className="flex items-center">                    
+                         <img 
+                           className="h-12 w-12 rounded-full mr-4 object-cover border-2 border-white shadow-sm" 
+                           src={user.profile.avatarUrl || `https://ui-avatars.com/api/?name=${user.profile.displayName}&background=random`} 
+                           alt="" 
+                           crossOrigin="anonymous"
+                           referrerPolicy="no-referrer"
+                         />
+                         <div>
+                           <p className="text-base font-medium text-gray-900">{user.profile.displayName}</p>
+                           <p className="text-xs text-gray-500 mt-0.5">ID: {user.id.slice(0, 8)}...</p>
+                         </div>
+                       </div>
+                       <label htmlFor={`toggle-${user.id}`} className="flex items-center cursor-pointer relative group">
+                         <div className="relative">
+                           <input
+                             type="checkbox"
+                             id={`toggle-${user.id}`}
+                             className="sr-only"
+                             checked={!!user.receivesAdminNotifications}
+                             onChange={() => handleToggleNotification(user.id, !!user.receivesAdminNotifications)}
+                           />
+                           <div className={`block w-12 h-7 rounded-full transition-colors duration-300 ${user.receivesAdminNotifications ? 'bg-[#9F9586]' : 'bg-gray-200'}`}></div>
+                           <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm ${user.receivesAdminNotifications ? 'translate-x-5' : ''}`}></div>
+                         </div>
+                       </label>
+                     </li>
+                   ))}
+                 </ul>
+               </div>
+             )}
+             <div className="mt-8 pt-6 border-t border-gray-100">
+               <h3 className="text-lg font-serif font-medium text-gray-900 mb-2">LINE 功能測試</h3>
+               <p className="text-sm text-gray-500 mb-4">發送 LINE 測試訊息到上述已勾選的管理者。</p>
+               <button
+                 onClick={handleSendTestMessage}
+                 disabled={isTesting}
+                 className="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-[#06C755] hover:bg-[#05b34c] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#06C755] disabled:bg-gray-300 transition-all"
+               >
+                 {isTesting ? '正在發送...' : '發送 LINE 測試訊息'}
+               </button>
+             </div>
+           </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-[#EFECE5] p-6 max-w-3xl mx-auto">
-        {isLoading ? (
-          <div className="flex justify-center items-center p-12">
-            <LoadingSpinner />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="bg-[#FAF9F6] p-4 rounded-lg border border-[#EFECE5]">
-              <p className="text-gray-700 text-sm leading-relaxed">
-                勾選您希望接收 LINE 預約通知的帳號。
-              </p>
-            </div>
-            
-            {message && (
-              <div className={`p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                {message.text}
-              </div>
-            )}
-            
-            <ul className="divide-y divide-gray-100">
-              {notificationTargetUser.map(user => (
-                <li key={user.id} className="py-4 flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
-                  <div className="flex items-center">                    
-                    <img 
-                      className="h-12 w-12 rounded-full mr-4 object-cover border-2 border-white shadow-sm" 
-                      src={user.profile.avatarUrl || `https://ui-avatars.com/api/?name=${user.profile.displayName}&background=random`} 
-                      alt="" 
-                      crossOrigin="anonymous"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div>
-                      <p className="text-base font-medium text-gray-900">{user.profile.displayName}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">ID: {user.id.slice(0, 8)}...</p>
+      {/* 2. PWA Push Notification Settings */}
+      <div>
+           <div className="mb-4">
+             <h2 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2">
+                 <BellAlertIcon className="w-6 h-6 text-yellow-500" /> PWA 推播通知設定
+             </h2>
+           </div>
+           
+           <div className="bg-white rounded-xl shadow-sm border border-[#EFECE5] p-6 max-w-3xl mx-auto">
+                <div className="space-y-6">
+                    <div className="bg-[#FAF9F6] p-4 rounded-lg border border-[#EFECE5]">
+                        <p className="text-gray-700 text-sm leading-relaxed">
+                            推播通知適用於安裝了 PWA 的裝置 (支援 iOS/Android/Desktop)。
+                            <br />
+                            <span className="font-bold text-[#9F9586]">目前狀態: </span>
+                            <span className={`font-bold ${permission === 'granted' ? 'text-green-600' : 'text-red-500'}`}>
+                                {permission === 'granted' 
+                                    ? `已授權 (Token: ${fcmToken ? '已取得' : '獲取中...'})`
+                                    : permission === 'denied' ? '已封鎖 (請至瀏覽器設定開啟)' : '未詢問'}
+                            </span>
+                        </p>
                     </div>
-                  </div>
-                  <label htmlFor={`toggle-${user.id}`} className="flex items-center cursor-pointer relative group">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        id={`toggle-${user.id}`}
-                        className="sr-only"
-                        checked={!!user.receivesAdminNotifications}
-                        onChange={() => handleToggleNotification(user.id, !!user.receivesAdminNotifications)}
-                      />
-                      <div className={`block w-12 h-7 rounded-full transition-colors duration-300 ${user.receivesAdminNotifications ? 'bg-[#9F9586]' : 'bg-gray-200'}`}></div>
-                      <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm ${user.receivesAdminNotifications ? 'translate-x-5' : ''}`}></div>
+
+                    <div className="flex flex-col sm:flex-row gap-4">
+                         {/* Enable Button */}
+                         {permission !== 'granted' && permission !== 'denied' && (
+                             <button
+                                onClick={requestPermission}
+                                className="inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-[#9F9586] hover:bg-[#8a8175] transition-all"
+                             >
+                                <BellAlertIcon className="w-5 h-5 mr-2" />
+                                啟用推播通知
+                             </button>
+                         )}
+                         
+                         {/* Test Button */}
+                         <button
+                            onClick={handleSendPwaTest}
+                            disabled={!fcmToken || isSendingPwaTest}
+                            className="inline-flex items-center justify-center px-6 py-2.5 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9F9586] disabled:bg-gray-100 disabled:text-gray-400 transition-all"
+                         >
+                            {isSendingPwaTest ? '發送中...' : '發送本機測試訊息'}
+                         </button>
                     </div>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <div className="mt-8 pt-6 border-t border-gray-100">
-          <h3 className="text-lg font-serif font-medium text-gray-900 mb-2">功能測試</h3>
-          <p className="text-sm text-gray-500 mb-4">發送測試訊息。</p>
-          <button
-            onClick={handleSendTestMessage}
-            disabled={isTesting}
-            className="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-[#9F9586] hover:bg-[#8a8175] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9F9586] disabled:bg-gray-300 transition-all"
-          >
-            {isTesting ? '正在發送...' : '發送測試訊息'}
-          </button>
-        </div>
+                </div>
+           </div>
       </div>
+
     </div>
   );
 };

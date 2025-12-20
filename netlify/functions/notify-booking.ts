@@ -43,11 +43,13 @@ if (!admin.apps.length) {
 }
 
 interface NotifyRequestBody {
-    bookingId: string;
-    customerName: string;
-    serviceNames: string[];
-    bookingTime: string; // ISO string or formatted
+    bookingId?: string;
+    customerName?: string;
+    serviceNames?: string[];
+    bookingTime?: string; // ISO string or formatted
     designerId?: string; // Optional
+    type?: 'new_booking' | 'test_notification';
+    targetToken?: string; // For test notifications
 }
 
 const handler: Handler = async (event, context) => {
@@ -63,13 +65,59 @@ const handler: Handler = async (event, context) => {
     try {
         const bodyContent = event.body || "{}";
         const body = JSON.parse(bodyContent) as NotifyRequestBody;
-        const { bookingId, customerName, serviceNames, bookingTime, designerId } = body;
+        // Destructure with defaults or optionals to avoid runtime crashes on test
+        const { bookingId, customerName, serviceNames, bookingTime, designerId, type = 'new_booking', targetToken } = body;
 
-        console.log(`Processing notification for booking ${bookingId}`);
+        console.log(`Processing notification: Type=${type}`);
 
         const db = admin.firestore();
         const messaging = admin.messaging();
         const tokens: string[] = [];
+
+        // --- Handle Test Notification ---
+        if (type === 'test_notification') {
+            if (targetToken) {
+                tokens.push(targetToken);
+            } else {
+                // Fallback: Send to all admins if no specific token provided (optional behavior, maybe safer to require token for personal test)
+                // For now, let's require check if targetToken is present, or fetch admins if meant to be a broadcast test.
+                // Given the user wants to test "pwa push", usually means "test on my device".
+                // So we will rely on targetToken being passed from frontend.
+                return {
+                    statusCode: 400,
+                    body: JSON.stringify({ message: "Missing targetToken for test notification" })
+                };
+            }
+
+            const message = {
+                notification: {
+                    title: 'PWA 推播測試',
+                    body: `這是一則測試訊息！收到此訊息代表您的裝置已成功設定推播通知。\n時間: ${new Date().toLocaleString('zh-TW')}`,
+                },
+                token: targetToken,
+            };
+
+            try {
+                // Use send for single token
+                await messaging.send(message);
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ success: true, message: "Test notification sent" })
+                };
+            } catch (err: any) {
+                console.error("Error sending test notification:", err);
+                return {
+                    statusCode: 500,
+                    body: JSON.stringify({ error: err.message || "Failed to send test notification" })
+                };
+            }
+        }
+
+        // --- Handle Regular Booking Notification ---
+        if (!bookingId || !customerName || !serviceNames || !bookingTime) {
+            return { statusCode: 400, body: JSON.stringify({ message: "Missing required booking information" }) };
+        }
+
 
         // 1. Fetch Admins and Managers
         const staffSnapshot = await db.collection('users')

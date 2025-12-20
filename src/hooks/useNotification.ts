@@ -8,7 +8,13 @@ import { useAuthStore } from '../store/authStore';
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 export const useNotification = () => {
-    const [permission, setPermission] = useState<NotificationPermission>(Notification.permission);
+    // Check if Notification API is supported
+    const isSupported = 'Notification' in window;
+
+    // Safely initialize state
+    const [permission, setPermission] = useState<NotificationPermission>(
+        isSupported ? Notification.permission : 'denied'
+    );
     const [fcmToken, setFcmToken] = useState<string | null>(null);
     const { currentUser, userProfile } = useAuthStore();
 
@@ -31,6 +37,11 @@ export const useNotification = () => {
     };
 
     const requestPermission = async () => {
+        if (!isSupported) {
+            console.log('This browser does not support notifications.');
+            return;
+        }
+
         if (!VAPID_KEY) {
             console.warn('VAPID Key not found. Push notifications will not work.');
             return;
@@ -58,6 +69,8 @@ export const useNotification = () => {
 
     // Automatically check/request permission for staff roles
     useEffect(() => {
+        if (!isSupported) return;
+
         if (currentUser && userProfile) {
             const isStaff = ['admin', 'manager', 'designer'].includes(userProfile.role);
             if (isStaff) {
@@ -68,7 +81,7 @@ export const useNotification = () => {
                 }
             }
         }
-    }, [currentUser, userProfile]);
+    }, [currentUser, userProfile, isSupported]);
 
     useEffect(() => {
         const unsubscribe = onMessage(messaging, (payload: MessagePayload) => {
