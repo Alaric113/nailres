@@ -3,29 +3,42 @@ import * as admin from "firebase-admin";
 
 // Use a singleton pattern to prevent multiple initializations in the same container
 if (!admin.apps.length) {
-    try {
-        let serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT || '{}';
+    let serviceAccount: any = null;
 
-        // Check if base64 encoded (starts with 'e' commonly for {"type"...) or doesn't start with '{'
-        if (!serviceAccountJson.trim().startsWith('{')) {
-            try {
-                serviceAccountJson = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
-            } catch (e) {
-                console.warn("Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
+    try {
+        // Option 1: Full JSON in FIREBASE_SERVICE_ACCOUNT
+        let serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+        if (serviceAccountJson) {
+            // Check if base64 encoded (starts with 'e' commonly for {"type"...) or doesn't start with '{'
+            if (!serviceAccountJson.trim().startsWith('{')) {
+                try {
+                    serviceAccountJson = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
+                } catch (e) {
+                    console.warn("Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
+                }
             }
+            serviceAccount = JSON.parse(serviceAccountJson);
+        }
+        // Option 2: Individual variables
+        else if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+            serviceAccount = {
+                projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                // Replace literal \n with actual newlines if they are escaped
+                privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+            };
         }
 
-        const serviceAccount = JSON.parse(serviceAccountJson);
-        // Check if serviceAccount has essential fields
-        if (serviceAccount.project_id) {
+        if (serviceAccount && (serviceAccount.project_id || serviceAccount.projectId)) {
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount),
             });
         } else {
-            console.warn("Missing FIREBASE_SERVICE_ACCOUNT or invalid JSON.");
+            console.warn("Missing valid Firebase Service Account credentials (FIREBASE_SERVICE_ACCOUNT or FIREBASE_PRIVATE_KEY+FIREBASE_CLIENT_EMAIL).");
         }
     } catch (error) {
-        console.error("Error parsing FIREBASE_SERVICE_ACCOUNT:", error);
+        console.error("Error initializing Firebase Admin:", error);
     }
 }
 

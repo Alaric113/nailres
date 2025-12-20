@@ -7,23 +7,44 @@ const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
-  if (!FIREBASE_SERVICE_ACCOUNT) {
-    throw new Error('Firebase service account is not configured.');
-  }
+  let serviceAccount: any = null;
 
-  let serviceAccountJson = FIREBASE_SERVICE_ACCOUNT;
-  // Check if base64 encoded (starts with 'e' commonly for {"type"...) or doesn't start with '{'
-  if (!serviceAccountJson.trim().startsWith('{')) {
-    try {
-      serviceAccountJson = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
-    } catch (e) {
-      console.warn("Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
+  try {
+    // Option 1: Full JSON in FIREBASE_SERVICE_ACCOUNT
+    let serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+    if (serviceAccountJson) {
+      // Check if base64 encoded
+      if (!serviceAccountJson.trim().startsWith('{')) {
+        try {
+          serviceAccountJson = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
+        } catch (e) {
+          console.warn("Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
+        }
+      }
+      serviceAccount = JSON.parse(serviceAccountJson);
     }
-  }
+    // Option 2: Individual variables
+    else if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+      serviceAccount = {
+        projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      };
+    }
 
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(serviceAccountJson)),
-  });
+    if (serviceAccount) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    } else {
+      console.warn("Firebase credentials missing. LINE notifications may fail if they depend on Firestore.");
+      // Don't throw here to allow function to proceed if DB isn't strictly needed for all paths?
+      // Actually, this function DOES use firestore, so it will fail later.
+    }
+  } catch (e) {
+    console.error("Error init firebase admin:", e);
+  }
 }
 
 const db = admin.firestore();
