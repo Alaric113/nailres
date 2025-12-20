@@ -41,6 +41,7 @@ export default defineConfig({
             purpose: 'any maskable',
           },
         ],
+        gcm_sender_id: '103953800507',
       },
     }),
   ],

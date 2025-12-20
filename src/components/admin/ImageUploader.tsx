@@ -64,21 +64,25 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
 
   return (
     <div className="w-full">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <div className="mt-1 flex justify-center px-3 pt-2 pb-3 border-2 border-gray-300 border-dashed rounded-md">
-        <div className="space-y-1 text-center">
-          {isUploading ? <p>上傳中...</p> : imageUrl ? (
-            <div className="relative group">
-              <img src={imageUrl} alt={label} className="mx-auto h-32 w-auto rounded-md" />
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={handleDelete} className="text-white p-2 bg-red-500 rounded-full"><TrashIcon className="h-5 w-5" /></button>
+      <label className="block text-xs font-medium text-gray-500 mb-1 text-center truncate">{label}</label>
+      <div className="mt-1 flex justify-center px-2 py-2 border border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors aspect-square flex-col items-center justify-center bg-white relative overflow-hidden">
+        <div className="space-y-1 text-center w-full h-full flex flex-col items-center justify-center">
+          {isUploading ? <p className="text-xs text-gray-500">上傳中...</p> : imageUrl ? (
+            <div className="relative group w-full h-full">
+              <img src={imageUrl} alt={label} className="w-full h-full object-cover rounded-sm" />
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={handleDelete} className="text-white p-1.5 bg-red-500/80 hover:bg-red-500 rounded-full transition-colors"><TrashIcon className="h-4 w-4" /></button>
               </div>
             </div>
           ) : (
             <>
-              <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <div className="flex text-sm text-gray-600 justify-center"><label htmlFor={`file-upload-${label}`} className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"><span>上傳圖片</span><input id={`file-upload-${label}`} name={`file-upload-${label}`} type="file" className="sr-only" onChange={handleFileChange} accept="image/*" /></label></div>
-              <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+              <PhotoIcon className="mx-auto h-8 w-8 text-gray-300" />
+              <div className="flex text-xs text-gray-600 justify-center">
+                  <label htmlFor={`file-upload-${label}`} className="relative cursor-pointer rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-0">
+                      <span>上傳</span>
+                      <input id={`file-upload-${label}`} name={`file-upload-${label}`} type="file" className="sr-only" onChange={handleFileChange} accept="image/*" />
+                  </label>
+              </div>
             </>
           )}
         </div>

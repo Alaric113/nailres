@@ -22,7 +22,7 @@ export interface EnrichedBooking extends Omit<BookingDocument, 'dateTime' | 'cre
  * Custom hook to fetch all bookings from Firestore,
  * enriching them with user and service details.
  */
-export const useAllBookings = (dateRange: { start: Date; end: Date } | null) => {
+export const useAllBookings = (dateRange: { start: Date; end: Date } | null, designerId?: string | null) => {
   const [bookings, setBookings] = useState<EnrichedBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,18 +31,18 @@ export const useAllBookings = (dateRange: { start: Date; end: Date } | null) => 
     setLoading(true);
     const bookingsRef = collection(db, 'bookings');
 
-    let q;
+    let constraints: any[] = [orderBy('dateTime', 'desc')];
+
     if (dateRange) {
-      q = query(
-        bookingsRef,
-        where('dateTime', '>=', Timestamp.fromDate(dateRange.start)),
-        where('dateTime', '<=', Timestamp.fromDate(dateRange.end)),
-        orderBy('dateTime', 'desc')
-      );
-    } else {
-      // If no date range, fetch all bookings (for pending orders page)
-      q = query(bookingsRef, orderBy('dateTime', 'desc'));
+      constraints.push(where('dateTime', '>=', Timestamp.fromDate(dateRange.start)));
+      constraints.push(where('dateTime', '<=', Timestamp.fromDate(dateRange.end)));
     }
+
+    if (designerId) {
+      constraints.push(where('designerId', '==', designerId));
+    }
+
+    const q = query(bookingsRef, ...constraints);
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       setError(null);
@@ -111,7 +111,7 @@ export const useAllBookings = (dateRange: { start: Date; end: Date } | null) => 
     });
 
     return () => unsubscribe();
-  }, [dateRange]);
+  }, [dateRange, designerId]);
 
   return { bookings, loading, error };
 };

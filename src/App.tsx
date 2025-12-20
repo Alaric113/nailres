@@ -38,11 +38,16 @@ import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PwaUpdatePrompt from './components/PwaUpdatePrompt';
-import RootRedirect from './components/auth/RootRedirect'; // New Import
+
+import RootRedirect from './components/auth/RootRedirect';
+import { useNotification } from './hooks/useNotification'; // New Import
 
 function RootLayout() {
   const { isCheckingRedirect } = useAuth();
+
   const { authIsLoading } = useAuthStore();
+  
+  useNotification(); // Initialize FCM listener
 
   if (authIsLoading || isCheckingRedirect) {
     return <LoadingSpinner size='lg' text='正在載入中...' fullScreen />;

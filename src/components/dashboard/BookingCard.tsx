@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { CalendarDaysIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, ClockIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { bookingStatusTextMap, getBookingStatusChipClass } from '../../utils/bookingUtils';
 import type { BookingWithService } from '../../hooks/useBookings';
 
@@ -41,6 +41,11 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, isPast }) 
             <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${getBookingStatusChipClass(booking.status)}`}>
               {bookingStatusTextMap[booking.status]}
             </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-sm text-gray-600 mb-2">
+               <SparklesIcon className="w-4 h-4 text-[#9F9586]" />
+               <span>{booking.designerName || '不指定設計師'}</span>
           </div>
           
           <div className="flex items-center justify-between mt-4">

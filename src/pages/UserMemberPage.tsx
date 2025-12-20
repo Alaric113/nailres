@@ -20,21 +20,21 @@ const UserMemberPage = () => {
 
   const menuItems = [
     { 
-      title: '歷史預約紀錄', 
+      title: '歷史預約', 
       subtitle: '查看過往服務紀錄',
       icon: ArchiveBoxIcon, 
       path: '/member/history',
       color: 'bg-orange-50 text-orange-600'
     },
     { 
-      title: '點數兌換專區', 
+      title: '點數兌換', 
       subtitle: '使用點數兌換優惠',
       icon: GiftIcon, 
       path: '/member/rewards',
       color: 'bg-blue-50 text-blue-600'
     },
     { 
-      title: '季卡/年卡方案', 
+      title: '季卡方案', 
       subtitle: '購買超值會員方案',
       icon: TicketIcon, 
       path: '/member/pass',

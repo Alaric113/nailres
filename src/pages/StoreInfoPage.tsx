@@ -122,7 +122,7 @@ const StoreInfoPage: React.FC = () => {
       </AnimatePresence>
 
       {/* --- Map Section (Top) --- */}
-      <div className="h-[60%] w-full relative z-0 shrink-0 group">
+      <div className="h-[50%] w-full relative z-0 shrink-0 group">
         <MapContainer 
           center={position} 
           zoom={17} 
@@ -150,7 +150,7 @@ const StoreInfoPage: React.FC = () => {
           onClick={handleNavigate}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="absolute bottom-20 right-6 z-[1002] bg-[#2C2825] text-white p-4 rounded-full shadow-xl flex items-center gap-2 hover:bg-[#8A8175] transition-colors"
+          className="absolute bottom-10 right-6 z-[1002] bg-[#2C2825] text-white p-4 rounded-full shadow-xl flex items-center gap-2 hover:bg-[#8A8175] transition-colors"
         >
            <PaperAirplaneIcon className="w-6 h-6" />
            <span className="font-bold tracking-wide text-sm  group-hover:block transition-all duration-300">導航</span>

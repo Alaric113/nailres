@@ -1,11 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { format, isToday } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { doc, getDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, collection, getDocs, orderBy, query } from 'firebase/firestore'; // Added imports
 import { db } from '../lib/firebase';
 import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
+import { useCurrentDesigner } from '../hooks/useCurrentDesigner'; // New hook
+import { useAuthStore } from '../store/authStore'; // New hook
 import type { BookingStatus } from '../types/booking';
+import type { Designer } from '../types/designer'; // New type
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useToast } from '../context/ToastContext';
 import { 
@@ -13,11 +16,11 @@ import {
   ClockIcon, 
   CheckCircleIcon, 
   CalendarDaysIcon,
- 
   FunnelIcon,
-  PencilSquareIcon // New import
+  PencilSquareIcon,
+  UserCircleIcon // New Icon
 } from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router-dom'; // New import
+import { useNavigate } from 'react-router-dom';
 
 // Stats Card Component
 const StatCard = ({ title, value, icon: Icon, color, bgColor }: { title: string, value: string | number, icon: any, color: string, bgColor: string }) => (
@@ -35,12 +38,39 @@ const StatCard = ({ title, value, icon: Icon, color, bgColor }: { title: string,
 const OrderManagementPage = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const location = useLocation();
-  const navigate = useNavigate(); // Initialize hook
+  const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const [activeTab, setActiveTab] = useState<BookingStatus | 'all'>((queryParams.get('status') as BookingStatus) || 'all');
   
   const { showToast } = useToast();
-  const { bookings, loading, error } = useAllBookings(null);
+  const { userProfile } = useAuthStore();
+  
+  // --- Designer Filtering Logic ---
+  const { designer: currentDesigner } = useCurrentDesigner();
+  const [allDesigners, setAllDesigners] = useState<Designer[]>([]);
+  const [selectedDesignerFilter, setSelectedDesignerFilter] = useState<string | 'all'>('all');
+
+  // Fetch all designers for admin selector
+  useEffect(() => {
+    if (userProfile?.role === 'admin' || userProfile?.role === 'manager') {
+        const fetchDesigners = async () => {
+            const q = query(collection(db, 'designers'), orderBy('name'));
+            const snapshot = await getDocs(q);
+            setAllDesigners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Designer)));
+        };
+        fetchDesigners();
+    }
+  }, [userProfile?.role]);
+
+  // Determine effective designer ID for querying
+  const effectiveDesignerId = useMemo(() => {
+    if (userProfile?.role === 'designer') {
+        return currentDesigner?.id || null; // Force designer's own ID
+    }
+    return selectedDesignerFilter === 'all' ? null : selectedDesignerFilter;
+  }, [userProfile?.role, currentDesigner, selectedDesignerFilter]);
+
+  const { bookings, loading, error } = useAllBookings(null, effectiveDesignerId); // Pass filter
 
   // --- Stats Calculation ---
   const stats = useMemo(() => {
@@ -182,7 +212,26 @@ const OrderManagementPage = () => {
         
         {/* 1. Header & Stats (Horizontal Scroll on Mobile) */}
         <div className="space-y-4">
-            <h1 className="text-2xl font-serif font-bold text-gray-900 px-1">訂單管理</h1>
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-serif font-bold text-gray-900 px-1">訂單管理</h1>
+                
+                {/* Designer Filter (Admin/Manager Only) */}
+                {(userProfile?.role === 'admin' || userProfile?.role === 'manager') && (
+                    <div className="flex items-center gap-2">
+                        <UserCircleIcon className="w-5 h-5 text-gray-400" />
+                        <select
+                            value={selectedDesignerFilter}
+                            onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                            className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block p-2"
+                        >
+                            <option value="all">所有設計師</option>
+                            {allDesigners.map(d => (
+                                <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+            </div>
             
             <section className=" overflow-x-auto snap-x snap-mandatory gap-3 pb-2 -mx-4 px-4 hide-scrollbar grid grid-cols-2 md:grid-cols-4 sm:gap-4 sm:pb-0 sm:mx-0 sm:px-0">
                 <div className="snap-center shrink-0 w-[85vw] sm:w-auto">

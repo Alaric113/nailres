@@ -152,7 +152,7 @@ const CustomerListPage = () => {
                         </div>
                         <div className="ml-4">
                           <div className="font-medium text-text-main">{user.profile.displayName || 'N/A'}</div>
-                          <div className="text-xs text-text-light">{user.email}</div>
+                          
                         </div>
                       </div>
                     </td>

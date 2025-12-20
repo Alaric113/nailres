@@ -11,6 +11,7 @@ export interface BookingWithService extends Omit<BookingDocument, 'dateTime' | '
   dateTime: Date;
   createdAt: Date;
   serviceName: string; // Keep it simple for display
+  designerName?: string;
 }
 
 export const useBookings = () => {
@@ -26,13 +27,22 @@ export const useBookings = () => {
       return;
     }
 
-    // Pre-fetch all services to map their details to bookings.
-    // This is more efficient than fetching a service for each booking.
+    // Pre-fetch all services and designers
     const servicesMap = new Map<string, Service>();
-    const fetchServices = async () => {
-      const servicesSnapshot = await getDocs(collection(db, 'services'));
+    const designersMap = new Map<string, any>(); // Using any or Designer type if imported
+
+    const fetchData = async () => {
+      const [servicesSnapshot, designersSnapshot] = await Promise.all([
+        getDocs(collection(db, 'services')),
+        getDocs(collection(db, 'designers'))
+      ]);
+
       servicesSnapshot.forEach(doc => {
         servicesMap.set(doc.id, { id: doc.id, ...doc.data() } as Service);
+      });
+
+      designersSnapshot.forEach(doc => {
+        designersMap.set(doc.id, { id: doc.id, ...doc.data() });
       });
     };
 
@@ -41,20 +51,24 @@ export const useBookings = () => {
 
     // Set up the real-time listener
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+      // Ensure data is fetched
       if (servicesMap.size === 0) {
-        await fetchServices();
+        await fetchData();
       }
 
       const bookingsData = querySnapshot.docs.map(doc => {
         const data = doc.data() as BookingDocument;
+        const designer = data.designerId ? designersMap.get(data.designerId) : null;
+
         return {
           id: doc.id,
           ...data,
           dateTime: (data.dateTime as Timestamp).toDate(),
           createdAt: (data.createdAt as Timestamp).toDate(),
-          serviceName: Array.isArray(data.serviceNames) 
-            ? data.serviceNames.join('、') 
+          serviceName: Array.isArray(data.serviceNames)
+            ? data.serviceNames.join('、')
             : (data as any).serviceName || '未知服務', // Fallback for old data structure
+          designerName: designer ? (designer.name || designer.displayName) : undefined,
         };
       });
 

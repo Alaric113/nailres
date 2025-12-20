@@ -95,6 +95,23 @@ const BookingForm: React.FC<BookingFormProps> = ({ services, designerId, dateTim
         }),
       }).catch(err => console.error('Failed to send LINE notification:', err));
 
+      // Send Notification to designer/admin (Fire and forget to not block UI)
+      try {
+        await fetch('/api/notify-booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: newBookingRef.id,
+            customerName: userProfile?.profile.displayName || currentUser.displayName || '未知客戶',
+            serviceNames: serviceNames,
+            bookingTime: dateTime.toISOString(),
+            designerId: designerId
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to send notification:', error);
+      }
+
       showToast('預約成功！我們已發送確認訊息給您。', 'success', 5000);
       onBookingSuccess();
       navigate('/dashboard'); // Or a confirmation page

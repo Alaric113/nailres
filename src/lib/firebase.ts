@@ -2,6 +2,7 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 import { initializeAuth, browserLocalPersistence, browserPopupRedirectResolver } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getMessaging } from 'firebase/messaging';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -29,5 +30,6 @@ const auth = initializeAuth(app, {
 
 const db = getFirestore(app);
 const storage = getStorage(app); // <-- Initialize and export storage
+const messaging = getMessaging(app);
 
-export { db, auth, storage }; 
+export { db, auth, storage, messaging }; 

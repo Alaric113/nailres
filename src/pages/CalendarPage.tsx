@@ -1,21 +1,25 @@
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react'; // Added import
 import { format, addMinutes } from 'date-fns';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import zhTwLocale from '@fullcalendar/core/locales/zh-tw';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, orderBy, getDocs } from 'firebase/firestore'; // Added imports
 import { db } from '../lib/firebase';
 import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
 import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
+import { useCurrentDesigner } from '../hooks/useCurrentDesigner'; // New hook
+import { useAuthStore } from '../store/authStore'; // New hook
 import type { BookingStatus } from '../types/booking';
+import type { Designer } from '../types/designer'; // New type
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import BookingDetailModal from '../components/admin/BookingDetailModal';
-import { FunnelIcon } from '@heroicons/react/24/outline';
+import { FunnelIcon, UserCircleIcon } from '@heroicons/react/24/outline'; // Added Icon
 
 const useWindowSize = () => {
+    // ... existing implementation ...
   const [size, setSize] = useState([window.innerWidth]);
   useEffect(() => {
     const handleResize = () => setSize([window.innerWidth]);
@@ -27,7 +31,36 @@ const useWindowSize = () => {
 
 const CalendarPage = () => {
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
-  const { bookings, loading, error } = useAllBookings(dateRange);
+  
+  const { userProfile } = useAuthStore();
+  
+  // --- Designer Filtering Logic ---
+  const { designer: currentDesigner } = useCurrentDesigner();
+  const [allDesigners, setAllDesigners] = useState<Designer[]>([]);
+  const [selectedDesignerFilter, setSelectedDesignerFilter] = useState<string | 'all'>('all');
+
+  // Fetch all designers for admin selector
+  useEffect(() => {
+    if (userProfile?.role === 'admin' || userProfile?.role === 'manager') {
+        const fetchDesigners = async () => {
+            const q = query(collection(db, 'designers'), orderBy('name'));
+            const snapshot = await getDocs(q);
+            setAllDesigners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Designer)));
+        };
+        fetchDesigners();
+    }
+  }, [userProfile?.role]);
+
+  // Determine effective designer ID for querying
+  const effectiveDesignerId = useMemo(() => {
+    if (userProfile?.role === 'designer') {
+        return currentDesigner?.id || null; // Force designer's own ID
+    }
+    return selectedDesignerFilter === 'all' ? null : selectedDesignerFilter;
+  }, [userProfile?.role, currentDesigner, selectedDesignerFilter]);
+
+  const { bookings, loading, error } = useAllBookings(dateRange, effectiveDesignerId); // Pass filter
+  
   const { closedDays } = useBusinessHoursSummary();
   const calendarRef = useRef<FullCalendar>(null);
   const [selectedBooking, setSelectedBooking] = useState<EnrichedBooking | null>(null);  
@@ -87,6 +120,29 @@ const CalendarPage = () => {
       
 
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+        
+        {/* Header with Designer Filter */}
+        <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-serif font-bold text-gray-900">行事曆</h1>
+            
+            {/* Designer Filter (Admin/Manager Only) */}
+            {(userProfile?.role === 'admin' || userProfile?.role === 'manager') && (
+                <div className="flex items-center gap-2">
+                    <UserCircleIcon className="w-5 h-5 text-gray-400" />
+                    <select
+                        value={selectedDesignerFilter}
+                        onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                        className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block p-2 outline-none"
+                    >
+                        <option value="all">所有設計師</option>
+                        {allDesigners.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+        </div>
+
         {/* Error Alert */}
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-6 shadow-sm animate-fade-in">
