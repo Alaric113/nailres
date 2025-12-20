@@ -8,12 +8,40 @@ const LINE_CHANNEL_ID = process.env.VITE_LIFF_ID; // Assuming LIFF_ID is stored 
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
-  if (!FIREBASE_SERVICE_ACCOUNT) {
-    throw new Error('Firebase service account is not configured. Check FIREBASE_SERVICE_ACCOUNT environment variable.');
+  let serviceAccount: any = null;
+
+  try {
+    let serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+    if (serviceAccountJson) {
+      if (!serviceAccountJson.trim().startsWith('{')) {
+        try {
+          serviceAccountJson = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
+        } catch (e) {
+          console.warn("Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
+        }
+      }
+      serviceAccount = JSON.parse(serviceAccountJson);
+    }
+    else if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+      serviceAccount = {
+        projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      };
+    }
+
+    if (serviceAccount) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    } else {
+      throw new Error("Firebase configuration missing");
+    }
+  } catch (e) {
+    console.error("Error init firebase admin:", e);
+    throw new Error("Failed to initialize Firebase Admin");
   }
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(FIREBASE_SERVICE_ACCOUNT)),
-  });
 }
 const auth = admin.auth();
 const db = getFirestore();
@@ -50,9 +78,9 @@ const handler: Handler = async (event: HandlerEvent) => {
 
     const lineProfile = lineVerifyResponse.data;
     const verifiedLineUserId = lineProfile.sub; // 'sub' field contains the user ID
-    
+
     if (!verifiedLineUserId) {
-        return { statusCode: 401, body: JSON.stringify({ message: 'Invalid LINE ID Token: User ID not found.' }) };
+      return { statusCode: 401, body: JSON.stringify({ message: 'Invalid LINE ID Token: User ID not found.' }) };
     }
 
     // 2. Create a Firebase custom token

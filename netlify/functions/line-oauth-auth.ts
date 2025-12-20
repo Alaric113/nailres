@@ -9,12 +9,46 @@ const LINE_CHANNEL_SECRET = process.env.VITE_LINE_CHANNEL_SECRET; // Your LINE L
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
-  if (!FIREBASE_SERVICE_ACCOUNT) {
-    throw new Error('Firebase service account is not configured. Check FIREBASE_SERVICE_ACCOUNT environment variable.');
+  let serviceAccount: any = null;
+
+  try {
+    // Option 1: Full JSON in FIREBASE_SERVICE_ACCOUNT
+    let serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+    if (serviceAccountJson) {
+      // Check if base64 encoded
+      if (!serviceAccountJson.trim().startsWith('{')) {
+        try {
+          serviceAccountJson = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
+        } catch (e) {
+          console.warn("Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
+        }
+      }
+      serviceAccount = JSON.parse(serviceAccountJson);
+    }
+    // Option 2: Individual variables
+    else if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+      serviceAccount = {
+        projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      };
+    }
+
+    if (serviceAccount) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    } else {
+      console.error("Firebase service account is not configured. Check FIREBASE_SERVICE_ACCOUNT or FIREBASE_PRIVATE_KEY/FIREBASE_CLIENT_EMAIL environment variables.");
+      // Force throw to ensure the function fails if DB access is critical
+      throw new Error("Firebase configuration missing");
+    }
+  } catch (e) {
+    console.error("Error init firebase admin:", e);
+    // Throwing error here to ensuring the lambda fails fast if initialization fails
+    throw new Error("Failed to initialize Firebase Admin");
   }
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(Buffer.from(FIREBASE_SERVICE_ACCOUNT, 'base64').toString('utf8'))),
-  });
 }
 const auth = admin.auth();
 const db = getFirestore();
@@ -69,7 +103,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     const pictureUrl = decodedIdToken.picture || '';
 
     if (!lineUserId) {
-        return { statusCode: 401, body: JSON.stringify({ message: 'Invalid LINE ID Token: User ID not found.' }) };
+      return { statusCode: 401, body: JSON.stringify({ message: 'Invalid LINE ID Token: User ID not found.' }) };
     }
 
     // 3. Create a Firebase custom token
