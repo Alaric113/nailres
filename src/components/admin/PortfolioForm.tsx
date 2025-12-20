@@ -204,7 +204,7 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({ item, onClose, onSave }) 
                 >
                     <option value="">-- 自訂 (使用分類名稱) --</option>
                     {services.map(s => (
-                        <option key={s.id} value={s.id}>{s.name || s.title || '服務'}</option>
+                        <option key={s.id} value={s.id}>{s.name || '服務'}</option>
                     ))}
                 </select>
             </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { messaging, db } from '../lib/firebase';
 import { getToken, onMessage, type MessagePayload } from 'firebase/messaging';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { useAuthStore } from '../store/authStore';
 
 // VAPID Key from Firebase Console -> Project Settings -> Cloud Messaging -> Web Push certificates
