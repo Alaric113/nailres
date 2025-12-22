@@ -8,9 +8,9 @@ import { getMessaging } from 'firebase/messaging';
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   // By setting authDomain to our Netlify site, we unify the origin for auth operations.
-  // In development, we use the default Firebase domain to ensure the auth handler exists 
-  // (avoiding 404s if the Netlify redirect rule isn't deployed yet) and avoid SSL errors on localhost.
-  authDomain: import.meta.env.DEV ? 'nail-62ea4.firebaseapp.com' : import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  // UPDATE: Switching to default Firebase domain to ensure reliability across Localhost and Production
+  // without relying on Netlify redirects/proxies which might be delayed or misconfigured.
+  authDomain: 'nail-62ea4.firebaseapp.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
