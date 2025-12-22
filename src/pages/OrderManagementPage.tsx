@@ -272,7 +272,7 @@ const OrderManagementPage = () => {
             </div>
 
             {/* Order List */}
-            <div className="flex-1 bg-gray-50/30 p-4 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50/30 p-4 space-y-3">
                 {filteredBookings.length > 0 ? (
                     filteredBookings.map(booking => (
                         <div key={booking.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm active:scale-[0.99] transition-transform duration-200">

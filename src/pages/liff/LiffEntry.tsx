@@ -35,24 +35,21 @@ const LiffEntry = () => {
                 }
 
                 // Initialize LIFF
+                console.log('[LiffEntry] Initializing LIFF...');
                 const liff = await initializeLiff();
                 
                 if (!liff) {
-                    throw new Error('LIFF initialization failed');
+                    throw new Error('LIFF initialization failed (liff object is null). Check VITE_LIFF_ID.');
                 }
 
                 if (!liff.isLoggedIn()) {
-                   // Not logged in -> trigger LINE login
+                   console.log('[LiffEntry] Not logged in to LIFF, redirecting to login...');
                    setStatus('logging_in');
-                   // Pass current URL as redirect to come back here after login
                    liffLogin(window.location.href);
                    return;
                 }
 
-                // If we are here, we are logged in to LIFF (SDK) but might not have the 'code' for Firebase custom token exchange.
-                // Our backend /api/line-oauth-auth relies on 'code'.
-                // liff.login() inside the LINE app DOES NOT redirect by default, so we don't get the code.
-                // We must FORCE a standard OAuth redirect to get the code.
+                console.log('[LiffEntry] LIFF Logged In. Code:', code);
 
                 if (!code) {
                      // Force manual redirect to LINE Login to get 'code'
@@ -63,7 +60,6 @@ const LiffEntry = () => {
 
                      const redirectUri = window.location.origin + window.location.pathname + location.search;
                      
-                     // Construct OAuth URL
                      const params = new URLSearchParams({
                         response_type: 'code',
                         client_id: LINE_CHANNEL_ID || '',
@@ -79,19 +75,7 @@ const LiffEntry = () => {
                      return;
                 }
                 
-                // If we HAVE code, proceed to exchange it
                 if (code && state) {
-                     // We have auth code, exchange it like Login.tsx does
-                     // Note: You can enable state validation if you saved it before redirect
-                     // const storedState = sessionStorage.getItem('line_auth_state');
-                     // if (storedState && state !== storedState) throw new Error('State mismatch');
-
-                     // Fix Token Exchange Error: Redirect URI Mismatch
-                     // We must reconstruct the EXACT redirect_uri used in the authorize request.
-                     // The authorize request used: origin + pathname + (original params).
-                     // But NOW, location.search contains code & state.
-                     // So we must STRIP code & state to get back to the original URI.
-                     
                      const cleanParams = new URLSearchParams(location.search);
                      cleanParams.delete('code');
                      cleanParams.delete('state');
@@ -108,39 +92,62 @@ const LiffEntry = () => {
                         body: JSON.stringify({ code, redirectUri }),
                       });
             
-                      if (!response.ok) throw new Error('Token exchange failed');
+                      if (!response.ok) {
+                          const errText = await response.text();
+                          throw new Error(`Token exchange failed: ${errText}`);
+                      }
                       const { firebaseCustomToken } = await response.json();
                       await signInWithCustomToken(auth, firebaseCustomToken);
                       
-                      console.log('[LiffEntry] Token exchanged success. Waiting for auth state to propagate...');
-                      // Do NOT navigate here. Wait for currentUser to update and trigger the effect re-run.
-                      // navigate(redirectPath, { replace: true });
+                      console.log('[LiffEntry] Token exchanged success.');
+                      // Do NOT navigate here. Wait for currentUser to update.
                 }
 
             } catch (err: any) {
-                console.error(err);
-                setErrorMessage(err.message || 'Auto-login failed');
+                console.error('[LiffEntry Error]', err);
+                setErrorMessage(err.message || 'Initialization failed');
                 setStatus('error');
             }
         };
+
+        // SAFETY TIMEOUT: If nothing happens for 10 seconds, show error
+        const timeoutId = setTimeout(() => {
+            if (status === 'initializing') {
+                setErrorMessage('系統回應逾時，請檢查網路或重試。');
+                setStatus('error');
+            }
+        }, 10000);
 
         if (!currentUser) {
              init();
         } else {
              navigate(redirectPath, { replace: true });
         }
-    }, [currentUser, navigate, location]);
+
+        return () => clearTimeout(timeoutId);
+    }, [currentUser, navigate, location]); // Ensure 'status' is not in dependency array to avoid loops, or handle carefully
 
     if (status === 'error') {
         return (
             <div className="flex flex-col items-center justify-center p-8 h-screen bg-[#FAF9F6]">
-                <p className="text-red-600 mb-4">{errorMessage}</p>
-                <button 
-                  onClick={() => window.location.reload()}
-                  className="bg-[#9F9586] text-white px-4 py-2 rounded"
-                >
-                    重試
-                </button>
+                <div className="bg-white p-6 rounded-xl shadow-sm text-center max-w-sm">
+                    <p className="text-red-600 mb-4 font-bold">啟動失敗</p>
+                    <p className="text-gray-600 text-sm mb-6 break-words">{errorMessage}</p>
+                    <div className="space-y-3">
+                        <button 
+                        onClick={() => window.location.reload()}
+                        className="w-full bg-[#9F9586] text-white px-4 py-2 rounded-lg hover:bg-[#8a8174] transition-colors"
+                        >
+                            重試
+                        </button>
+                        <button 
+                        onClick={() => navigate('/')}
+                        className="w-full border border-gray-300 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            回首頁
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     }

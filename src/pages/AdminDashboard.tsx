@@ -352,17 +352,7 @@ const AdminDashboard = () => {
                    return null;
                })()}
 
-               {/* Personal Quick Stats */}
-               <h2 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2 px-1">
-                   <div className="flex items-center gap-2">
-                     {targetDesignerProfile.avatarUrl ? (
-                        <img src={targetDesignerProfile.avatarUrl} className="w-8 h-8 rounded-full border border-gray-200" alt="Avatar"/> 
-                     ) : (
-                        <span className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-500">{targetDesignerProfile.name[0]}</span>
-                     )}
-                     <span>{targetDesignerProfile.name} 的概況</span>
-                   </div>
-               </h2>
+               
                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                    <SummaryCard
                        title="待確認訂單"
