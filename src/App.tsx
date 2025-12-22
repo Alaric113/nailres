@@ -103,11 +103,7 @@ const routes = [
       },
       {
         path: 'login',
-        element: (
-          <RedirectIfLoggedIn>
-            <Login />
-          </RedirectIfLoggedIn>
-        ),
+        element: <Login />,
       },
       {
         path: 'register',

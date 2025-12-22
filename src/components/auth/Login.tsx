@@ -1,10 +1,11 @@
 import  { useState, useEffect, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
 import { useToast } from '../../context/ToastContext';
-import { signInWithCustomToken, signInWithPopup } from 'firebase/auth';
+import { signInWithCustomToken, signInWithPopup, signOut, deleteUser } from 'firebase/auth';
 import { auth, db, googleProvider } from '../../lib/firebase'; // Added db, googleProvider
-import { doc, onSnapshot, deleteDoc } from 'firebase/firestore'; // Added constants
+import { doc, onSnapshot, deleteDoc, getDoc } from 'firebase/firestore'; // Added constants
 import { isLiffBrowser, liffLogin } from '../../lib/liff';
 import { generateNonce, generateState } from '../../utils/lineAuth';
 import { motion } from 'framer-motion';
@@ -13,10 +14,19 @@ const LINE_CHANNEL_ID = import.meta.env.VITE_LINE_CHANNEL_ID;
 
 export const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [failedAuth, setFailedAuth] = useState(false); // Prevent race-condition redirect
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useToast();
+  const { currentUser } = useAuthStore();
   const isOAuthProcessing = useRef(false);
+
+  useEffect(() => {
+    // Only redirect if we have a user, aren't currently logging in, AND didn't just fail a check.
+    if (currentUser && !isSubmitting && !failedAuth) {
+        navigate('/');
+    }
+  }, [currentUser, isSubmitting, failedAuth, navigate]);
 
   // Helper to check for PWA Standalone Mode
   const isPwa = () => {
@@ -27,6 +37,7 @@ export const Login = () => {
       if (isOAuthProcessing.current) return;
       isOAuthProcessing.current = true;
       setIsSubmitting(true);
+      setFailedAuth(false);
 
       const redirectUri = window.location.origin + location.pathname; 
 
@@ -63,6 +74,7 @@ export const Login = () => {
 
       } catch (err: any) {
           console.error(err);
+          setFailedAuth(true);
           showToast(`LINE 登入失敗：${err.message}`, 'error');
           navigate(location.pathname, { replace: true });
       } finally {
@@ -106,6 +118,7 @@ export const Login = () => {
 
   const handleLineLogin = async () => {
     setIsSubmitting(true);
+    setFailedAuth(false);
     try {
       if (isLiffBrowser()) {
         liffLogin();
@@ -152,6 +165,7 @@ export const Login = () => {
       }
     } catch (error: any) {
       console.error(error);
+      setFailedAuth(true); // Technically init failed
       showToast('登入初始化失敗', 'error');
       setIsSubmitting(false);
     }
@@ -209,12 +223,38 @@ export const Login = () => {
         <button 
             onClick={async () => {
                 setIsSubmitting(true);
+                setFailedAuth(false);
                 try {
-                    await signInWithPopup(auth, googleProvider);
+                    const result = await signInWithPopup(auth, googleProvider);
+                    const user = result.user;
+
+                    // Verify if the user is a linked admin/staff
+                    const userDocRef = doc(db, 'users', user.uid);
+                    const userDoc = await getDoc(userDocRef);
+
+                    if (!userDoc.exists()) {
+                        // Crucial: Delete the "orphan" auth user so it doesn't block future linking
+                        await deleteUser(user);
+                        throw new Error('此 Google 帳號未綁定任何系統帳號，已清除本次紀錄。請先使用 LINE 登入後至設定頁面進行綁定。');
+                    }
+
+                    const userData = userDoc.data();
+                    const allowedRoles = ['admin', 'manager', 'designer'];
+
+                    if (!userData?.role || !allowedRoles.includes(userData.role)) {
+                         // Do NOT delete user here, they might be a valid customer
+                        throw new Error('此帳號權限不足 (非管理員/設計師)，無法使用 Google 登入。');
+                    }
+
                     navigate('/', { replace: true });
                 } catch (error: any) {
                     console.error(error);
-                    showToast(`Google 登入失敗: ${error.message}`, 'error');
+                    setFailedAuth(true); // Used key to prevent auto-redirect
+                    // Force logout if they managed to login but failed validation
+                    if (auth.currentUser) {
+                        await signOut(auth);
+                    }
+                    showToast(`登入失敗: ${error.message}`, 'error');
                 } finally {
                     setIsSubmitting(false);
                 }

@@ -10,7 +10,9 @@ import {
   Cog6ToothIcon,
   ChartBarIcon,
   ClockIcon,
-  TicketIcon
+  TicketIcon,
+  ArrowRightOnRectangleIcon,
+  ArrowLeftIcon
 } from '@heroicons/react/24/outline';
 import AdminMobileHeader from './AdminMobileHeader';
 import AdminBottomNav from './AdminBottomNav';
@@ -34,7 +36,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
   const location = useLocation();
   const matches = useMatches();
   const navigate = useNavigate();
-  const { userProfile } = useAuthStore();
+  const { userProfile, logout } = useAuthStore();
 
   const filteredNavigation = useMemo(() => {
     // Admin and Manager see everything
@@ -123,6 +125,30 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
                 ))}
               </div>
             </nav>
+            {/* Added Footer Actions */}
+            <div className="border-t border-gray-200 p-4 space-y-2">
+                 <Link
+                    to="/dashboard"
+                    className="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  >
+                    <ArrowLeftIcon className="mr-3 flex-shrink-0 h-6 w-6 text-gray-400 group-hover:text-gray-500" />
+                    返回前台
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await logout();
+                        navigate('/');
+                      } catch (error) {
+                        console.error('Logout failed:', error);
+                      }
+                    }}
+                    className="w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  >
+                    <ArrowRightOnRectangleIcon className="mr-3 flex-shrink-0 h-6 w-6 text-gray-400 group-hover:text-red-500" />
+                    登出
+                  </button>
+            </div>
           </div>
         </div>
       </div>
