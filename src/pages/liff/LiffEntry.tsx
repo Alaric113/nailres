@@ -162,38 +162,7 @@ const LiffEntry = () => {
             </div>
         </div>
     );
-}; // Ensure 'status' is not in dependency array to avoid loops, or handle carefully
-
-    if (status === 'error') {
-        return (
-            <div className="flex flex-col items-center justify-center p-8 h-screen bg-[#FAF9F6]">
-                <div className="bg-white p-6 rounded-xl shadow-sm text-center max-w-sm">
-                    <p className="text-red-600 mb-4 font-bold">啟動失敗</p>
-                    <p className="text-gray-600 text-sm mb-6 break-words">{errorMessage}</p>
-                    <div className="space-y-3">
-                        <button 
-                        onClick={() => window.location.reload()}
-                        className="w-full bg-[#9F9586] text-white px-4 py-2 rounded-lg hover:bg-[#8a8174] transition-colors"
-                        >
-                            重試
-                        </button>
-                        <button 
-                        onClick={() => navigate('/')}
-                        className="w-full border border-gray-300 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                            回首頁
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="flex flex-col items-center justify-center h-screen bg-[#FAF9F6]">
-            <LoadingSpinner size="lg" text="正在為您登入..." />
-        </div>
-    );
 };
+
 
 export default LiffEntry;
