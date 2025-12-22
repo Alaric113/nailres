@@ -66,4 +66,8 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    target: 'es2015', // Transpile to ES2015 for older WebViews/LINE
+    sourcemap: true,  // Enable source maps for better error tracking
+  },
 })
