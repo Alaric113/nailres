@@ -15,6 +15,12 @@ const LiffEntry = () => {
     const { currentUser } = useAuthStore();
     const [status, setStatus] = useState<'initializing' | 'logging_in' | 'redirecting' | 'error'>('initializing');
     const [errorMessage, setErrorMessage] = useState('');
+    const [logs, setLogs] = useState<string[]>([]);
+
+    const addLog = (msg: string) => {
+        console.log(msg);
+        setLogs(prev => [...prev.slice(-19), `${new Date().toLocaleTimeString()} ${msg}`]);
+    };
 
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
@@ -22,37 +28,35 @@ const LiffEntry = () => {
         const code = queryParams.get('code');
         const state = queryParams.get('state');
 
-        console.log('[LiffEntry] Debug:', { search: location.search, redirectPath, code, hasUser: !!currentUser });
+        addLog(`[Start] Search: ${location.search || 'empty'}, User: ${!!currentUser}`);
 
         const init = async () => {
             try {
-                // If user is already logged in to Firebase, go straight to target
                 if (currentUser) {
-                    console.log('[LiffEntry] User logged in, redirecting to:', redirectPath);
+                    addLog('User logged in. Redirecting...');
                     setStatus('redirecting');
                     navigate(redirectPath, { replace: true });
                     return;
                 }
 
-                // Initialize LIFF
-                console.log('[LiffEntry] Initializing LIFF...');
+                addLog('Initializing LIFF...');
                 const liff = await initializeLiff();
                 
                 if (!liff) {
-                    throw new Error('LIFF initialization failed (liff object is null). Check VITE_LIFF_ID.');
+                    throw new Error('LIFF init returned null');
                 }
+                addLog('LIFF Init Success');
 
                 if (!liff.isLoggedIn()) {
-                   console.log('[LiffEntry] Not logged in to LIFF, redirecting to login...');
+                   addLog('Not Logged In -> calling liffLogin');
                    setStatus('logging_in');
                    liffLogin(window.location.href);
                    return;
                 }
-
-                console.log('[LiffEntry] LIFF Logged In. Code:', code);
+                addLog(`Logged In. Code present: ${!!code}`);
 
                 if (!code) {
-                     // Force manual redirect to LINE Login to get 'code'
+                     addLog('No Code. Preparing OAuth Redirect...');
                      const state = generateState();
                      const nonce = generateNonce();
                      sessionStorage.setItem('line_auth_state', state);
@@ -71,11 +75,13 @@ const LiffEntry = () => {
                      });
 
                      const loginUrl = `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
+                     addLog(`Redirecting to: ${loginUrl}`);
                      window.location.href = loginUrl;
                      return;
                 }
                 
                 if (code && state) {
+                     addLog('Have Code. Exchanging...');
                      const cleanParams = new URLSearchParams(location.search);
                      cleanParams.delete('code');
                      cleanParams.delete('state');
@@ -94,38 +100,69 @@ const LiffEntry = () => {
             
                       if (!response.ok) {
                           const errText = await response.text();
-                          throw new Error(`Token exchange failed: ${errText}`);
+                          throw new Error(`Exchange Failed: ${errText}`);
                       }
                       const { firebaseCustomToken } = await response.json();
+                      addLog('Got Token. Signing in...');
                       await signInWithCustomToken(auth, firebaseCustomToken);
-                      
-                      console.log('[LiffEntry] Token exchanged success.');
-                      // Do NOT navigate here. Wait for currentUser to update.
+                      addLog('Sign In Success.');
                 }
 
             } catch (err: any) {
-                console.error('[LiffEntry Error]', err);
-                setErrorMessage(err.message || 'Initialization failed');
+                console.error(err);
+                addLog(`Error: ${err.message}`);
+                setErrorMessage(err.message || 'Error occurred');
                 setStatus('error');
             }
         };
 
-        // SAFETY TIMEOUT: If nothing happens for 10 seconds, show error
         const timeoutId = setTimeout(() => {
             if (status === 'initializing') {
-                setErrorMessage('系統回應逾時，請檢查網路或重試。');
+                addLog('TIMEOUT detected');
+                setErrorMessage('系統回應逾時');
                 setStatus('error');
             }
         }, 10000);
 
-        if (!currentUser) {
-             init();
-        } else {
-             navigate(redirectPath, { replace: true });
-        }
+        // Defer init slightly to ensure rendering happens
+        setTimeout(() => {
+             if (!currentUser) init();
+             else navigate(redirectPath, { replace: true });
+        }, 100);
 
         return () => clearTimeout(timeoutId);
-    }, [currentUser, navigate, location]); // Ensure 'status' is not in dependency array to avoid loops, or handle carefully
+    }, [currentUser, navigate, location]);
+
+    if (status === 'error') {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 h-screen bg-[#FAF9F6] relative">
+                <div className="bg-white p-6 rounded-xl shadow-sm text-center max-w-sm z-10">
+                    <p className="text-red-600 mb-4 font-bold">啟動失敗</p>
+                    <p className="text-gray-600 text-sm mb-6 break-words">{errorMessage}</p>
+                    <div className="space-y-3">
+                        <button onClick={() => window.location.reload()} className="w-full bg-[#9F9586] text-white px-4 py-2 rounded-lg">重試</button>
+                        <button onClick={() => navigate('/')} className="w-full border border-gray-300 text-gray-600 px-4 py-2 rounded-lg">回首頁</button>
+                    </div>
+                </div>
+                {/* Debug Overlay */}
+                <div className="absolute bottom-0 left-0 w-full h-1/3 bg-black/80 text-green-400 text-xs p-2 overflow-y-auto pointer-events-none z-0 text-left font-mono">
+                    {logs.map((log, i) => <div key={i}>{log}</div>)}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col items-center justify-center h-screen bg-[#FAF9F6] relative">
+            <LoadingSpinner size="lg" text="正在為您登入..." />
+             {/* Debug Overlay for Loading State */}
+             <div className="absolute bottom-0 left-0 w-full h-1/3 bg-black/80 text-green-400 text-xs p-2 overflow-y-auto pointer-events-none z-50 text-left font-mono">
+                <div>--- DEBUG LOG ---</div>
+                {logs.map((log, i) => <div key={i}>{log}</div>)}
+            </div>
+        </div>
+    );
+}; // Ensure 'status' is not in dependency array to avoid loops, or handle carefully
 
     if (status === 'error') {
         return (
