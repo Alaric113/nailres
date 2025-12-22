@@ -59,6 +59,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '/.netlify/functions'),
       },
+      // Proxy Firebase Auth requests to the Firebase Hosting URL
+      '/__/auth': {
+        target: 'https://nail-62ea4.firebaseapp.com',
+        changeOrigin: true,
+      },
     },
   },
 })

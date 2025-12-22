@@ -1,5 +1,5 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { initializeAuth, browserLocalPersistence, browserPopupRedirectResolver } from 'firebase/auth';
+import { initializeAuth, browserLocalPersistence, browserPopupRedirectResolver, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getMessaging } from 'firebase/messaging';
@@ -8,7 +8,9 @@ import { getMessaging } from 'firebase/messaging';
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   // By setting authDomain to our Netlify site, we unify the origin for auth operations.
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  // In development, we use the default Firebase domain to ensure the auth handler exists 
+  // (avoiding 404s if the Netlify redirect rule isn't deployed yet) and avoid SSL errors on localhost.
+  authDomain: import.meta.env.DEV ? 'nail-62ea4.firebaseapp.com' : import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
@@ -31,5 +33,6 @@ const auth = initializeAuth(app, {
 const db = getFirestore(app);
 const storage = getStorage(app); // <-- Initialize and export storage
 const messaging = getMessaging(app);
+const googleProvider = new GoogleAuthProvider();
 
-export { db, auth, storage, messaging }; 
+export { db, auth, storage, messaging, googleProvider }; 

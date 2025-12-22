@@ -2,8 +2,8 @@ import  { useState, useEffect, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
-import { signInWithCustomToken } from 'firebase/auth';
-import { auth, db } from '../../lib/firebase'; // Added db
+import { signInWithCustomToken, signInWithPopup } from 'firebase/auth';
+import { auth, db, googleProvider } from '../../lib/firebase'; // Added db, googleProvider
 import { doc, onSnapshot, deleteDoc } from 'firebase/firestore'; // Added constants
 import { isLiffBrowser, liffLogin } from '../../lib/liff';
 import { generateNonce, generateState } from '../../utils/lineAuth';
@@ -196,13 +196,34 @@ export const Login = () => {
         <button 
             onClick={handleLineLogin}
             disabled={isSubmitting}
-            className="w-full group relative flex items-center justify-center py-4 px-6 bg-[#06C755] text-white rounded-xl shadow-lg hover:shadow-xl hover:bg-[#05b54c] transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden"
+            className="w-full group relative flex items-center justify-center py-4 px-6 bg-[#06C755] text-white rounded-xl shadow-lg hover:shadow-xl hover:bg-[#05b54c] transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden mb-4"
         >
              {/* Shine Effect */}
              <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg] group-hover:animate-shine"></div>
              
              <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE" className="w-6 h-6 mr-3 drop-shadow-sm" />
              <span className="font-bold tracking-wide text-sm">{isSubmitting ? '登入中...' : '使用 LINE 登入'}</span>
+        </button>
+
+        {/* Google Login Button */}
+        <button 
+            onClick={async () => {
+                setIsSubmitting(true);
+                try {
+                    await signInWithPopup(auth, googleProvider);
+                    navigate('/', { replace: true });
+                } catch (error: any) {
+                    console.error(error);
+                    showToast(`Google 登入失敗: ${error.message}`, 'error');
+                } finally {
+                    setIsSubmitting(false);
+                }
+            }}
+            disabled={isSubmitting}
+            className="w-full group relative flex items-center justify-center py-4 px-6 bg-white border border-gray-200 text-[#5C5548] rounded-xl shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5 mr-3" />
+             <span className="font-bold tracking-wide text-sm">管理員/設計師 Google 登入</span>
         </button>
 
         {/* Footer info */}
