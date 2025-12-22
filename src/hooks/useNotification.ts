@@ -51,6 +51,10 @@ export const useNotification = () => {
             const result = await Notification.requestPermission();
             setPermission(result);
             if (result === 'granted') {
+                if (!messaging) {
+                    console.warn('Messaging not initialized.');
+                    return;
+                }
                 const token = await getToken(messaging, {
                     vapidKey: VAPID_KEY
                 });
@@ -69,7 +73,7 @@ export const useNotification = () => {
 
     // Automatically check/request permission for staff roles
     useEffect(() => {
-        if (!isSupported) return;
+        if (!isSupported || !messaging) return; // Add check for messaging
 
         if (currentUser && userProfile) {
             const isStaff = ['admin', 'manager', 'designer'].includes(userProfile.role);
@@ -84,6 +88,8 @@ export const useNotification = () => {
     }, [currentUser, userProfile, isSupported]);
 
     useEffect(() => {
+        if (!messaging) return; // Add guard
+
         const unsubscribe = onMessage(messaging, (payload: MessagePayload) => {
             console.log('Foreground Message received:', payload);
             if (payload.notification) {

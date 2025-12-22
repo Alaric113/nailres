@@ -32,7 +32,16 @@ const auth = initializeAuth(app, {
 
 const db = getFirestore(app);
 const storage = getStorage(app); // <-- Initialize and export storage
-const messaging = getMessaging(app);
+
+let messaging: any = null; // Use any or specific type if imported
+try {
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    messaging = getMessaging(app);
+  }
+} catch (e) {
+  console.warn('Firebase Messaging failed to initialize:', e);
+}
+
 const googleProvider = new GoogleAuthProvider();
 
 export { db, auth, storage, messaging, googleProvider }; 
