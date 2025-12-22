@@ -20,18 +20,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TreeRing</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      // Global Error Handler for Mobile Debugging
-      window.onerror = function(msg, url, line, col, error) {
-        // Ignore ResizeObserver loop errors
-        if (msg.includes('ResizeObserver')) return false;
-        
-        var extra = !col ? '' : '\ncolumn: ' + col;
-        extra += !error ? '' : '\nerror: ' + error;
-        alert("Error: " + msg + "\nurl: " + url + "\nline: " + line + extra);
-        return false;
-      };
-    </script>
+
     <script>
       tailwind.config = {
         theme: {
@@ -67,7 +56,7 @@
     </script>
   </head>
   <body>
-    <div id="root" style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#999;">Loading App...</div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -15,12 +15,6 @@ const LiffEntry = () => {
     const { currentUser } = useAuthStore();
     const [status, setStatus] = useState<'initializing' | 'logging_in' | 'redirecting' | 'error'>('initializing');
     const [errorMessage, setErrorMessage] = useState('');
-    const [logs, setLogs] = useState<string[]>([]);
-
-    const addLog = (msg: string) => {
-        console.log(msg);
-        setLogs(prev => [...prev.slice(-19), `${new Date().toLocaleTimeString()} ${msg}`]);
-    };
 
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
@@ -28,35 +22,28 @@ const LiffEntry = () => {
         const code = queryParams.get('code');
         const state = queryParams.get('state');
 
-        addLog(`[Start] Search: ${location.search || 'empty'}, User: ${!!currentUser}`);
-
         const init = async () => {
             try {
                 if (currentUser) {
-                    addLog('User logged in. Redirecting...');
                     setStatus('redirecting');
                     navigate(redirectPath, { replace: true });
                     return;
                 }
 
-                addLog('Initializing LIFF...');
+                console.log('Initializing LIFF...');
                 const liff = await initializeLiff();
                 
                 if (!liff) {
                     throw new Error('LIFF init returned null');
                 }
-                addLog('LIFF Init Success');
 
                 if (!liff.isLoggedIn()) {
-                   addLog('Not Logged In -> calling liffLogin');
                    setStatus('logging_in');
                    liffLogin(window.location.href);
                    return;
                 }
-                addLog(`Logged In. Code present: ${!!code}`);
 
                 if (!code) {
-                     addLog('No Code. Preparing OAuth Redirect...');
                      const state = generateState();
                      const nonce = generateNonce();
                      sessionStorage.setItem('line_auth_state', state);
@@ -75,13 +62,11 @@ const LiffEntry = () => {
                      });
 
                      const loginUrl = `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
-                     addLog(`Redirecting to: ${loginUrl}`);
                      window.location.href = loginUrl;
                      return;
                 }
                 
                 if (code && state) {
-                     addLog('Have Code. Exchanging...');
                      const cleanParams = new URLSearchParams(location.search);
                      cleanParams.delete('code');
                      cleanParams.delete('state');
@@ -103,14 +88,11 @@ const LiffEntry = () => {
                           throw new Error(`Exchange Failed: ${errText}`);
                       }
                       const { firebaseCustomToken } = await response.json();
-                      addLog('Got Token. Signing in...');
                       await signInWithCustomToken(auth, firebaseCustomToken);
-                      addLog('Sign In Success.');
                 }
 
             } catch (err: any) {
                 console.error(err);
-                addLog(`Error: ${err.message}`);
                 setErrorMessage(err.message || 'Error occurred');
                 setStatus('error');
             }
@@ -118,7 +100,6 @@ const LiffEntry = () => {
 
         const timeoutId = setTimeout(() => {
             if (status === 'initializing') {
-                addLog('TIMEOUT detected');
                 setErrorMessage('系統回應逾時');
                 setStatus('error');
             }
@@ -135,8 +116,8 @@ const LiffEntry = () => {
 
     if (status === 'error') {
         return (
-            <div className="flex flex-col items-center justify-center p-8 h-screen bg-[#FAF9F6] relative">
-                <div className="bg-white p-6 rounded-xl shadow-sm text-center max-w-sm z-10">
+            <div className="flex flex-col items-center justify-center p-8 h-screen bg-[#FAF9F6]">
+                <div className="bg-white p-6 rounded-xl shadow-sm text-center max-w-sm">
                     <p className="text-red-600 mb-4 font-bold">啟動失敗</p>
                     <p className="text-gray-600 text-sm mb-6 break-words">{errorMessage}</p>
                     <div className="space-y-3">
@@ -144,25 +125,15 @@ const LiffEntry = () => {
                         <button onClick={() => navigate('/')} className="w-full border border-gray-300 text-gray-600 px-4 py-2 rounded-lg">回首頁</button>
                     </div>
                 </div>
-                {/* Debug Overlay */}
-                <div className="absolute bottom-0 left-0 w-full h-1/3 bg-black/80 text-green-400 text-xs p-2 overflow-y-auto pointer-events-none z-0 text-left font-mono">
-                    {logs.map((log, i) => <div key={i}>{log}</div>)}
-                </div>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-[#FAF9F6] relative">
+        <div className="flex flex-col items-center justify-center h-screen bg-[#FAF9F6]">
             <LoadingSpinner size="lg" text="正在為您登入..." />
-             {/* Debug Overlay for Loading State */}
-             <div className="absolute bottom-0 left-0 w-full h-1/3 bg-black/80 text-green-400 text-xs p-2 overflow-y-auto pointer-events-none z-50 text-left font-mono">
-                <div>--- DEBUG LOG ---</div>
-                {logs.map((log, i) => <div key={i}>{log}</div>)}
-            </div>
         </div>
     );
 };
-
 
 export default LiffEntry;

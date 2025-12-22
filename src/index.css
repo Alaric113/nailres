@@ -5,22 +5,30 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-secondary-light text-text-main font-sans antialiased;
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply font-serif;
-  }
 
   /* Smooth scrolling behavior */
   html {
     scroll-behavior: smooth;
+    overscroll-behavior-y: none;
+    /* Prevents pull-to-refresh/close in WebViews/LIFF */
+    height: 100%;
+    /* Force height to prevent body collapse */
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    @apply bg-secondary-light text-text-main font-sans antialiased;
+    overscroll-behavior-y: none;
+    touch-action: pan-y;
+    /* improvements for touch handling */
+    -webkit-overflow-scrolling: touch;
+    /* Momentum scrolling */
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
+    /* Ensure it stays put */
   }
 
   /* Optimize font rendering */
