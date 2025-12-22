@@ -17,20 +17,22 @@ export const Login = () => {
   const { showToast } = useToast();
   const isOAuthProcessing = useRef(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const code = params.get('code');
-    const state = params.get('state');
+  // Helper to check for PWA Standalone Mode
+  const isPwa = () => {
+    return window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+  };
 
-    const handleLineOAuthRedirect = async () => {
-      if (code && state && !isOAuthProcessing.current) {
-        isOAuthProcessing.current = true;
-        setIsSubmitting(true);
-        try {
+  const exchangeCodeForToken = async (code: string, state: string) => {
+      if (isOAuthProcessing.current) return;
+      isOAuthProcessing.current = true;
+      setIsSubmitting(true);
+
+      const redirectUri = window.location.origin + location.pathname; // Must match the one used in href/open
+
+      try {
           const storedState = localStorage.getItem('line_oauth_state');
           if (!storedState || storedState !== state) throw new Error('State mismatch.');
-          
-          const redirectUri = window.location.origin + location.pathname;
+
           const response = await fetch('/api/line-oauth-auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -41,17 +43,48 @@ export const Login = () => {
           const { firebaseCustomToken } = await response.json();
           await signInWithCustomToken(auth, firebaseCustomToken);
           localStorage.removeItem('line_oauth_state');
-          navigate(location.pathname, { replace: true });
-        } catch (err: any) {
+          navigate('/', { replace: true }); // Go to home after success
+      } catch (err: any) {
+          console.error(err);
           showToast(`LINE 登入失敗：${err.message}`, 'error');
           navigate(location.pathname, { replace: true });
-        } finally {
+      } finally {
           setIsSubmitting(false);
           isOAuthProcessing.current = false;
-        }
       }
-    };
-    handleLineOAuthRedirect();
+  };
+
+  // 1. Listen for PostMessage from Popup (Parent Window Logic)
+  useEffect(() => {
+      const handleMessage = (event: MessageEvent) => {
+          if (event.origin !== window.location.origin) return;
+          if (event.data?.type === 'LINE_AUTH_CODE' && event.data?.code && event.data?.state) {
+               console.log("Received code from popup");
+               exchangeCodeForToken(event.data.code, event.data.state);
+          }
+      };
+      window.addEventListener('message', handleMessage);
+      return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  // 2. Handle Redirect Params (Popup Child Logic OR Normal Redirect Logic)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+
+    if (code && state) {
+        // A. Popup Child Mode
+        if (window.opener) {
+            console.log("Posting message to opener");
+            window.opener.postMessage({ type: 'LINE_AUTH_CODE', code, state }, window.location.origin);
+            window.close(); // Close self
+            return; 
+        }
+
+        // B. Standard Redirect Mode
+        exchangeCodeForToken(code, state);
+    }
   }, [location, navigate, showToast]);
 
   const handleLineLogin = async () => {
@@ -61,11 +94,22 @@ export const Login = () => {
         liffLogin();
       } else {
         if (!LINE_CHANNEL_ID) throw new Error('LINE Channel ID not configured.');
+        
         const state = generateState();
         const nonce = generateNonce();
-        localStorage.setItem('line_oauth_state', state);
+        localStorage.setItem('line_oauth_state', state); // Store state in both Parent and potentially Child (shares origin storage usually)
+        
         const redirectUri = window.location.origin + location.pathname;
-        window.location.href = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${LINE_CHANNEL_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile%20openid%20email&state=${state}&nonce=${nonce}`;
+        const authUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${LINE_CHANNEL_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile%20openid%20email&state=${state}&nonce=${nonce}`;
+
+        if (isPwa()) {
+            // Setup popup approach for PWA to avoid leaving app context (if supported by OS)
+            window.open(authUrl, 'line_login_popup', 'width=500,height=600');
+            setIsSubmitting(false); // Reset button state immediately as popup handles flow
+        } else {
+            // Standard Redirect
+            window.location.href = authUrl;
+        }
       }
     } catch (error: any) {
       console.error(error);
