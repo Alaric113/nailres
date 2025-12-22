@@ -32,7 +32,9 @@ export const Login = () => {
 
       try {
           const storedState = localStorage.getItem('line_oauth_state');
-          if (!storedState || storedState !== state) throw new Error('State mismatch.');
+          // Validation: Only fail if we HAVE a stored state and it doesn't match.
+          // If storedState is missing, we assume we are in the "Safari Relay" context (iOS PWA -> Safari).
+          if (storedState && storedState !== state) throw new Error('State mismatch.');
 
           const response = await fetch('/api/line-oauth-auth', {
             method: 'POST',
@@ -43,14 +45,20 @@ export const Login = () => {
           if (!response.ok) throw new Error('Failed to get token.');
           const { firebaseCustomToken } = await response.json();
           await signInWithCustomToken(auth, firebaseCustomToken);
-          localStorage.removeItem('line_oauth_state');
+          if (storedState) {
+              localStorage.removeItem('line_oauth_state');
+          }
           
           // If we are in a popup, try to close self after success
           if (window.opener || window.history.length > 1) {
-             // Optional: Display success message before closing?
-             // window.close() often blocked if not opened by script, but here it likely was.
              window.close();
           }
+
+          // If we are likely in the Safari Relay context (no stored state in this context), notify user
+          if (!storedState && !window.opener) {
+              showToast('驗證成功！請直接切換回 App 繼續使用。', 'success', 5000);
+          }
+
            navigate('/', { replace: true });
 
       } catch (err: any) {
