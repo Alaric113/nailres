@@ -3,7 +3,8 @@ import { ArrowLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
 import { signInWithCustomToken } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
+import { auth, db } from '../../lib/firebase'; // Added db
+import { doc, onSnapshot, deleteDoc } from 'firebase/firestore'; // Added constants
 import { isLiffBrowser, liffLogin } from '../../lib/liff';
 import { generateNonce, generateState } from '../../utils/lineAuth';
 import { motion } from 'framer-motion';
@@ -27,7 +28,7 @@ export const Login = () => {
       isOAuthProcessing.current = true;
       setIsSubmitting(true);
 
-      const redirectUri = window.location.origin + location.pathname; // Must match the one used in href/open
+      const redirectUri = window.location.origin + location.pathname; 
 
       try {
           const storedState = localStorage.getItem('line_oauth_state');
@@ -36,14 +37,22 @@ export const Login = () => {
           const response = await fetch('/api/line-oauth-auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code, redirectUri }),
+            body: JSON.stringify({ code, redirectUri, state }), // Sending state to API
           });
 
           if (!response.ok) throw new Error('Failed to get token.');
           const { firebaseCustomToken } = await response.json();
           await signInWithCustomToken(auth, firebaseCustomToken);
           localStorage.removeItem('line_oauth_state');
-          navigate('/', { replace: true }); // Go to home after success
+          
+          // If we are in a popup, try to close self after success
+          if (window.opener || window.history.length > 1) {
+             // Optional: Display success message before closing?
+             // window.close() often blocked if not opened by script, but here it likely was.
+             window.close();
+          }
+           navigate('/', { replace: true });
+
       } catch (err: any) {
           console.error(err);
           showToast(`LINE 登入失敗：${err.message}`, 'error');
@@ -54,7 +63,7 @@ export const Login = () => {
       }
   };
 
-  // 1. Listen for PostMessage from Popup (Parent Window Logic)
+  // 1. Listen for PostMessage from Popup (Parent Window Logic - Fallback)
   useEffect(() => {
       const handleMessage = (event: MessageEvent) => {
           if (event.origin !== window.location.origin) return;
@@ -78,11 +87,11 @@ export const Login = () => {
         if (window.opener) {
             console.log("Posting message to opener");
             window.opener.postMessage({ type: 'LINE_AUTH_CODE', code, state }, window.location.origin);
-            window.close(); // Close self
-            return; 
+            // We STILL allow execution to proceed to exchangeCodeForToken to trigger the API (which writes to Firestore)
+            // This is critical for the PWA Polling method.
         }
 
-        // B. Standard Redirect Mode
+        // B. Standard/Popup Execution
         exchangeCodeForToken(code, state);
     }
   }, [location, navigate, showToast]);
@@ -97,15 +106,37 @@ export const Login = () => {
         
         const state = generateState();
         const nonce = generateNonce();
-        localStorage.setItem('line_oauth_state', state); // Store state in both Parent and potentially Child (shares origin storage usually)
+        localStorage.setItem('line_oauth_state', state);
         
         const redirectUri = window.location.origin + location.pathname;
         const authUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${LINE_CHANNEL_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile%20openid%20email&state=${state}&nonce=${nonce}`;
 
         if (isPwa()) {
-            // Setup popup approach for PWA to avoid leaving app context (if supported by OS)
-            window.open(authUrl, 'line_login_popup', 'width=500,height=600');
-            setIsSubmitting(false); // Reset button state immediately as popup handles flow
+            // Setup popup approach for PWA 
+            const popup = window.open(authUrl, 'line_login_popup', 'width=500,height=600');
+            
+            // --- NEW: Firestore Polling Mechanism ---
+            const tokenRef = doc(db, 'temp_auth_tokens', state);
+            const unsubscribe = onSnapshot(tokenRef, async (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    if (data?.token) {
+                        console.log("Received token from Firestore handoff!");
+                        await signInWithCustomToken(auth, data.token);
+                        
+                        // Cleanup
+                        unsubscribe();
+                        await deleteDoc(tokenRef);
+                        localStorage.removeItem('line_oauth_state');
+                        if (popup) popup.close();
+                        navigate('/', { replace: true });
+                    }
+                }
+            });
+            // ----------------------------------------
+
+            // Optional: Timeout checking? If user closes popup without login.
+            // For now, simple listener is enough.
         } else {
             // Standard Redirect
             window.location.href = authUrl;

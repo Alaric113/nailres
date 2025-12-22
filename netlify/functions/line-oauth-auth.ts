@@ -109,6 +109,24 @@ const handler: Handler = async (event: HandlerEvent) => {
     // 3. Create a Firebase custom token
     const firebaseCustomToken = await auth.createCustomToken(lineUserId);
 
+    // --- NEW: Save token to Firestore for PWA Handoff ---
+    // This allows the PWA (which is listening to this doc) to pickup the token 
+    // without needing a redirect back to the app (which fails on iOS).
+    if (parsedBody.state) {
+      try {
+        await db.collection('temp_auth_tokens').doc(parsedBody.state).set({
+          token: firebaseCustomToken,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          // Auto-expire via Cloud Functions or just let it rot (add TTL index in Firebase Console ideally)
+        });
+        console.log(`Saved auth token for state ${parsedBody.state}`);
+      } catch (dbError) {
+        console.error("Error saving temp token to Firestore:", dbError);
+        // We proceed, as standard redirect flow might still work for some devices
+      }
+    }
+    // ----------------------------------------------------
+
     // 4. Update or create user profile in Firestore
     const userRef = db.collection('users').doc(lineUserId);
     await userRef.set({
