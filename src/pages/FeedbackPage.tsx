@@ -79,23 +79,23 @@ const FeedbackPage = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl overflow-x-hidden w-full">
       <h1 className="text-2xl font-bold font-serif mb-6 text-gray-800">問題回報與待辦事項</h1>
       
       {/* Add New Feedback */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-        <form onSubmit={handleAddFeedback} className="flex gap-4">
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 w-full">
+        <form onSubmit={handleAddFeedback} className="flex flex-col sm:flex-row gap-4">
           <input
             type="text"
             value={newFeedback}
             onChange={(e) => setNewFeedback(e.target.value)}
             placeholder="輸入新的問題或待辦事項..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all w-full"
           />
           <button
             type="submit"
             disabled={!newFeedback.trim()}
-            className="px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
+            className="px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm w-full sm:w-auto"
           >
             新增
           </button>
@@ -105,7 +105,7 @@ const FeedbackPage = () => {
       {loading ? (
         <LoadingSpinner />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 w-full">
           {feedbacks.length === 0 ? (
              <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                目前沒有任何待辦事項。
@@ -114,14 +114,14 @@ const FeedbackPage = () => {
             feedbacks.map(feedback => (
               <div
                 key={feedback.id}
-                className={`flex items-center justify-between p-4 bg-white rounded-lg shadow-sm border transition-all ${
+                className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-white rounded-lg shadow-sm border transition-all gap-4 ${
                   feedback.status === 'done' ? 'border-green-200 bg-green-50/30' : 'border-gray-200 hover:border-primary/30'
                 }`}
               >
-                <div className="flex items-center gap-4 flex-1">
+                <div className="flex items-start gap-4 flex-1 w-full sm:w-auto">
                   <button
                     onClick={() => toggleStatus(feedback.id, feedback.status)}
-                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors mt-1 sm:mt-0 ${
                       feedback.status === 'done'
                         ? 'bg-green-500 border-green-500 text-white'
                         : 'border-gray-300 hover:border-primary'
@@ -129,14 +129,14 @@ const FeedbackPage = () => {
                   >
                     {feedback.status === 'done' && <CheckCircleIcon className="w-4 h-4" />}
                   </button>
-                  <span className={`text-lg transition-all ${feedback.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                  <span className={`text-lg transition-all break-words break-all ${feedback.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
                     {feedback.content}
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-4 ml-4">
+                <div className="flex items-center justify-end w-full sm:w-auto gap-4 sm:ml-4 border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-100">
                   {feedback.createdAt && (
-                     <span className="text-xs text-gray-400 hidden sm:block">
+                     <span className="text-xs text-gray-400">
                        {feedback.createdAt.toDate().toLocaleDateString()}
                      </span>
                   )}
