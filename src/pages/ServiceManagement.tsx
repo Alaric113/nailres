@@ -84,6 +84,7 @@ const ServiceManagement = () => {
           category: formData.category,
           platinumPrice: formData.platinumPrice ? Number(formData.platinumPrice) : null,
           imageUrl: formData.imageUrl,
+          description: formData.description, // Added description
           options: formData.options, // Save options
         });
         setSuccess(`服務項目 "${formData.name}" 已成功更新！`);
@@ -99,6 +100,7 @@ const ServiceManagement = () => {
           platinumPrice: formData.platinumPrice ? Number(formData.platinumPrice) : null,
           available: true, // New services are available by default
           imageUrl: formData.imageUrl,
+          description: formData.description, // Added description
           createdAt: serverTimestamp(),
           options: formData.options, // Save options
         });

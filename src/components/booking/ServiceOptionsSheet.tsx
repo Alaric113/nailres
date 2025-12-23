@@ -97,27 +97,33 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
             className="fixed bottom-0 left-0 right-0 top-[10%] md:top-[20%] md:left-[20%] md:right-[20%] md:bottom-[10%] md:rounded-xl bg-white rounded-t-2xl z-[3001] flex flex-col shadow-2xl overflow-hidden"
           >
              {/* Header */}
-             <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
-                <button onClick={onClose} className="p-2 -ml-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
-                    <XMarkIcon className="w-6 h-6" />
+             <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0 bg-white z-20">
+                <div className="text-lg font-bold text-text-main line-clamp-1 flex-1 text-center px-8">
+                    {service.name}
+                </div>
+                <button 
+                    onClick={onClose} 
+                    className="absolute right-4 top-4 p-2 bg-gray-100 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                >
+                    <XMarkIcon className="w-5 h-5" />
                 </button>
-                <div className="font-bold text-lg text-text-main line-clamp-1">{service.name}</div>
-                <div className="w-10"></div> {/* Spacer for centering */}
              </div>
 
              {/* Content - Scrollable */}
              <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                 {/* ID: Service Image moved here for scrolling behavior */}
+                 {service.imageUrl && (
+                     <div className="w-full h-56 rounded-xl overflow-hidden shadow-sm mb-4">
+                        <img src={service.imageUrl} alt={service.name} className="w-full h-full object-cover" />
+                     </div>
+                 )}
+
                  {/* Service Info */}
                  <div className="space-y-2">
-                     {service.imageUrl && (
-                         <img src={service.imageUrl} alt={service.name} className="w-full h-48 object-cover rounded-xl" />
-                     )}
                      <p className="text-gray-500 text-sm">
                         此服務預計 {calculateDuration()} 分鐘
                      </p>
-                     <div className="text-2xl font-serif font-bold text-text-main">
-                        NT$ {calculateTotal()}
-                     </div>
+                     
                      {service.description && (
                        <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-600 leading-relaxed border border-gray-100/50">
                          {service.description}
