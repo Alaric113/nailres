@@ -195,7 +195,7 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
                                                         <span className="text-xs text-gray-400 line-through">NT${originalPrice}</span>
                                                     )}
                                                     <span className={`text-lg font-serif font-bold ${isPlatinum ? 'text-accent' : 'text-text-main'}`}>
-                                                        NT${price}
+                                                        NT${price}起
                                                     </span>
                                                 </div>
                                             </div>
