@@ -253,7 +253,7 @@ const BookingPage = () => {
 
         {/* Step 3: Date & Time */}
         {currentStep === 3 && (
-          <div className="space-y-4 pt-2">
+          <div className="space-y-4 p-4">
             {/* Date Selection */}
             <div className="bg-white rounded-2xl shadow-sm border border-[#EFECE5] overflow-hidden">
                <div 
@@ -318,7 +318,7 @@ const BookingPage = () => {
 
         {/* Step 4: Confirmation */}
         {currentStep === 4 && (
-          <div className="space-y-6">
+          <div className="space-y-6 p-4">
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#EFECE5]">
                <div className="space-y-4 mb-6">
                  <div>

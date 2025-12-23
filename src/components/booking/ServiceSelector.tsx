@@ -34,21 +34,59 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
     }
   }, [categories, activeCategory]);
 
+  // Handle manual scroll to category
   const scrollToCategory = (categoryName: string) => {
     setActiveCategory(categoryName);
     const element = categoryRefs.current[categoryName];
-    if (element) {
-      // Offset for sticky header
-      const offset = 80;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
+    const container = containerRef.current;
+    
+    if (element && container) {
+      // Get element position relative to container
+      const elementTop = element.offsetTop;
+      // We don't need a huge offset since the header is OUTSIDE the scroll container.
+      // But maybe a small padding for aesthetics.
+      const offset = 80; 
       
-      window.scrollTo({
-        top: offsetPosition,
+      container.scrollTo({
+        top: elementTop - offset,
         behavior: 'smooth'
       });
     }
   };
+
+  // Scroll Spy using IntersectionObserver
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || isLoading || categories.length === 0) return;
+
+    const observerOptions = {
+      root: container,
+      rootMargin: '-20% 0px -60% 0px', // Active region in the middle-top
+      threshold: 0
+    };
+
+    const observerCallback: IntersectionObserverCallback = (entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          // Find which category this element belongs to
+          const categoryName = Object.keys(categoryRefs.current).find(key => 
+            categoryRefs.current[key] === entry.target
+          );
+          if (categoryName) {
+            setActiveCategory(categoryName);
+          }
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+
+    Object.values(categoryRefs.current).forEach(el => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [categories, isLoading]);
 
   if (isLoading) {
     return <div className="flex justify-center p-4"><LoadingSpinner /></div>;
@@ -97,8 +135,8 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 relative">
             
-            {/* Sticky Category Tabs */}
-            <div className="sticky top-0 bg-white z-20 shadow-sm border-b border-gray-100 overflow-x-auto no-scrollbar">
+            {/* Category Tabs - Static in Flex Column */}
+            <div className="bg-[#FAF9F6] z-30 shadow-sm border-b border-gray-200 overflow-x-auto no-scrollbar flex-none">
                 <div className="flex px-4 items-center h-14 space-x-6 whitespace-nowrap">
                     {sortedCategories.map(category => (
                         <button

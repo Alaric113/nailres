@@ -42,7 +42,7 @@ const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, s
   if (designers.length === 0) return <p className="text-gray-500 text-center p-4">目前沒有可預約的設計師。</p>;
 
   return (
-    <div className="space-y-4 pt-2">
+    <div className="space-y-4 p-4">
       <h3 className="font-serif font-bold text-gray-900 text-xl text-center mb-6">選擇設計師</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <AnimatePresence>
