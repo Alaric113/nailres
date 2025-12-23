@@ -168,7 +168,7 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
                                                  </span>
                                              </div>
                                              <div className="text-sm font-medium">
-                                                 {item.price > 0 ? `+ $${item.price}` : '免費'}
+                                                 {item.price > 0 ? `+ $${item.price}` : '+0'}
                                              </div>
                                          </div>
                                      );
