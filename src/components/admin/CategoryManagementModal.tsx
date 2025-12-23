@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import Modal from '../common/Modal';
 import type { ServiceCategory } from '../../hooks/useServiceCategories';
@@ -39,16 +39,42 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
     try {
       if (editingCategory) {
         // Update
-        const categoryRef = doc(db, 'serviceCategories', editingCategory.id);
-        await updateDoc(categoryRef, { name: newCategoryName });
+        if (editingCategory.name !== newCategoryName) {
+           // If name changed, we need to update all services that use this category
+           const batch = writeBatch(db);
+           
+           // 1. Update the category document
+           const categoryRef = doc(db, 'serviceCategories', editingCategory.id);
+           batch.update(categoryRef, { name: newCategoryName });
+
+           // 2. Find all services using the old category name
+           const servicesRef = collection(db, 'services');
+           const q = query(servicesRef, where('category', '==', editingCategory.name));
+           const querySnapshot = await getDocs(q);
+
+           // 3. Update each service
+           querySnapshot.forEach((doc) => {
+             batch.update(doc.ref, { category: newCategoryName });
+           });
+
+           await batch.commit();
+           showToast(`分類已更新，並同步更新了 ${querySnapshot.size} 個相關服務`, 'success');
+
+        } else {
+             // Name didn't change (rare case if id logic differs, but safe to keep simple update or just return)
+             const categoryRef = doc(db, 'serviceCategories', editingCategory.id);
+             await updateDoc(categoryRef, { name: newCategoryName });
+        }
       } else {
         // Add
         await addDoc(collection(db, 'serviceCategories'), { name: newCategoryName });
+        showToast('分類新增成功', 'success');
       }
       resetForm();
     } catch (err) {
       setError('操作失敗，請稍後再試');
       console.error(err);
+      showToast('操作失敗', 'error');
     } finally {
       setIsSubmitting(false);
     }

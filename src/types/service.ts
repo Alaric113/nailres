@@ -11,4 +11,20 @@ export interface Service {
   available: boolean;
   imageUrl?: string;
   createdAt: Timestamp;
+  options?: ServiceOption[];
+}
+
+export interface ServiceOption {
+  id: string;
+  name: string; // e.g., "加購項目", "卸甲"
+  required: boolean;
+  multiSelect: boolean;
+  items: ServiceOptionItem[];
+}
+
+export interface ServiceOptionItem {
+  id: string;
+  name: string; // e.g., "單色", "造型", "本店卸甲"
+  price: number;
+  duration?: number; // Extra time in minutes
 }

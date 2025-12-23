@@ -1,26 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useServices } from '../../hooks/useServices';
+import { useServiceCategories } from '../../hooks/useServiceCategories';
 import type { Service } from '../../types/service';
 import { useAuthStore } from '../../store/authStore';
 import LoadingSpinner from '../common/LoadingSpinner';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import CartSidebar from './CartSidebar';
+import MobileCartBar from './MobileCartBar';
+import ServiceOptionsSheet from './ServiceOptionsSheet';
+// Removed ChevronDownIcon import as it's no longer used
 
 interface ServiceSelectorProps {
-  onServiceToggle: (service: Service) => void;
-  selectedServiceIds: string[];
   initialCategory?: string | null;
+  onNext: () => void;
 }
 
-const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onServiceToggle, selectedServiceIds, initialCategory }) => {
+const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
   const { services, isLoading, error } = useServices();
+  const { categories } = useServiceCategories();
   const { userProfile } = useAuthStore();
-  const [openCategory, setOpenCategory] = useState<string | null>(initialCategory || null);
+  
+  const [activeCategory, setActiveCategory] = useState<string>('');
+  const [selectedService, setSelectedService] = useState<Service | null>(null); // For Options Sheet
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
+  // Scroll Refs
+  const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Initialize active category
   useEffect(() => {
-    if (initialCategory) {
-      setOpenCategory(initialCategory);
+    if (categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0].name);
     }
-  }, [initialCategory]);
+  }, [categories, activeCategory]);
+
+  const scrollToCategory = (categoryName: string) => {
+    setActiveCategory(categoryName);
+    const element = categoryRefs.current[categoryName];
+    if (element) {
+      // Offset for sticky header
+      const offset = 80;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   if (isLoading) {
     return <div className="flex justify-center p-4"><LoadingSpinner /></div>;
@@ -48,133 +76,136 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onServiceToggle, sele
       return acc;
     }, {} as Record<string, Service[]>);
 
+
   // 確保分類順序
-  const categoryOrder = ['美睫', '霧眉', '美甲'];
   const sortedCategories = Object.keys(groupedServices).sort((a, b) => {
-    const indexA = categoryOrder.indexOf(a);
-    const indexB = categoryOrder.indexOf(b);
+    const indexA = categories.findIndex(c => c.name === a);
+    const indexB = categories.findIndex(c => c.name === b);
     if (indexA === -1 && indexB === -1) return a.localeCompare(b);
     if (indexA === -1) return 1;
     if (indexB === -1) return -1;
-    return indexA - indexB;
+    return indexB - indexA;
   });
-
-  const handleCategoryClick = (category: string) => {
-    setOpenCategory(prev => (prev === category ? null : category));
+  
+  const handleServiceClick = (service: Service) => {
+      setSelectedService(service);
+      setIsSheetOpen(true);
   };
 
     return (
-      <div className="space-y-4">
-        {sortedCategories.map((category) => {
-          const categoryServices = groupedServices[category];
-          const selectedCount = categoryServices.filter(s => selectedServiceIds.includes(s.id)).length;
-          const isCategoryActive = selectedCount > 0;
-          const isOpen = openCategory === category;
-  
-          return (
-            <div 
-              key={category} 
-              className={`border rounded-2xl overflow-hidden transition-all duration-300 shadow-sm ${
-                isCategoryActive ? 'border-primary/50' : 'border-secondary'
-              }`}
-            >
-              <button
-                onClick={() => handleCategoryClick(category)}
-                className={`w-full p-5 text-left flex justify-between items-center transition-all duration-300 ${
-                   isOpen 
-                     ? 'bg-secondary text-text-main shadow-inner' 
-                     : isCategoryActive 
-                        ? 'bg-secondary-light hover:bg-secondary' 
-                        : 'bg-white hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <h3 className={`text-lg font-serif font-bold tracking-wide ${isOpen ? 'text-text-main' : 'text-text-main'}`}>
-                    {category}
-                  </h3>
-                  {selectedCount > 0 && (
-                    <span className="flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full bg-primary text-white text-xs font-bold shadow-sm">
-                      {selectedCount}
-                    </span>
-                  )}
+      <div className="flex bg-[#FAF9F6] h-full overflow-hidden relative">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 relative">
+            
+            {/* Sticky Category Tabs */}
+            <div className="sticky top-0 bg-white z-20 shadow-sm border-b border-gray-100 overflow-x-auto no-scrollbar">
+                <div className="flex px-4 items-center h-14 space-x-6 whitespace-nowrap">
+                    {sortedCategories.map(category => (
+                        <button
+                            key={category}
+                            onClick={() => scrollToCategory(category)}
+                            className={`
+                                h-full relative px-1 font-medium text-sm transition-colors
+                                ${activeCategory === category 
+                                    ? 'text-[#2C2825] font-bold' 
+                                    : 'text-gray-400 hover:text-gray-600'
+                                }
+                            `}
+                        >
+                            {category}
+                            {activeCategory === category && (
+                                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#2C2825]" />
+                            )}
+                        </button>
+                    ))}
                 </div>
-                <ChevronDownIcon
-                  className={`w-5 h-5 transition-transform duration-300 ${
-                    isOpen ? 'rotate-180 text-primary-dark' : 'text-gray-400'
-                  }`}
-                />
-              </button>
-              <div
-                className="transition-all duration-500 ease-in-out overflow-hidden bg-secondary-light/30"
-                style={{ maxHeight: isOpen ? '1200px' : '0px' }}
-              >
-                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {categoryServices.map((service) => {
-                    const isSelected = selectedServiceIds.includes(service.id);
-                    const { price, isPlatinum, originalPrice } = getPriceForUser(service);
-  
-                    return (
-                      <div
-                        key={service.id}
-                        onClick={() => onServiceToggle(service)}
-                        className={`
-                          relative flex flex-row items-center p-3 rounded-xl cursor-pointer transition-all duration-200 border
-                          ${isSelected 
-                            ? 'bg-white border-primary ring-2 ring-primary/20 shadow-md transform scale-[1.01]' 
-                            : 'bg-white border-transparent shadow-sm hover:shadow-md hover:border-secondary-dark/50'
-                          }
-                        `}
-                      >
-                        {/* Selection Checkmark Badge */}
-                        <div className={`
-                          absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200
-                          ${isSelected ? 'bg-primary scale-100 opacity-100' : 'bg-gray-100 scale-90 opacity-0'}
-                        `}>
-                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                           </svg>
-                        </div>
-  
-                        {service.imageUrl && (
-                          <div className="flex-shrink-0 mr-4">
-                             <img 
-                               className="h-20 w-20 rounded-lg object-cover shadow-sm bg-gray-100" 
-                               src={service.imageUrl} 
-                               alt={service.name} 
-                             />
-                          </div>
-                        )}
-                        
-                        <div className="flex-grow min-w-0 py-1">
-                          <h4 className={`font-medium text-base mb-1.5 truncate ${isSelected ? 'text-primary-dark font-bold' : 'text-text-main'}`}>
-                            {service.name}
-                          </h4>
-                          
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <div className="flex items-baseline gap-1.5">
-                              {isPlatinum && (
-                                <span className="line-through text-xs text-gray-400">
-                                  NT${originalPrice}
-                                </span>
-                              )}
-                              <span className={`text-lg font-bold font-serif ${isPlatinum ? 'text-accent' : 'text-text-main'}`}>
-                                NT${price}
-                              </span>
-                            </div>
-                            <span className="text-gray-300 text-xs">|</span>
-                            <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-full">
-                              {service.duration} 分鐘
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
-          );
-        })}
+
+            {/* Scrollable Service List */}
+            <div className="flex-1 overflow-y-auto pb-24" ref={containerRef}>
+                <div className="max-w-3xl mx-auto p-4 space-y-8">
+                    {sortedCategories.map(category => (
+                        <div 
+                            key={category} 
+                            ref={(el) => { categoryRefs.current[category] = el; }}
+                            className="scroll-mt-16"
+                        >
+                            <h3 className="text-xl font-serif font-bold text-text-main mb-4 px-2">
+                                {category}
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                {groupedServices[category].map(service => {
+                                    const { price, isPlatinum, originalPrice } = getPriceForUser(service);
+                                    return (
+                                        <div 
+                                            key={service.id}
+                                            onClick={() => handleServiceClick(service)}
+                                            className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex gap-4 group"
+                                        >
+                                            {/* Text Content */}
+                                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                                <div>
+                                                    <h4 className="font-bold text-text-main text-lg mb-1 group-hover:text-primary transition-colors">
+                                                        {service.name}
+                                                    </h4>
+                                                    <p className="text-xs text-gray-400 line-clamp-2 mb-2">
+                                                        {service.duration} 分鐘
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-baseline gap-2">
+                                                    {isPlatinum && (
+                                                        <span className="text-xs text-gray-400 line-through">NT${originalPrice}</span>
+                                                    )}
+                                                    <span className={`text-lg font-serif font-bold ${isPlatinum ? 'text-accent' : 'text-text-main'}`}>
+                                                        NT${price}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Image */}
+                                            {service.imageUrl ? (
+                                                <div className="w-24 h-24 rounded-lg bg-gray-100 overflow-hidden shrink-0">
+                                                    <img src={service.imageUrl} alt={service.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-24 h-24 rounded-lg bg-gray-50 flex items-center justify-center text-gray-300 shrink-0">
+                                                    <span className="text-xs">No Image</span>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Add Button Mockup (optional visual cue) */}
+                                            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white hover:bg-gray-50 rounded-full p-1.5 shadow-sm border border-gray-100">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-primary">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+
+        {/* Sidebar Cart (Desktop) */}
+        <div className="hidden lg:block w-96 shrink-0 h-full relative z-30">
+            <CartSidebar onNext={onNext} />
+        </div>
+
+        {/* Mobile Floating Bar */}
+        <div className="lg:hidden">
+            <MobileCartBar onNext={onNext} />
+        </div>
+
+        {/* Options Sheet */}
+        <ServiceOptionsSheet 
+            isOpen={isSheetOpen} 
+            onClose={() => setIsSheetOpen(false)} 
+            service={selectedService} 
+        />
+
       </div>
     );
   };

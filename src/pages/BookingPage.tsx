@@ -1,29 +1,31 @@
 import { useState, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useBookingStore } from '../store/bookingStore'; // NEW IMPORT
 import ServiceSelector from '../components/booking/ServiceSelector';
-import DesignerSelector from '../components/booking/DesignerSelector'; // NEW IMPORT
+import DesignerSelector from '../components/booking/DesignerSelector';
 import TimeSlotSelector from '../components/booking/TimeSlotSelector';
 import BookingForm from '../components/booking/BookingForm';
-import type { Service } from '../types/service';
 import CalendarSelector from '../components/booking/CalendarSelector';
-// REMOVED: import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
-// REMOVED: import { useGlobalSettings } from '../hooks/useGlobalSettings';
 import CouponSelectorModal from '../components/booking/CouponSelectorModal';
 import type { Coupon } from '../types/coupon';
-import type { Designer } from '../types/designer'; // NEW IMPORT
+import type { Designer } from '../types/designer';
+import type { BookingStatus } from '../types/booking'; // NEW IMPORT
+import { collection, serverTimestamp, writeBatch, doc } from 'firebase/firestore'; // NEW IMPORT
+import { db } from '../lib/firebase'; // NEW IMPORT
+import { useToast } from '../context/ToastContext'; // NEW IMPORT
 import { 
   TicketIcon, 
   ChevronRightIcon,
   CalendarDaysIcon,
-  UserCircleIcon, // NEW IMPORT
+  UserCircleIcon,
   PencilSquareIcon
 } from '@heroicons/react/24/outline';
-import BookingProgressBar from '../components/booking/BookingProgressBar';
+// import BookingProgressBar from '../components/booking/BookingProgressBar';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useDesignerBookingInfo } from '../hooks/useDesignerBookingInfo'; // NEW HOOK
+import { useDesignerBookingInfo } from '../hooks/useDesignerBookingInfo';
 
 const BookingPage = () => {
   const location = useLocation();
@@ -32,42 +34,34 @@ const BookingPage = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
   
-  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
-  const [selectedDesigner, setSelectedDesigner] = useState<Designer | null>(null); // NEW STATE
+  // State for steps 2-4
+  const [selectedDesigner, setSelectedDesigner] = useState<Designer | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   
-  const { userProfile } = useAuthStore();
-  // REMOVED: const { closedDays, loading: isLoadingClosedDays } = useBusinessHoursSummary();
-  // REMOVED: const { settings: globalSettings, isLoading: isLoadingGlobalSettings } = useGlobalSettings();
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { userProfile, currentUser } = useAuthStore();
+  const { cart, clearCart } = useBookingStore(); // Use Booking Store
+  const navigate = useNavigate();
+  const { showToast } = useToast();
 
-  // NEW HOOK: Get booking info for selected designer
+  // Get booking info for selected designer
   const { 
     closedDays: designerClosedDays, 
     bookingDeadline: designerBookingDeadline, 
     loading: isLoadingDesignerBookingInfo
   } = useDesignerBookingInfo(selectedDesigner?.id || null);
 
-
-  const handleServiceToggle = (service: Service) => {
-    setSelectedServices(prev => {
-      const isSelected = prev.some(s => s.id === service.id);
-      if (isSelected) {
-        return prev.filter(s => s.id !== service.id);
-      } else {
-        return [...prev, service];
-      }
-    });
-  };
-
-  const handleDesignerSelect = (designer: Designer) => { // NEW HANDLER
+  const handleDesignerSelect = (designer: Designer) => {
     setSelectedDesigner(designer);
-    setSelectedDate(undefined); // Reset date/time on designer change
+    setSelectedDate(undefined);
     setSelectedTime(null);
-    setIsCalendarExpanded(true); // Expand calendar for new designer
+    setIsCalendarExpanded(true);
   };
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -88,23 +82,9 @@ const BookingPage = () => {
     setSelectedCoupon(coupon);
   };
 
-  const handleBookingSuccess = () => {
-    setSelectedServices([]);
-    setSelectedDesigner(null); // Reset designer
-    setSelectedDate(undefined);
-    setSelectedTime(null);
-    setSelectedCoupon(null);
-    setCurrentStep(1);
-    setIsCalendarExpanded(true);
-  };
-
   const { totalDuration, originalPrice, finalPrice, discountAmount } = useMemo(() => {
-    const isPlatinum = userProfile?.role === 'platinum';
-    const duration = selectedServices.reduce((acc, service) => acc + service.duration, 0);
-    const basePrice = selectedServices.reduce((acc, service) => {
-      const price = isPlatinum && service.platinumPrice ? service.platinumPrice : service.price;
-      return acc + price;
-    }, 0);
+    const duration = cart.reduce((acc, item) => acc + item.totalDuration, 0);
+    const basePrice = cart.reduce((acc, item) => acc + item.totalPrice, 0);
 
     if (!selectedCoupon || basePrice < selectedCoupon.minSpend) {
       return { totalDuration: duration, originalPrice: basePrice, finalPrice: basePrice, discountAmount: 0 };
@@ -114,43 +94,149 @@ const BookingPage = () => {
     const final = Math.max(0, basePrice - discount);
 
     return { totalDuration: duration, originalPrice: basePrice, finalPrice: final, discountAmount: discount };
-  }, [selectedServices, userProfile, selectedCoupon]);
+  }, [cart, selectedCoupon]);
 
-  // Adjusted nextStep logic for 4 steps
+
+  const handleBookingSubmit = async () => {
+    if (!currentUser) {
+      showToast('您必須登入才能預約。', 'error');
+      // maybe redirect to login?
+      return;
+    }
+    if (!selectedDesigner) {
+       showToast('請選擇一位設計師。', 'error');
+       return;
+    }
+    if (!selectedTime) {
+        showToast('請選擇預約時間。', 'error');
+        return;
+    }
+
+    setIsSubmitting(true);
+
+    const initialStatus: BookingStatus = userProfile?.role === 'platinum' ? 'pending_confirmation' : 'pending_payment';
+
+    try {
+      const batch = writeBatch(db);
+      const newBookingRef = doc(collection(db, 'bookings'));
+
+      const services = cart.map(item => item.service);
+      const serviceIds = services.map(s => s.id);
+      const serviceNames = services.map(s => s.name);
+      // const totalDuration = services.reduce((acc, service) => acc + service.duration, 0); 
+      // Use memoized totalDuration
+
+      // 1. Create new booking document
+      batch.set(newBookingRef, {
+        userId: currentUser.uid,
+        designerId: selectedDesigner.id,
+        serviceIds,
+        serviceNames,
+        dateTime: selectedTime,
+        status: initialStatus,
+        amount: finalPrice,
+        duration: totalDuration,
+        couponId: selectedCoupon ? selectedCoupon.id : null,
+        couponName: selectedCoupon ? selectedCoupon.title : null,
+        createdAt: serverTimestamp(),
+        notes: notes,
+      });
+
+      // 2. If a coupon was used, update its usage count
+      if (selectedCoupon) {
+        const couponRef = doc(db, 'coupons', selectedCoupon.id);
+        batch.update(couponRef, { usageCount: selectedCoupon.usageCount + 1 });
+
+        const userCouponRef = doc(db, 'users', currentUser.uid, 'userCoupons', selectedCoupon.id);
+        batch.set(userCouponRef, { isUsed: true, usedAt: serverTimestamp() }, { merge: true });
+      }
+
+      await batch.commit();
+
+      // 3. Send LINE message (Async)
+      fetch('/api/send-line-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.uid,
+          designerId: selectedDesigner.id,
+          serviceNames: serviceNames,
+          dateTime: selectedTime.toISOString(),
+          amount: finalPrice,
+          notes: notes,
+          status: initialStatus,
+        }),
+      }).catch(err => console.error('Failed to send LINE notification:', err));
+
+      // 4. Notify Designer/Admin (Async)
+      fetch('/api/notify-booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: newBookingRef.id,
+            customerName: userProfile?.profile.displayName || currentUser.displayName || '未知客戶',
+            serviceNames: serviceNames,
+            bookingTime: selectedTime.toISOString(),
+            designerId: selectedDesigner.id
+          }),
+      }).catch(err => console.error('Failed to send notification:', err));
+
+      showToast('預約成功！我們已發送確認訊息給您。', 'success', 5000);
+      
+      // Cleanup
+      clearCart();
+      setSelectedDesigner(null);
+      setSelectedDate(undefined);
+      setSelectedTime(null);
+      setSelectedCoupon(null);
+      setNotes('');
+      setCurrentStep(1);
+      setIsCalendarExpanded(true);
+      
+      navigate('/dashboard'); 
+
+    } catch (err) {
+      console.error('Booking failed:', err);
+      showToast('預約失敗，請稍後再試。', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const nextStep = () => {
-    if (currentStep === 1 && selectedServices.length === 0) return;
-    if (currentStep === 2 && !selectedDesigner) return; // Designer required
-    if (currentStep === 3 && !selectedTime) return; // Time required
+    if (currentStep === 1 && cart.length === 0) return;
+    if (currentStep === 2 && !selectedDesigner) return;
+    if (currentStep === 3 && !selectedTime) return;
     if (currentStep < 4) setCurrentStep(prev => prev + 1);
   };
 
-  // Adjusted handleStepClick for 4 steps
+  /* Unused while progress bar is hidden
   const handleStepClick = (step: number) => {
     if (step < currentStep) {
       setCurrentStep(step);
     }
   };
+  */
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#FAF9F6] pb-20 pt-4"> 
+    <div className="min-h-[calc(100vh-64px)] bg-[#FAF9F6] pb-20 "> 
       
-      {/* Progress Bar with Back Navigation built-in */}
+      {/* Progress Bar */}
+      {/* Progress Bar - Hidden as per request
       <div className="mb-8">
-        {/* Adjusted total steps in BookingProgressBar */}
         <BookingProgressBar currentStep={currentStep} totalSteps={4} onStepClick={handleStepClick} />
       </div>
+      */}
 
       {/* Main Content Area */}
-      <main className="container mx-auto px-4 max-w-lg">
+      <main className={`container mx-auto ${currentStep === 1 ? 'max-w-7xl h-[calc(100vh-140px)]' : 'max-w-lg'}`}>
         
-        {/* Step 1: Services */}
+        {/* Step 1: Services (New Uber Eats Style) */}
         {currentStep === 1 && (
-          <div className="space-y-6">
-            <h3 className="font-serif font-bold text-gray-900 text-xl text-center mb-6">選擇服務項目</h3>
+          <div className="h-full">
             <ServiceSelector 
-              onServiceToggle={handleServiceToggle} 
-              selectedServiceIds={selectedServices.map(s => s.id)}
               initialCategory={initialCategory}
+              onNext={() => setCurrentStep(2)}
             />
           </div>
         )}
@@ -165,13 +251,11 @@ const BookingPage = () => {
           </div>
         )}
 
-        {/* Step 3: Date & Time - Collapsible UX */}
+        {/* Step 3: Date & Time */}
         {currentStep === 3 && (
-          <div className="space-y-4">
-            
-            {/* 1. Date Selection Section */}
+          <div className="space-y-4 pt-2">
+            {/* Date Selection */}
             <div className="bg-white rounded-2xl shadow-sm border border-[#EFECE5] overflow-hidden">
-               {/* Header / Summary */}
                <div 
                  onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
                  className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${!isCalendarExpanded ? 'hover:bg-gray-50' : ''}`}
@@ -191,23 +275,22 @@ const BookingPage = () => {
                  )}
                </div>
 
-               {/* Calendar Content (Collapsible) */}
                <div className={`grid transition-all duration-300 ease-in-out ${isCalendarExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                  <div className="overflow-hidden">
                    <div className="px-4 pb-4">
                       <CalendarSelector
                           selectedDate={selectedDate}
                           onDateSelect={handleDateSelect}
-                          closedDays={designerClosedDays} // Use designer's closed days
-                          isLoading={isLoadingDesignerBookingInfo} // Use designer's loading state
-                          bookingDeadline={designerBookingDeadline} // Use designer's booking deadline
+                          closedDays={designerClosedDays}
+                          isLoading={isLoadingDesignerBookingInfo}
+                          bookingDeadline={designerBookingDeadline}
                       />
                    </div>
                  </div>
                </div>
             </div>
             
-            {/* 2. Time Selection Section (Appears after date selection) */}
+            {/* Time Selection */}
             <AnimatePresence>
               {!isCalendarExpanded && selectedDate && (
                  <motion.div
@@ -221,7 +304,7 @@ const BookingPage = () => {
                      {format(selectedDate, 'M月d日 (EEEE)', { locale: zhTW })} 的時段
                    </h3>
                    <TimeSlotSelector
-                      selectedDesignerId={selectedDesigner?.id || null} // Pass designer ID
+                      selectedDesignerId={selectedDesigner?.id || null}
                       selectedDate={format(selectedDate, 'yyyy-MM-dd')}
                       serviceDuration={totalDuration}
                       onTimeSelect={handleTimeSelect}
@@ -251,15 +334,23 @@ const BookingPage = () => {
                  <div>
                    <h3 className="text-sm text-gray-500 font-medium">已選服務</h3>
                    <div className="mt-2 space-y-2">
-                     {selectedServices.map(s => (
-                       <div key={s.id} className="flex justify-between items-center text-sm">
-                         <span className="text-gray-900">{s.name}</span>
-                         <span className="text-gray-500">${s.price}</span>
+                     {cart.map(item => (
+                       <div key={item.itemId} className="flex flex-col text-sm border-b border-dashed border-gray-100 pb-2 last:border-0 last:pb-0">
+                         <div className="flex justify-between items-center">
+                            <span className="text-gray-900 font-bold">{item.service.name}</span>
+                            <span className="text-gray-500">${item.totalPrice}</span>
+                         </div>
+                         {/* Show options in review */}
+                         {Object.values(item.selectedOptions).flat().length > 0 && (
+                             <div className="text-xs text-gray-400 mt-1">
+                                 {Object.values(item.selectedOptions).flat().map(o => o.name).join(', ')}
+                             </div>
+                         )}
                        </div>
                      ))}
                    </div>
                  </div>
-                 {/* NEW: Designer Info */}
+                 {/* Designer Info */}
                  {selectedDesigner && (
                    <>
                      <div className="h-px bg-gray-100"></div>
@@ -300,85 +391,140 @@ const BookingPage = () => {
                 </button>
 
                <BookingForm
-                  services={selectedServices}
-                  designerId={selectedDesigner?.id || null} // Pass designer ID to form
-                  dateTime={selectedTime!}
+                  services={cart.map(item => item.service)} 
                   totalPrice={finalPrice}
-                  coupon={selectedCoupon}
-                  onBookingSuccess={handleBookingSuccess}
+                  notes={notes}
+                  onNotesChange={setNotes}
                />
             </div>
           </div>
         )}
       </main>
 
-      {/* Floating Action Button for Next Step */}
-      <div className="fixed bottom-[80px] md:bottom-10 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 md:hidden z-40">
-        {currentStep === 1 && (
-          <button 
-            onClick={nextStep}
-            disabled={selectedServices.length === 0}
-            className="w-full bg-[#9F9586] text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
-          >
-            下一步：選擇設計師
-          </button>
-        )}
-        {currentStep === 2 && (
-          <button 
-            onClick={nextStep}
-            disabled={!selectedDesigner}
-            className="w-full bg-[#9F9586] text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
-          >
-            下一步：選擇時間
-          </button>
-        )}
-        {currentStep === 3 && (
-          <button 
-            onClick={nextStep}
-            disabled={!selectedTime}
-            className="w-full bg-[#9F9586] text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
-          >
-            下一步：確認預約
-          </button>
-        )}
-      </div>
+      {/* Floating Action Button for Next Step (Steps 2-4 only on mobile) */}
+      {/* Step 1 button is handled by MobileCartBar inside ServiceSelector */}
+      {currentStep > 1 && (
+          <div className="fixed bottom-[80px] md:bottom-10 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 md:hidden z-40">
+            {currentStep === 2 && (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCurrentStep(1)}
+                  className="px-6 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-bold shadow-sm active:scale-95 transition-all"
+                >
+                  上一步
+                </button>
+                <button 
+                  onClick={nextStep}
+                  disabled={!selectedDesigner}
+                  className="flex-1 bg-[#9F9586] text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
+                >
+                  下一步：選擇時間
+                </button>
+              </div>
+            )}
+            {currentStep === 3 && (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCurrentStep(2)}
+                  className="px-6 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-bold shadow-sm active:scale-95 transition-all"
+                >
+                  上一步
+                </button>
+                <button 
+                  onClick={nextStep}
+                  disabled={!selectedTime}
+                  className="flex-1 bg-[#9F9586] text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
+                >
+                  下一步：確認預約
+                </button>
+              </div>
+            )}
+            {/* Step 4 Back Button (Mobile) */}
+             {currentStep === 4 && (
+               <div className="flex gap-3">
+                 <button
+                    onClick={() => setCurrentStep(3)}
+                    disabled={isSubmitting}
+                    className="px-6 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-bold shadow-sm active:scale-95 transition-all disabled:opacity-50"
+                 >
+                    上一步
+                 </button>
+                 <button
+                    onClick={handleBookingSubmit}
+                    disabled={isSubmitting}
+                    className="flex-1 bg-[#9F9586] text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
+                 >
+                    {isSubmitting ? '處理中...' : '確認預約'}
+                 </button>
+               </div>
+             )}
+          </div>
+      )}
 
       {/* Desktop Next Buttons (Hidden on mobile) */}
-      <div className="hidden md:flex justify-end container mx-auto px-4 max-w-lg mt-8">
-         {currentStep === 1 && (
-            <button 
-              onClick={nextStep}
-              disabled={selectedServices.length === 0}
-              className="bg-[#9F9586] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#8a8173] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              下一步
-            </button>
-         )}
-         {currentStep === 2 && (
-            <button 
-              onClick={nextStep}
-              disabled={!selectedDesigner}
-              className="bg-[#9F9586] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#8a8173] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              下一步
-            </button>
-         )}
-         {currentStep === 3 && (
-            <button 
-              onClick={nextStep}
-              disabled={!selectedTime}
-              className="bg-[#9F9586] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#8a8173] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              下一步
-            </button>
-         )}
-      </div>
+      {/* Step 1 is handled by CartSidebar inside ServiceSelector */}
+      {currentStep > 1 && (
+          <div className="hidden md:flex justify-end container mx-auto px-4 max-w-lg mt-8">
+             {currentStep === 2 && (
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setCurrentStep(1)}
+                    className="px-8 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all"
+                  >
+                    上一步
+                  </button>
+                  <button 
+                    onClick={nextStep}
+                    disabled={!selectedDesigner}
+                    className="bg-[#9F9586] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#8a8173] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    下一步
+                  </button>
+                </div>
+             )}
+             {currentStep === 3 && (
+                <div className="flex gap-4">
+                   <button
+                     onClick={() => setCurrentStep(2)}
+                     className="px-8 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all"
+                   >
+                     上一步
+                   </button>
+                   <button 
+                     onClick={nextStep}
+                     disabled={!selectedTime}
+                     className="bg-[#9F9586] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#8a8173] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                   >
+                     下一步
+                   </button>
+                </div>
+             )}
+             {currentStep === 4 && (
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setCurrentStep(3)}
+                    disabled={isSubmitting}
+                    className="px-8 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all disabled:opacity-50"
+                  >
+                    上一步
+                  </button>
+                  <button
+                    onClick={handleBookingSubmit}
+                    disabled={isSubmitting}
+                    className="bg-[#9F9586] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#8a8173] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {isSubmitting ? '處理中...' : '確認預約'}
+                  </button>
+                </div>
+             )}
+          </div>
+      )}
 
       <CouponSelectorModal
         isOpen={isCouponModalOpen}
         onClose={() => setIsCouponModalOpen(false)}
         onSelect={handleCouponSelect}
-        selectedServices={selectedServices}
+        selectedServices={cart.map(item => item.service)}
         currentPrice={originalPrice}
       />
     </div>
