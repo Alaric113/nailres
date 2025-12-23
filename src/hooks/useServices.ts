@@ -10,8 +10,8 @@ export const useServices = () => {
 
   useEffect(() => {
     const servicesCollection = collection(db, 'services');
-    // Order by creation time so new services appear at the top.
-    const q = query(servicesCollection, orderBy('createdAt', 'desc'));
+    // Order by 'order' asc first, then 'createdAt' desc
+    const q = query(servicesCollection, orderBy('order', 'asc'), orderBy('createdAt', 'desc'));
 
     // onSnapshot sets up a real-time listener.
     const unsubscribe = onSnapshot(

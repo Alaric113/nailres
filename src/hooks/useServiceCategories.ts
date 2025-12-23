@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 export interface ServiceCategory {
   id: string;
   name: string;
+  order?: number; // Added order field
 }
 
 export const useServiceCategories = () => {
@@ -14,7 +15,8 @@ export const useServiceCategories = () => {
 
   useEffect(() => {
     const categoriesCollection = collection(db, 'serviceCategories');
-    const q = query(categoriesCollection, orderBy('name'));
+    // Sort by order first, then name
+    const q = query(categoriesCollection, orderBy('order', 'asc'), orderBy('name', 'asc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedCategories: ServiceCategory[] = snapshot.docs.map(doc => ({

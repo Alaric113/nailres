@@ -10,8 +10,9 @@ import ImageUploader from '../components/admin/ImageUploader'; // 引入圖片�
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ServiceMobileAccordionCard from '../components/admin/ServiceMobileAccordionCard'; // Import the new component
 import ServiceOptionEditor from '../components/admin/ServiceOptionEditor'; // Import Option Editor
-import { PencilSquareIcon, EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { useToast } from '../context/ToastContext'; // NEW IMPORT
+import ServiceReorderModal from '../components/admin/ServiceReorderModal'; // Import Reorder Modal
+import { PencilSquareIcon, EyeIcon, EyeSlashIcon, TrashIcon, ArrowsUpDownIcon } from '@heroicons/react/24/outline';
+import { useToast } from '../context/ToastContext';
 
 const ServiceManagement = () => {
   // Add options to formData
@@ -32,6 +33,7 @@ const ServiceManagement = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false); // 控制服務 Modal
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false); // 控制分類 Modal
+  const [isReorderModalOpen, setIsReorderModalOpen] = useState(false); // 控制排序 Modal
   const [isToggling, setIsToggling] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>('all');
@@ -92,6 +94,7 @@ const ServiceManagement = () => {
         setIsServiceModalOpen(false); // 更新成功後關閉 Modal
       } else {
         // Add new service
+         // Create default order (e.g. at the end or 999)
         await addDoc(collection(db, 'services'), {
           name: formData.name,
           price: Number(formData.price),
@@ -103,6 +106,7 @@ const ServiceManagement = () => {
           description: formData.description, // Added description
           createdAt: serverTimestamp(),
           options: formData.options, // Save options
+          order: 9999, // Put new services at end by default
         });
         setSuccess(`服務項目 "${formData.name}" 已成功新增！`);
         showToast(`服務項目 "${formData.name}" 已成功新增！`, 'success');
@@ -377,6 +381,15 @@ const ServiceManagement = () => {
           services={services}
         />
 
+        {/* Service Reorder Modal */}
+        <ServiceReorderModal
+          isOpen={isReorderModalOpen}
+          onClose={() => setIsReorderModalOpen(false)}
+          services={services}
+          categories={categories}
+          initialCategory={activeCategoryTab !== 'all' ? activeCategoryTab : undefined}
+        />
+
         {/* 現有服務列表 */}
         <div className="max-w-full mx-auto">
           <div>
@@ -384,6 +397,14 @@ const ServiceManagement = () => {
               <h2 className="text-2xl font-bold text-gray-800 font-serif">現有服務列表</h2>
               <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2">
                 {categoriesError && <p className="text-xs text-red-500">分類載入失敗</p>}
+                
+                <button 
+                  onClick={() => setIsReorderModalOpen(true)} 
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed w-full sm:w-auto"
+                  disabled={servicesLoading}>
+                  <ArrowsUpDownIcon className="h-4 w-4" /> 調整排序
+                </button>
+
                 <button 
                   onClick={() => setIsCategoryModalOpen(true)} 
                   className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed w-full sm:w-auto"

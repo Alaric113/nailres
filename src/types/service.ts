@@ -13,6 +13,7 @@ export interface Service {
   createdAt: Timestamp;
   description?: string; // Markdown or text description
   options?: ServiceOption[];
+  order?: number; // Added order field
 }
 
 export interface ServiceOption {
