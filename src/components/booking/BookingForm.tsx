@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Service } from '../../types/service';
+
 
 interface BookingFormProps {
   // services: Service[]; // Unused
@@ -8,7 +8,7 @@ interface BookingFormProps {
   onNotesChange: (notes: string) => void;
 }
 
-const BookingForm: React.FC<BookingFormProps> = ({ services, totalPrice, notes, onNotesChange }) => {
+const BookingForm: React.FC<BookingFormProps> = ({ totalPrice, notes, onNotesChange }) => {
   return (
     <div className="pt-2">
       <div className="space-y-4">

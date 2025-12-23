@@ -391,7 +391,6 @@ const BookingPage = () => {
                 </button>
 
                <BookingForm
-                  services={cart.map(item => item.service)} 
                   totalPrice={finalPrice}
                   notes={notes}
                   onNotesChange={setNotes}
