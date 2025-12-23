@@ -24,7 +24,8 @@ import {
   ClockIcon,
   ChevronDownIcon,
   CheckIcon,
-  BuildingStorefrontIcon
+  BuildingStorefrontIcon,
+  ChatBubbleLeftEllipsisIcon
 } from '@heroicons/react/24/outline';
 
 const AdminDashboard = () => {
@@ -46,10 +47,25 @@ const AdminDashboard = () => {
   const [targetDesignerProfile, setTargetDesignerProfile] = useState<Designer | null>(null);
   
   const [unsetDaysCount, setUnsetDaysCount] = useState<number>(0);
-  // Removed unused checkingHours state
+  const [pendingFeedbackCount, setPendingFeedbackCount] = useState<number>(0); // New state
 
   const isAdminOrManager = userProfile?.role === 'admin' || userProfile?.role === 'manager';
   const isDesignerRole = userProfile?.role === 'designer';
+
+  // Fetch pending feedback count
+  useEffect(() => {
+    if (!isAdminOrManager) return;
+    const fetchPendingFeedbacks = async () => {
+      try {
+        const q = query(collection(db, 'feedback'), where('status', '==', 'pending'));
+        const snap = await getDocs(q);
+        setPendingFeedbackCount(snap.size);
+      } catch (err) {
+        console.error("Error fetching pending feedbacks:", err);
+      }
+    };
+    fetchPendingFeedbacks();
+  }, [isAdminOrManager]);
 
   // 1. Fetch Designers List (For Admin/Manager Dropdown)
   useEffect(() => {
@@ -398,6 +414,16 @@ const AdminDashboard = () => {
                        icon={<ClockIcon className="h-6 w-6" />}
                        color="bg-indigo-500"
                    />
+                   {isAdminOrManager && (
+                     <SummaryCard
+                       title="待辦事項"
+                       value={pendingFeedbackCount}
+                       unit="項"
+                       linkTo="/admin/feedback"
+                       icon={<ChatBubbleLeftEllipsisIcon className="h-6 w-6" />}
+                       color="bg-pink-500"
+                     />
+                   )}
                </div>
           </div>
       ) : (
@@ -455,6 +481,14 @@ const AdminDashboard = () => {
                      linkTo="/admin/services"
                      icon={<ClipboardDocumentCheckIcon className="h-6 w-6" />}
                      color="bg-green-500"
+                   />
+                   <SummaryCard
+                     title="待辦事項"
+                     value={pendingFeedbackCount}
+                     unit="項"
+                     linkTo="/admin/feedback"
+                     icon={<ChatBubbleLeftEllipsisIcon className="h-6 w-6" />}
+                     color="bg-pink-500"
                    />
                  </div>
             </div>

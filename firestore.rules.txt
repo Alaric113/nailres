@@ -167,8 +167,13 @@ service cloud.firestore {
 
     // Season Passes
     match /season_passes/{passId} {
-      allow read: if true; // Publicly visible (or use isAuthenticated() if strictly member-only, but keeping consistent with services/portfolio)
+      allow read: if true; // Publicly visible
       allow write: if isStaff(); // Admins/Staff can manage
+    }
+
+    // 問題回報/待辦事項
+    match /feedback/{feedbackId} {
+      allow read, write: if isStaff();
     }
   }
 }
