@@ -65,18 +65,18 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
   return (
     <div className="w-full">
       <label className="block text-xs font-medium text-gray-500 mb-1 text-center truncate">{label}</label>
-      <div className="mt-1 flex justify-center px-2 py-2 border border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors aspect-square flex-col items-center justify-center bg-white relative overflow-hidden">
+      <div className="mt-1 flex justify-center px-2 py-2 border border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors h-32 flex-col items-center justify-center bg-white relative overflow-hidden">
         <div className="space-y-1 text-center w-full h-full flex flex-col items-center justify-center">
           {isUploading ? <p className="text-xs text-gray-500">上傳中...</p> : imageUrl ? (
             <div className="relative group w-full h-full">
-              <img src={imageUrl} alt={label} className="w-full h-full object-cover rounded-sm" />
+              <img src={imageUrl} alt={label} className="w-full h-full object-contain rounded-sm" />
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={handleDelete} className="text-white p-1.5 bg-red-500/80 hover:bg-red-500 rounded-full transition-colors"><TrashIcon className="h-4 w-4" /></button>
               </div>
             </div>
           ) : (
             <>
-              <PhotoIcon className="mx-auto h-8 w-8 text-gray-300" />
+              <PhotoIcon className="mx-auto h-6 w-6 text-gray-300" />
               <div className="flex text-xs text-gray-600 justify-center">
                   <label htmlFor={`file-upload-${label}`} className="relative cursor-pointer rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-0">
                       <span>上傳</span>
