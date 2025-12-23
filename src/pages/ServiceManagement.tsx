@@ -5,15 +5,26 @@ import { useServices } from '../hooks/useServices';
 import { useServiceCategories } from '../hooks/useServiceCategories';
 import Modal from '../components/common/Modal';
 import CategoryManagementModal from '../components/admin/CategoryManagementModal'; // 引入分類管理 Modal
-import type { Service } from '../types/service';
+import type { Service, ServiceOption } from '../types/service'; // Import ServiceOption
 import ImageUploader from '../components/admin/ImageUploader'; // 引入圖片上傳元件
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ServiceMobileAccordionCard from '../components/admin/ServiceMobileAccordionCard'; // Import the new component
+import ServiceOptionEditor from '../components/admin/ServiceOptionEditor'; // Import Option Editor
 import { PencilSquareIcon, EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useToast } from '../context/ToastContext'; // NEW IMPORT
 
 const ServiceManagement = () => {
-  const [formData, setFormData] = useState({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '' });
+  // Add options to formData
+  const [formData, setFormData] = useState<{
+    name: string;
+    price: string;
+    duration: string;
+    category: string;
+    platinumPrice: string;
+    imageUrl: string;
+    options: ServiceOption[];
+  }>({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', options: [] });
+  
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -39,6 +50,7 @@ const ServiceManagement = () => {
         category: editingService.category,
         platinumPrice: String(editingService.platinumPrice || ''),
         imageUrl: editingService.imageUrl || '',
+        options: editingService.options || [],
       });
       
     } else {
@@ -55,7 +67,6 @@ const ServiceManagement = () => {
       setFormError('所有欄位皆為必填');
       return;
     }
-    console.log(formData)
 
     setIsSubmitting(true);
     try {
@@ -69,6 +80,7 @@ const ServiceManagement = () => {
           category: formData.category,
           platinumPrice: formData.platinumPrice ? Number(formData.platinumPrice) : null,
           imageUrl: formData.imageUrl,
+          options: formData.options, // Save options
         });
         setSuccess(`服務項目 "${formData.name}" 已成功更新！`);
         setEditingService(null);
@@ -84,6 +96,7 @@ const ServiceManagement = () => {
           available: true, // New services are available by default
           imageUrl: formData.imageUrl,
           createdAt: serverTimestamp(),
+          options: formData.options, // Save options
         });
         setSuccess(`服務項目 "${formData.name}" 已成功新增！`);
         showToast(`服務項目 "${formData.name}" 已成功新增！`, 'success');
@@ -117,7 +130,7 @@ const ServiceManagement = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '' });
+    setFormData({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', options: [] });
     setFormError(null);
   };
 
@@ -195,58 +208,73 @@ const ServiceManagement = () => {
           title={editingService ? '編輯服務項目' : '新增服務項目'}
           
         >
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="serviceName" className="block text-sm font-medium text-text-main">服務名稱</label>
               <input type="text" id="name" value={formData.name} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
             </div>
-            <div>
-              <label htmlFor="price" className="block text-sm font-medium text-text-main">一般價格 (NT$)</label>
-              <input type="number" id="price" value={formData.price} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="price" className="block text-sm font-medium text-text-main">一般價格 (NT$)</label>
+                <input type="number" id="price" value={formData.price} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
+              </div>
+              <div>
+                <label htmlFor="platinumPrice" className="block text-sm font-medium text-text-main">
+                  白金會員價 (選填)
+                </label>
+                <input
+                  type="number"
+                  name="platinumPrice"
+                  id="platinumPrice"
+                  value={formData.platinumPrice || ''}
+                  onChange={handleFieldChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent sm:text-sm"
+                />
+              </div>
             </div>
-            <div>
-              <label htmlFor="platinumPrice" className="block text-sm font-medium text-text-main">
-                白金會員價 (選填)
-              </label>
-              <input
-                type="number"
-                name="platinumPrice"
-                id="platinumPrice"
-                value={formData.platinumPrice || ''}
-                onChange={handleFieldChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent sm:text-sm"
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+               <div>
+                <label htmlFor="duration" className="block text-sm font-medium text-text-main">服務時長 (分鐘)</label>
+                <input type="number" id="duration" value={formData.duration} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
+              </div>
+              <div>
+                <label htmlFor="category" className="block text-sm font-medium text-text-main">分類</label>
+                <select
+                  id="category"
+                  value={formData.category}
+                  onChange={handleFieldChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                >
+                  <option value="" disabled>請選擇分類</option>
+                  {/* 動態載入分類 */}
+                  {categoriesLoading ? (
+                    <option>載入中...</option>
+                  ) : (
+                    categories.map(cat => (
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
+                    ))
+                  )}
+                  {categoriesError && <option disabled>錯誤: {categoriesError}</option>}
+                </select>
+              </div>
             </div>
-            <div>
-              <label htmlFor="duration" className="block text-sm font-medium text-text-main">服務時長 (分鐘)</label>
-              <input type="number" id="duration" value={formData.duration} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
-            </div>
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-text-main">分類</label>
-              <select
-                id="category"
-                value={formData.category}
-                onChange={handleFieldChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-              >
-                <option value="" disabled>請選擇分類</option>
-                {/* 動態載入分類 */}
-                {categoriesLoading ? (
-                  <option>載入中...</option>
-                ) : (
-                  categories.map(cat => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))
-                )}
-                {categoriesError && <option disabled>錯誤: {categoriesError}</option>}
-              </select>
-            </div>
+            
             <ImageUploader
               label="服務圖片 (建議尺寸 400x400)"
               imageUrl={formData.imageUrl}
               onImageUrlChange={(url) => setFormData(prev => ({ ...prev, imageUrl: url }))}
               storagePath="services"
             />
+            
+            {/* Service Options Editor */}
+            <div className="border-t border-gray-200 pt-4">
+              <ServiceOptionEditor
+                options={formData.options}
+                onChange={(options) => setFormData(prev => ({ ...prev, options }))}
+              />
+            </div>
 
             {formError && <p className="text-sm text-red-600">{formError}</p>}
             {success && <p className="text-sm text-green-600 bg-green-50 p-3 rounded-md">{success}</p>}

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Service, ServiceOption, ServiceOptionItem } from '../types/service';
+import type { Service, ServiceOptionItem } from '../types/service';
 
 export interface CartItem {
     itemId: string; // Unique ID for the cart item (timestamp + random)

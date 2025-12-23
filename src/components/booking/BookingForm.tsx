@@ -1,9 +1,8 @@
 import React from 'react';
 import type { Service } from '../../types/service';
-import type { Coupon } from '../../types/coupon';
 
 interface BookingFormProps {
-  services: Service[];
+  // services: Service[]; // Unused
   totalPrice: number;
   notes: string;
   onNotesChange: (notes: string) => void;
