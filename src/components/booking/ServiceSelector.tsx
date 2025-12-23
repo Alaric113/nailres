@@ -122,7 +122,7 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
     if (indexA === -1 && indexB === -1) return a.localeCompare(b);
     if (indexA === -1) return 1;
     if (indexB === -1) return -1;
-    return indexB - indexA;
+    return indexA - indexB;
   });
   
   const handleServiceClick = (service: Service) => {
