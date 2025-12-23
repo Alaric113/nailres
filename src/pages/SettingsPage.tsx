@@ -111,28 +111,35 @@ const AccountSettingsView: React.FC = () => {
 // --- Notification Settings Sub-View ---
 const NotificationSettingsView: React.FC = () => {
   const { userProfile, currentUser } = useAuthStore();
-  const { requestPermission, permission, fcmToken } = useNotification(); // Use the hook
-  const isDesignerRole = userProfile?.role === 'designer';
+  const { requestPermission, permission, fcmToken } = useNotification(); 
+  const [activeTab, setActiveTab] = useState<'line' | 'pwa'>('line');
 
+  // LINE Settings State
   const [notificationTargetUser, setNotificationTargetUser] = useState<EnrichedUser[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLineLoading, setIsLineLoading] = useState(true);
+  
+  // PWA Settings State
+  const [designers, setDesigners] = useState<{id: string, name: string}[]>([]);
+  
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
-  
-  // PWA Test State
   const [isSendingPwaTest, setIsSendingPwaTest] = useState(false);
 
+  const isAdminOrManager = userProfile?.role === 'admin' || userProfile?.role === 'manager';
+  
+  // Fetch Users for LINE Settings
   useEffect(() => {
     const fetchUsers = async () => {
-      setIsLoading(true);
+      setIsLineLoading(true);
       try {
         let q;
-        if (isDesignerRole && currentUser) {
-          // Designer only sees their own setting
-          q = query(collection(db, 'users'), where('__name__', '==', currentUser.uid));
+        if (currentUser && !isAdminOrManager) {
+           // If not admin/manager (e.g. designer), only show themselves if they have permission
+           // But mostly this view is for Admin to toggle who gets what. 
+           // Let's keep existing logic: Designer sees themselves, Admin sees all admin/managers.
+           q = query(collection(db, 'users'), where('__name__', '==', currentUser.uid));
         } else {
-          // Admin/Manager sees all (admin/manager role)
-          q = query(collection(db, 'users'), where('role', 'in', ['admin', 'manager']));
+           q = query(collection(db, 'users'), where('role', 'in', ['admin', 'manager']));
         }
         
         const querySnapshot = await getDocs(q);
@@ -140,16 +147,36 @@ const NotificationSettingsView: React.FC = () => {
         setNotificationTargetUser(userList);
       } catch (error) {
         console.error("Error fetching notification target users:", error);
-        setMessage({ type: 'error', text: '讀取設定失敗。' });
       } finally {
-        setIsLoading(false);
+        setIsLineLoading(false);
       }
     };
 
     fetchUsers();
-  }, [isDesignerRole, currentUser]);
+  }, [currentUser, isAdminOrManager]);
 
-  const handleToggleNotification = async (userId: string, currentValue: boolean) => {
+  // Fetch Designers for PWA Settings (Admin Only)
+  useEffect(() => {
+      if (activeTab === 'pwa' && isAdminOrManager) {
+          const fetchDesigners = async () => {
+              try {
+                  const q = query(collection(db, 'designers')); // Assuming 'designers' collection exists
+                  const snapshot = await getDocs(q);
+                  const list = snapshot.docs.map(doc => ({
+                      id: doc.id,
+                      name: doc.data().name || 'Unknown Designer'
+                  }));
+                  setDesigners(list);
+              } catch (e) {
+                  console.error("Error fetching designers:", e);
+              }
+          };
+          fetchDesigners();
+      }
+  }, [activeTab, isAdminOrManager]);
+
+
+  const handleToggleLineNotification = async (userId: string, currentValue: boolean) => {
     setNotificationTargetUser(prevUsers =>
       prevUsers.map(u =>
         u.id === userId ? { ...u, receivesAdminNotifications: !currentValue } : u
@@ -172,6 +199,72 @@ const NotificationSettingsView: React.FC = () => {
       );
     }
   };
+
+  const handleUpdatePwaMasterSwitch = async (checked: boolean) => {
+      if (!currentUser) return;
+      setMessage(null);
+      try {
+           const userRef = doc(db, 'users', currentUser.uid);
+           await updateDoc(userRef, {
+               receivesPwaNotifications: checked
+           });
+           // Optimistically update local store/profile if possible, but here we depend on re-fetch or just assuming success.
+           // Ideally we should update the global store, but for now we rely on the component re-rendering if store updates, 
+           // or we can just force update. 
+           // Since we don't have a direct "setProfile" exposed easily here without reloading, 
+           // we might want to manually refresh the page or show success.
+           setMessage({ type: 'success', text: 'PWA 通知總開關已更新' });
+           // Force a window reload to refresh profile state if needed, or just let it be.
+           setTimeout(() => window.location.reload(), 500); // Simple hack to refresh user profile from DB
+      } catch (e) {
+          console.error(e);
+          setMessage({ type: 'error', text: '更新失敗' });
+      }
+  };
+
+  const handleUpdatePwaSubscription = async (designerId: string, isSubscribed: boolean) => {
+      if (!currentUser || !userProfile) return;
+      const currentSubs = userProfile.pwaSubscriptions || [];
+      let newSubs: string[];
+
+      if (designerId === 'all') {
+             // Handle 'Select All' logic if needed, or just specific 'all' keyword
+             // If toggling 'all', we might just clear everything else or just add 'all'.
+             // Let's implement 'all' as a keyword.
+             if (isSubscribed) {
+                 newSubs = ['all']; 
+             } else {
+                 newSubs = [];
+             }
+      } else {
+          // If toggling specific designer
+          // First remove 'all' if it exists, as we are now customizing
+          let temp = currentSubs.filter(s => s !== 'all');
+          
+          if (isSubscribed) {
+              temp.push(designerId);
+          } else {
+              temp = temp.filter(id => id !== designerId);
+          }
+          newSubs = temp;
+      }
+
+      try {
+          const userRef = doc(db, 'users', currentUser.uid);
+          await updateDoc(userRef, {
+              pwaSubscriptions: newSubs
+          });
+          setMessage({ type: 'success', text: '訂閱設定已更新' });
+            // Force reload to sync state
+           setTimeout(() => window.location.reload(), 500);
+      } catch (e) {
+          console.error(e);
+          setMessage({ type: 'error', text: '更新失敗' });
+      }
+  };
+
+  const activePwaSubs = userProfile?.pwaSubscriptions || [];
+  const pwaMasterEnabled = userProfile?.receivesPwaNotifications ?? false;
 
   const handleSendTestMessage = async () => {
     setIsTesting(true);
@@ -204,7 +297,7 @@ const NotificationSettingsView: React.FC = () => {
       setIsSendingPwaTest(true);
       setMessage(null);
       try {
-          const response = await fetch('/api/notify-booking', { // Use notify-booking for FCM
+          const response = await fetch('/api/notify-booking', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
@@ -218,7 +311,7 @@ const NotificationSettingsView: React.FC = () => {
               throw new Error(errorData.error || errorData.message || '發送失敗');
           }
           
-          setMessage({ type: 'success', text: 'PWA 推播已發送，請檢查您的裝置通知列 (iOS 需滑下通知中心)。' });
+          setMessage({ type: 'success', text: 'PWA 推播已發送，請檢查您的裝置通知列。' });
       } catch (e: any) {
           console.error(e);
           setMessage({ type: 'error', text: `PWA 測試失敗: ${e.message}` });
@@ -228,132 +321,211 @@ const NotificationSettingsView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
-      
-      {/* 1. LINE Notification Settings */}
-      <div>
-           <div className="mb-4">
-             <h2 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2">
-                 <i className="fa-brands fa-line text-[#06C755]"></i> LINE 通知設定
-             </h2>
-           </div>
+    <div className="space-y-6">
+       {/* Page Header */}
+       <div className="mb-4">
+            <h2 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2">
+                <BellAlertIcon className="w-6 h-6 text-yellow-500" /> 通知設定
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+                管理 LINE 通知與 PWA 裝置推播的接收規則。
+            </p>
+       </div>
 
-           <div className="bg-white rounded-xl shadow-sm border border-[#EFECE5] p-6 max-w-3xl mx-auto">
-             {isLoading ? (
-               <div className="flex justify-center items-center p-12">
-                 <LoadingSpinner />
-               </div>
-             ) : (
-               <div className="space-y-6">
-                 <div className="bg-[#FAF9F6] p-4 rounded-lg border border-[#EFECE5]">
-                   <p className="text-gray-700 text-sm leading-relaxed">
-                     勾選您希望接收 LINE 預約通知的帳號。
-                   </p>
-                 </div>
-                 
-                 {message && (
-                   <div className={`p-3 rounded-lg text-sm flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                      {message.type === 'success' ? <i className="fa-solid fa-check-circle"></i> : <i className="fa-solid fa-circle-exclamation"></i>}
-                     {message.text}
+       {/* Tabs */}
+       <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab('line')}
+              className={`
+                whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                ${activeTab === 'line'
+                  ? 'border-[#06C755] text-[#06C755]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+              `}
+            >
+              <i className="fa-brands fa-line mr-2"></i> LINE 通知
+            </button>
+            <button
+              onClick={() => setActiveTab('pwa')}
+              className={`
+                whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                ${activeTab === 'pwa'
+                  ? 'border-[#9F9586] text-[#9F9586]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+              `}
+            >
+              <BellAlertIcon className="w-4 h-4 inline-block mr-2" />
+              PWA 推播
+            </button>
+          </nav>
+       </div>
+
+       {message && (
+          <div className={`p-4 rounded-lg text-sm flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+             {message.type === 'success' ? <i className="fa-solid fa-check-circle"></i> : <i className="fa-solid fa-circle-exclamation"></i>}
+             {message.text}
+          </div>
+       )}
+
+       {/* Tab Content */}
+       <div className="bg-white rounded-xl shadow-sm border border-[#EFECE5] p-6 max-w-3xl mx-auto min-h-[400px]">
+          
+          {/* --- LINE TAB --- */}
+          {activeTab === 'line' && (
+              <div className="space-y-6 fade-in">
+                  <div className="bg-[#FAF9F6] p-4 rounded-lg border border-[#EFECE5]">
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      勾選您希望接收 LINE 預約通知的帳號。<br/>
+                      <span className="text-xs text-gray-500">注意：此設定僅影響 "新預約通知" 發送到 LINE 群組/個人 的路由。</span>
+                    </p>
+                  </div>
+
+                   {isLineLoading ? (
+                       <div className="flex justify-center p-8"><LoadingSpinner /></div>
+                   ) : (
+                       <ul className="divide-y divide-gray-100">
+                           {notificationTargetUser.map(user => (
+                             <li key={user.id} className="py-4 flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
+                               <div className="flex items-center">                    
+                                 <img 
+                                   className="h-10 w-10 rounded-full mr-3 object-cover border border-gray-200" 
+                                   src={user.profile.avatarUrl || `https://ui-avatars.com/api/?name=${user.profile.displayName}&background=random`} 
+                                   alt="" 
+                                 />
+                                 <div>
+                                   <p className="text-sm font-medium text-gray-900">{user.profile.displayName}</p>
+                                   <p className="text-xs text-gray-500">{user.role}</p>
+                                 </div>
+                               </div>
+                               <label className="relative inline-flex items-center cursor-pointer">
+                                 <input
+                                   type="checkbox"
+                                   className="sr-only peer"
+                                   checked={!!user.receivesAdminNotifications}
+                                   onChange={() => handleToggleLineNotification(user.id, !!user.receivesAdminNotifications)}
+                                 />
+                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#06C755]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#06C755]"></div>
+                               </label>
+                             </li>
+                           ))}
+                       </ul>
+                   )}
+
+                   <div className="mt-8 pt-6 border-t border-gray-100">
+                       <button
+                         onClick={handleSendTestMessage}
+                         disabled={isTesting}
+                         className="w-full sm:w-auto inline-flex items-center justification-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-[#06C755] hover:bg-[#05b34c] disabled:opacity-50"
+                       >
+                         {isTesting ? '發送中...' : '發送 LINE 測試訊息'}
+                       </button>
                    </div>
-                 )}
-                 
-                 <ul className="divide-y divide-gray-100">
-                   {notificationTargetUser.map(user => (
-                     <li key={user.id} className="py-4 flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
-                       <div className="flex items-center">                    
-                         <img 
-                           className="h-12 w-12 rounded-full mr-4 object-cover border-2 border-white shadow-sm" 
-                           src={user.profile.avatarUrl || `https://ui-avatars.com/api/?name=${user.profile.displayName}&background=random`} 
-                           alt="" 
-                           crossOrigin="anonymous"
-                           referrerPolicy="no-referrer"
-                         />
-                         <div>
-                           <p className="text-base font-medium text-gray-900">{user.profile.displayName}</p>
-                           <p className="text-xs text-gray-500 mt-0.5">ID: {user.id.slice(0, 8)}...</p>
-                         </div>
-                       </div>
-                       <label htmlFor={`toggle-${user.id}`} className="flex items-center cursor-pointer relative group">
-                         <div className="relative">
+              </div>
+          )}
+
+          {/* --- PWA TAB --- */}
+          {activeTab === 'pwa' && (
+              <div className="space-y-8 fade-in">
+                  
+                  {/* 1. Status & Permission */}
+                  <div className="bg-[#FAF9F6] p-4 rounded-lg border border-[#EFECE5]">
+                        <div className="flex items-center justify-between mb-2">
+                             <h4 className="font-bold text-gray-900 text-sm">裝置權限狀態</h4>
+                             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${permission === 'granted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                 {permission === 'granted' ? '已授權' : permission === 'denied' ? '已封鎖' : '未啟用'}
+                             </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-4">
+                            必須先授權此瀏覽器接收通知，下方的設定才會生效。
+                        </p>
+                        {permission !== 'granted' && permission !== 'denied' && (
+                            <button onClick={requestPermission} className="text-xs bg-[#9F9586] text-white px-3 py-1.5 rounded hover:bg-[#8a8175]">
+                                啟用本機通知權限
+                            </button>
+                        )}
+                        {fcmToken && (
+                             <button onClick={handleSendPwaTest} disabled={isSendingPwaTest} className="mt-2 text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded hover:bg-gray-50 ml-2">
+                                 {isSendingPwaTest ? '...' : '發送本機測試'}
+                             </button>
+                        )}
+                  </div>
+
+                  {/* 2. Master Switch */}
+                  <div className="flex items-center justify-between py-2">
+                      <div>
+                          <h3 className="font-medium text-gray-900">接收 PWA 推播通知</h3>
+                          <p className="text-sm text-gray-500">總開關，關閉後將不會收到任何預約推播。</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
                            <input
                              type="checkbox"
-                             id={`toggle-${user.id}`}
-                             className="sr-only"
-                             checked={!!user.receivesAdminNotifications}
-                             onChange={() => handleToggleNotification(user.id, !!user.receivesAdminNotifications)}
+                             className="sr-only peer"
+                             checked={pwaMasterEnabled}
+                             onChange={(e) => handleUpdatePwaMasterSwitch(e.target.checked)}
                            />
-                           <div className={`block w-12 h-7 rounded-full transition-colors duration-300 ${user.receivesAdminNotifications ? 'bg-[#9F9586]' : 'bg-gray-200'}`}></div>
-                           <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm ${user.receivesAdminNotifications ? 'translate-x-5' : ''}`}></div>
-                         </div>
-                       </label>
-                     </li>
-                   ))}
-                 </ul>
-               </div>
-             )}
-             <div className="mt-8 pt-6 border-t border-gray-100">
-               <h3 className="text-lg font-serif font-medium text-gray-900 mb-2">LINE 功能測試</h3>
-               <p className="text-sm text-gray-500 mb-4">發送 LINE 測試訊息到上述已勾選的管理者。</p>
-               <button
-                 onClick={handleSendTestMessage}
-                 disabled={isTesting}
-                 className="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-[#06C755] hover:bg-[#05b34c] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#06C755] disabled:bg-gray-300 transition-all"
-               >
-                 {isTesting ? '正在發送...' : '發送 LINE 測試訊息'}
-               </button>
-             </div>
-           </div>
-      </div>
+                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#9F9586]"></div>
+                      </label>
+                  </div>
 
-      {/* 2. PWA Push Notification Settings */}
-      <div>
-           <div className="mb-4">
-             <h2 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2">
-                 <BellAlertIcon className="w-6 h-6 text-yellow-500" /> PWA 推播通知設定
-             </h2>
-           </div>
-           
-           <div className="bg-white rounded-xl shadow-sm border border-[#EFECE5] p-6 max-w-3xl mx-auto">
-                <div className="space-y-6">
-                    <div className="bg-[#FAF9F6] p-4 rounded-lg border border-[#EFECE5]">
-                        <p className="text-gray-700 text-sm leading-relaxed">
-                            推播通知適用於安裝了 PWA 的裝置 (支援 iOS/Android/Desktop)。
-                            <br />
-                            <span className="font-bold text-[#9F9586]">目前狀態: </span>
-                            <span className={`font-bold ${permission === 'granted' ? 'text-green-600' : 'text-red-500'}`}>
-                                {permission === 'granted' 
-                                    ? `已授權 (Token: ${fcmToken ? '已取得' : '獲取中...'})`
-                                    : permission === 'denied' ? '已封鎖 (請至瀏覽器設定開啟)' : '未詢問'}
-                            </span>
-                        </p>
-                    </div>
+                  <hr className="border-gray-100"/>
 
-                    <div className="flex flex-col sm:flex-row gap-4">
-                         {/* Enable Button */}
-                         {permission !== 'granted' && permission !== 'denied' && (
-                             <button
-                                onClick={requestPermission}
-                                className="inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-[#9F9586] hover:bg-[#8a8175] transition-all"
-                             >
-                                <BellAlertIcon className="w-5 h-5 mr-2" />
-                                啟用推播通知
-                             </button>
-                         )}
-                         
-                         {/* Test Button */}
-                         <button
-                            onClick={handleSendPwaTest}
-                            disabled={!fcmToken || isSendingPwaTest}
-                            className="inline-flex items-center justify-center px-6 py-2.5 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9F9586] disabled:bg-gray-100 disabled:text-gray-400 transition-all"
-                         >
-                            {isSendingPwaTest ? '發送中...' : '發送本機測試訊息'}
-                         </button>
-                    </div>
-                </div>
-           </div>
-      </div>
+                  {/* 3. Subscriptions (Admin Only) */}
+                  {isAdminOrManager ? (
+                      <div className={`transition-opacity duration-300 ${!pwaMasterEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                          <h3 className="font-medium text-gray-900 mb-4">訂閱指定設計師的預約</h3>
+                          <div className="space-y-3">
+                              {/* Option: ALL */}
+                              <div className="flex items-center">
+                                  <input 
+                                     id="sub-all" 
+                                     type="checkbox" 
+                                     checked={activePwaSubs.includes('all')}
+                                     onChange={(e) => handleUpdatePwaSubscription('all', e.target.checked)}
+                                     className="h-4 w-4 text-[#9F9586] focus:ring-[#9F9586] border-gray-300 rounded"
+                                  />
+                                  <label htmlFor="sub-all" className="ml-3 block text-sm font-medium text-gray-700">
+                                      接收所有設計師的通知 (全部)
+                                  </label>
+                              </div>
 
+                              {/* Designer List */}
+                              <div className="pl-7 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {designers.map(d => {
+                                      const isChecked = activePwaSubs.includes('all') || activePwaSubs.includes(d.id);
+                                      const isDisabled = activePwaSubs.includes('all'); // Disabled if ALL is checked
+
+                                      return (
+                                          <div key={d.id} className="flex items-center">
+                                              <input 
+                                                 id={`sub-${d.id}`} 
+                                                 type="checkbox"
+                                                 checked={isChecked}
+                                                 disabled={isDisabled}
+                                                 onChange={(e) => handleUpdatePwaSubscription(d.id, e.target.checked)}
+                                                 className="h-4 w-4 text-[#9F9586] focus:ring-[#9F9586] border-gray-300 rounded disabled:bg-gray-100"
+                                              />
+                                              <label htmlFor={`sub-${d.id}`} className={`ml-3 block text-sm text-gray-700 ${isDisabled ? 'opacity-60' : ''}`}>
+                                                  {d.name}
+                                              </label>
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      </div>
+                  ) : (
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                          <p className="text-sm text-blue-800">
+                             身為設計師，開啟推播後，您將會收到來自您自己的預約通知。
+                          </p>
+                      </div>
+                  )}
+
+              </div>
+          )}
+
+       </div>
     </div>
   );
 };

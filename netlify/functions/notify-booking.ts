@@ -120,18 +120,25 @@ const handler: Handler = async (event, context) => {
 
 
         // 1. Fetch Admins and Managers
+        console.log(`Checking Admins/Managers for subscriptions to Designer: ${designerId || 'None'}`);
         const staffSnapshot = await db.collection('users')
             .where('role', 'in', ['admin', 'manager'])
             .get();
 
         staffSnapshot.forEach(doc => {
             const data = doc.data();
-            if (data.fcmToken) {
-                tokens.push(data.fcmToken);
-            }
-            // Support array of tokens if implemented
-            if (data.fcmTokens && Array.isArray(data.fcmTokens)) {
-                tokens.push(...data.fcmTokens);
+
+            // Check Master Switch
+            if (!data.receivesPwaNotifications) return;
+
+            // Check Subscription
+            const subs = data.pwaSubscriptions || [];
+            const isSubscribedToAll = subs.includes('all');
+            const isSubscribedToDesigner = designerId && subs.includes(designerId);
+
+            if (isSubscribedToAll || isSubscribedToDesigner) {
+                if (data.fcmToken) tokens.push(data.fcmToken);
+                if (data.fcmTokens && Array.isArray(data.fcmTokens)) tokens.push(...data.fcmTokens);
             }
         });
 
@@ -147,12 +154,13 @@ const handler: Handler = async (event, context) => {
                     const userDoc = await db.collection('users').doc(linkedUserId).get();
                     if (userDoc.exists) {
                         const userData = userDoc.data();
-                        if (userData?.fcmToken) {
-                            // Add only if not already present (set handles uniqueness later)
-                            tokens.push(userData.fcmToken);
-                        }
-                        if (userData?.fcmTokens && Array.isArray(userData.fcmTokens)) {
-                            userData.fcmTokens.forEach((t: string) => tokens.push(t));
+
+                        // Check Master Switch for Designer
+                        if (userData?.receivesPwaNotifications) {
+                            if (userData.fcmToken) tokens.push(userData.fcmToken);
+                            if (userData.fcmTokens && Array.isArray(userData.fcmTokens)) {
+                                userData.fcmTokens.forEach((t: string) => tokens.push(t));
+                            }
                         }
                     }
                 }

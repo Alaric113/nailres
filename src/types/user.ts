@@ -16,6 +16,8 @@ export interface UserDocument {
   notes?: string;
   lineUserId?: string;
   receivesAdminNotifications?: boolean;
+  receivesPwaNotifications?: boolean; // Master switch for PWA
+  pwaSubscriptions?: string[]; // 'all' or specific designer IDs
 }
 
 // This represents the user document with its ID from the collection
