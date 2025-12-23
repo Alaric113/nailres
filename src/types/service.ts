@@ -11,6 +11,7 @@ export interface Service {
   available: boolean;
   imageUrl?: string;
   createdAt: Timestamp;
+  description?: string; // Markdown or text description
   options?: ServiceOption[];
 }
 

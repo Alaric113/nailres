@@ -22,8 +22,9 @@ const ServiceManagement = () => {
     category: string;
     platinumPrice: string;
     imageUrl: string;
+    description: string; // Add description here
     options: ServiceOption[];
-  }>({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', options: [] });
+  }>({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [] });
   
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,6 +35,7 @@ const ServiceManagement = () => {
   const [isToggling, setIsToggling] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<'basic' | 'image' | 'options'>('basic'); // Tab state
   // Fetch existing services
   const { services, isLoading: servicesLoading, error: servicesError } = useServices();
   
@@ -50,13 +52,15 @@ const ServiceManagement = () => {
         category: editingService.category,
         platinumPrice: String(editingService.platinumPrice || ''),
         imageUrl: editingService.imageUrl || '',
+        description: editingService.description || '',
         options: editingService.options || [],
       });
-      
     } else {
       resetForm();
     }
-  }, [editingService]);
+    // Reset tab to basic when opening/editing
+     if (isServiceModalOpen) setActiveTab('basic');
+  }, [editingService, isServiceModalOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +134,7 @@ const ServiceManagement = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', options: [] });
+    setFormData({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [] });
     setFormError(null);
   };
 
@@ -206,95 +210,157 @@ const ServiceManagement = () => {
           isOpen={isServiceModalOpen}
           onClose={handleCancelEdit} // 使用 handleCancelEdit 統一關閉邏輯
           title={editingService ? '編輯服務項目' : '新增服務項目'}
-          
+          maxWidth="max-w-2xl"
         >
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* ... (Form content remains the same) ... */}
-            <div>
-              <label htmlFor="serviceName" className="block text-sm font-medium text-text-main">服務名稱</label>
-              <input type="text" id="name" value={formData.name} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
+          <form onSubmit={handleSubmit} className="flex flex-col h-full">
+            {/* Tabs Header */}
+            <div className="flex border-b border-gray-200 mb-6">
+              <button
+                type="button"
+                onClick={() => setActiveTab('basic')}
+                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'basic'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                基本資訊
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('image')}
+                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'image'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                服務圖片
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('options')}
+                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'options'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                附加選項
+              </button>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="price" className="block text-sm font-medium text-text-main">一般價格 (NT$)</label>
-                <input type="number" id="price" value={formData.price} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-y-auto px-1">
+              
+              {/* Basic Info Tab */}
+              <div className={activeTab === 'basic' ? 'space-y-6' : 'hidden'}>
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-text-main">服務名稱</label>
+                  <input type="text" id="name" value={formData.name} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="price" className="block text-sm font-medium text-text-main">一般價格 (NT$)</label>
+                    <input type="number" id="price" value={formData.price} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
+                  </div>
+                  <div>
+                    <label htmlFor="platinumPrice" className="block text-sm font-medium text-text-main">
+                      白金會員價 (選填)
+                    </label>
+                    <input
+                      type="number"
+                      name="platinumPrice"
+                      id="platinumPrice"
+                      value={formData.platinumPrice || ''}
+                      onChange={handleFieldChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent sm:text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="duration" className="block text-sm font-medium text-text-main">服務時長 (分鐘)</label>
+                    <input type="number" id="duration" value={formData.duration} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
+                  </div>
+                  <div>
+                    <label htmlFor="category" className="block text-sm font-medium text-text-main">分類</label>
+                    <select
+                      id="category"
+                      value={formData.category}
+                      onChange={handleFieldChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                    >
+                      <option value="" disabled>請選擇分類</option>
+                      {categoriesLoading ? (
+                        <option>載入中...</option>
+                      ) : (
+                        categories.map(cat => (
+                          <option key={cat.id} value={cat.name}>{cat.name}</option>
+                        ))
+                      )}
+                      {categoriesError && <option disabled>錯誤: {categoriesError}</option>}
+                    </select>
+                  </div>
+                </div>
+                
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-text-main">服務描述 / 注意事項 (選填)</label>
+                  <textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    rows={4}
+                    placeholder="例如：本店卸甲免費，他店卸甲+200... (此資訊將顯示在預約選單中)"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary resize-none"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">此內容將顯示在預約時的服務詳情中。</p>
+                </div>
               </div>
-              <div>
-                <label htmlFor="platinumPrice" className="block text-sm font-medium text-text-main">
-                  白金會員價 (選填)
-                </label>
-                <input
-                  type="number"
-                  name="platinumPrice"
-                  id="platinumPrice"
-                  value={formData.platinumPrice || ''}
-                  onChange={handleFieldChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent sm:text-sm"
+
+              {/* Image Tab */}
+              <div className={activeTab === 'image' ? 'py-4' : 'hidden'}>
+                <ImageUploader
+                  label="服務圖片 (建議尺寸 400x400)"
+                  imageUrl={formData.imageUrl}
+                  onImageUrlChange={(url) => setFormData(prev => ({ ...prev, imageUrl: url }))}
+                  storagePath="services"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-               <div>
-                <label htmlFor="duration" className="block text-sm font-medium text-text-main">服務時長 (分鐘)</label>
-                <input type="number" id="duration" value={formData.duration} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
+              {/* Options Tab */}
+              <div className={activeTab === 'options' ? 'py-2' : 'hidden'}>
+                <div className="mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                   <p className="text-sm text-blue-800">在此設定加購項目或變體（例如：卸甲、延甲、顏色選擇等）。</p>
+                </div>
+                <ServiceOptionEditor
+                  options={formData.options}
+                  onChange={(options) => setFormData(prev => ({ ...prev, options }))}
+                />
               </div>
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium text-text-main">分類</label>
-                <select
-                  id="category"
-                  value={formData.category}
-                  onChange={handleFieldChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                >
-                  <option value="" disabled>請選擇分類</option>
-                  {/* 動態載入分類 */}
-                  {categoriesLoading ? (
-                    <option>載入中...</option>
-                  ) : (
-                    categories.map(cat => (
-                      <option key={cat.id} value={cat.name}>{cat.name}</option>
-                    ))
-                  )}
-                  {categoriesError && <option disabled>錯誤: {categoriesError}</option>}
-                </select>
-              </div>
-            </div>
-            
-            <ImageUploader
-              label="服務圖片 (建議尺寸 400x400)"
-              imageUrl={formData.imageUrl}
-              onImageUrlChange={(url) => setFormData(prev => ({ ...prev, imageUrl: url }))}
-              storagePath="services"
-            />
-            
-            {/* Service Options Editor */}
-            <div className="border-t border-gray-200 pt-4">
-              <ServiceOptionEditor
-                options={formData.options}
-                onChange={(options) => setFormData(prev => ({ ...prev, options }))}
-              />
+
             </div>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
-            {success && <p className="text-sm text-green-600 bg-green-50 p-3 rounded-md">{success}</p>}
+            {formError && <p className="text-sm text-red-600 mb-2 px-1">{formError}</p>}
+            {success && <p className="text-sm text-green-600 bg-green-50 p-3 rounded-md mb-2 mx-1">{success}</p>}
 
-            <div className="pt-2 flex gap-4">
+            <div className="pt-6 border-t border-gray-100 flex gap-4 mt-auto">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full px-4 py-3 font-semibold text-white bg-primary rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="w-full px-4 py-3 font-semibold text-white bg-primary rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
-                {isSubmitting ? '處理中...' : (editingService ? '確認更新' : '確認新增')}
+                {isSubmitting ? '處理中...' : (editingService ? '儲存變更' : '確認新增')}
               </button>
               {editingService && (
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="w-full px-4 py-3 font-semibold text-text-main bg-secondary rounded-md hover:bg-secondary-dark transition-colors"
+                  className="w-full px-4 py-3 font-semibold text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm"
                 >
-                  取消編輯
+                  取消
                 </button>
               )}
             </div>

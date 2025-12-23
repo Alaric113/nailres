@@ -118,6 +118,11 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
                      <div className="text-2xl font-serif font-bold text-text-main">
                         NT$ {calculateTotal()}
                      </div>
+                     {service.description && (
+                       <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-600 leading-relaxed border border-gray-100/50">
+                         {service.description}
+                       </div>
+                     )}
                  </div>
 
                  <hr className="border-dashed border-gray-200" />

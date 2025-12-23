@@ -303,9 +303,32 @@ const OrderManagementPage = () => {
                                         <CalendarDaysIcon className="w-3 h-3" />
                                         {format(booking.dateTime, 'yyyy/MM/dd HH:mm', { locale: zhTW })}
                                     </p>
-                                    <p className="text-xs text-gray-600 bg-gray-50 p-1.5 rounded-lg line-clamp-2 break-all">
-                                        {booking.serviceNames.join(', ')}
-                                    </p>
+                                    <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg space-y-1">
+                                        {booking.items && booking.items.length > 0 ? (
+                                            booking.items.map((item: any, idx: number) => (
+                                                <div key={idx} className="border-b last:border-0 border-gray-200 pb-1 last:pb-0">
+                                                    <div className="font-medium text-gray-800">{item.serviceName}</div>
+                                                    {item.options && Object.entries(item.options).length > 0 && (
+                                                        <div className="pl-2 mt-0.5 space-y-0.5">
+                                                            {Object.entries(item.options).map(([catName, optItems]: [string, any]) => (
+                                                                <div key={catName} className="flex flex-wrap gap-1 text-[10px] text-gray-500">
+                                                                    <span className="text-gray-400">{catName}:</span>
+                                                                    {optItems.map((opt: any, i: number) => (
+                                                                        <span key={i} className="bg-white border border-gray-100 px-1 rounded">
+                                                                            {opt.name}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            /* Legacy or simple rendering */
+                                            <span>{booking.serviceNames.join(', ')}</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 

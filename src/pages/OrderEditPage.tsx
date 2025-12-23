@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, addDoc, updateDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { BookingDocument, BookingStatus } from '../types/booking';
+import type { BookingDocument, BookingStatus, BookingItem } from '../types/booking';
 import type { UserDocument } from '../types/user';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useToast } from '../context/ToastContext';
@@ -17,7 +17,6 @@ interface ServiceDetail {
   name: string;
   category: string; // '美甲' | '美睫' | '霧眉' etc.
 }
-
 interface EnrichedBookingDetail extends BookingDocument {
   id: string;
   userName?: string;
@@ -25,6 +24,7 @@ interface EnrichedBookingDetail extends BookingDocument {
   designerName?: string;
   designerPhotoUrl?: string | null;
   serviceDetails?: ServiceDetail[];
+  items?: BookingItem[]; // Ensure items is part of the type
 }
 
 const OrderEditPage = () => {
@@ -343,12 +343,34 @@ const OrderEditPage = () => {
 
               <div>
                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">服務項目</label>
-                 <div className="flex flex-wrap gap-2">
-                    {booking.serviceDetails?.map((s, i) => (
-                        <span key={i} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium border border-gray-200">
-                            {s.name}
-                        </span>
-                    ))}
+                 <div className="flex flex-col gap-2 w-full">
+                    {(booking.items && booking.items.length > 0) ? (
+                        booking.items.map((item, i) => (
+                            <div key={i} className="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="text-sm font-bold text-gray-800">{item.serviceName}</div>
+                                {item.options && Object.keys(item.options).length > 0 && (
+                                     <div className="mt-1 flex flex-wrap gap-1">
+                                        {Object.entries(item.options).map(([cat, opts]) => (
+                                            opts.map((opt, optIdx) => (
+                                                <span key={`${cat}-${optIdx}`} className="text-xs text-gray-500 bg-white border border-gray-100 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                    <span className="text-gray-400">{cat}:</span>
+                                                    {opt.name}
+                                                </span>
+                                            ))
+                                        ))}
+                                     </div>
+                                )}
+                            </div>
+                        ))
+                    ) : (
+                        <div className="flex flex-wrap gap-2">
+                            {booking.serviceDetails?.map((s, i) => (
+                                <span key={i} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium border border-gray-200">
+                                    {s.name}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                  </div>
               </div>
             </div>

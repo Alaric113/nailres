@@ -126,12 +126,42 @@ const BookingPage = () => {
       // const totalDuration = services.reduce((acc, service) => acc + service.duration, 0); 
       // Use memoized totalDuration
 
+      // NEW: Prepare detailed items from cart
+      const bookingItems = cart.map(item => {
+        // Transform options: Record<string, ServiceOptionItem[]> -> Record<string, SimpleOptionItem[]>
+        const transformedOptions: Record<string, { name: string; price: number; duration: number }[]> = {};
+        
+        Object.entries(item.selectedOptions).forEach(([optionId, optionItems]) => {
+           // We need the Option Category Name. 
+           // Since CartItem structure (in store/bookingStore.ts) stores `selectedOptions` as Record<string, ServiceOptionItem[]>
+           // where key is optionId. We might need to find the option name from the service.options.
+           
+           const optionCategory = item.service.options?.find(o => o.id === optionId);
+           const categoryName = optionCategory ? optionCategory.name : 'Unknown Option';
+           
+           transformedOptions[categoryName] = optionItems.map(optItem => ({
+             name: optItem.name,
+             price: optItem.price,
+             duration: optItem.duration || 0
+           }));
+        });
+
+        return {
+          serviceId: item.service.id,
+          serviceName: item.service.name,
+          price: item.totalPrice, // This is unit total price
+          duration: item.totalDuration,
+          options: transformedOptions
+        };
+      });
+
       // 1. Create new booking document
       batch.set(newBookingRef, {
         userId: currentUser.uid,
         designerId: selectedDesigner.id,
         serviceIds,
         serviceNames,
+        items: bookingItems, // Save detailed items
         dateTime: selectedTime,
         status: initialStatus,
         amount: finalPrice,
