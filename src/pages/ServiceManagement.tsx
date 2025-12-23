@@ -183,10 +183,10 @@ const ServiceManagement = () => {
     }
   }, [categories, activeCategoryTab]);
   return (
-    <div className="w-full h-full">
-      
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8 relative bg-secondary-light text-text-main">
+    <div className="min-h-screen bg-secondary-light pb-24 relative overflow-x-hidden w-full max-w-[100vw]">
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 text-text-main max-w-full">
         {/* Floating Action Button - Positioned above bottom nav on mobile */}
+        {/* ... (keep existing button code) ... */}
         <button
           onClick={() => {
             setEditingService(null); // Reset for new service
@@ -201,7 +201,7 @@ const ServiceManagement = () => {
           </svg>
         </button>
 
-        {/* Service Management Modal */}
+        {/* ... (Modals remain the same) ... */}
         <Modal
           isOpen={isServiceModalOpen}
           onClose={handleCancelEdit} // 使用 handleCancelEdit 統一關閉邏輯
@@ -209,6 +209,7 @@ const ServiceManagement = () => {
           
         >
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* ... (Form content remains the same) ... */}
             <div>
               <label htmlFor="serviceName" className="block text-sm font-medium text-text-main">服務名稱</label>
               <input type="text" id="name" value={formData.name} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
@@ -311,13 +312,13 @@ const ServiceManagement = () => {
         {/* 現有服務列表 */}
         <div className="max-w-full mx-auto">
           <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <h2 className="text-2xl font-bold text-gray-800 font-serif">現有服務列表</h2>
-              <div className="flex items-center gap-2">
-                {categoriesError && <p className="text-xs text-red-500 hidden sm:block">分類載入失敗</p>}
+              <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2">
+                {categoriesError && <p className="text-xs text-red-500">分類載入失敗</p>}
                 <button 
                   onClick={() => setIsCategoryModalOpen(true)} 
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed w-full sm:w-auto"
                   disabled={!!categoriesError || categoriesLoading}>
                   <PencilSquareIcon className="h-4 w-4" /> 編輯分類
                 </button>
@@ -327,7 +328,7 @@ const ServiceManagement = () => {
             {/* Category Tabs */}
             <div className="mb-6">
               <div className="border-b border-secondary-dark/30">
-                <nav className="-mb-px flex space-x-6 overflow-x-scroll" aria-label="Tabs">
+                <nav className="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
                   {categoryTabs.map((tabName) => (
                     <button
                       key={tabName}

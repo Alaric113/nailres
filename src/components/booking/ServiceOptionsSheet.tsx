@@ -136,7 +136,7 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
                                  {option.multiSelect && <span className="text-xs text-gray-400">可複選</span>}
                              </div>
                              
-                             <div className="space-y-2">
+                             <div className="grid grid-cols-2 gap-3">
                                  {option.items.map(item => {
                                      const isSelected = selections[option.id]?.some(i => i.id === item.id);
                                      return (
