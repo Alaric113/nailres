@@ -20,16 +20,8 @@ firebase.initializeApp({
 // messages.
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  // Customize notification here
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/192x192.png', // path to app icon
-    badge: '/192x192.png', // path to app icon
-    data: payload.data
-  };
+// Background message handler
+// We do NOT use onBackgroundMessage to showNotification here because the payload includes 'notification' key,
+// which triggers the browser's default notification automatically.
+// Adding it here would cause duplicate notifications.
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
