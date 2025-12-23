@@ -1,16 +1,24 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom'; // Added import
 import usePortfolioItems from '../hooks/usePortfolioItems';
+import { useServiceCategories } from '../hooks/useServiceCategories'; // Dynamic categories
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const PortfolioGalleryPage = () => {
   const { portfolioItems, loading, error } = usePortfolioItems();
+  const { categories: serviceCategories, isLoading: categoriesLoading } = useServiceCategories();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const navigate = useNavigate(); // Hook for navigation
 
-  // User requested 3 main categories: 霧眉, 美睫, 美甲
-  // We keep 'all' for default view and '其他' for misc.
-  const categories = ['all', '美甲', '美睫', '霧眉', '其他'];
+  // Use dynamic categories from Firestore
+  // Sort order is already handled by useServiceCategories hook
+  const categories = useMemo(() => {
+    const dynCats = serviceCategories.map(c => c.name);
+    // Ensure '其他' is included if present in items but not in categories? 
+    // For now, assume serviceCategories covers main ones. 
+    // We add 'all' at the start.
+    return ['all', ...dynCats];
+  }, [serviceCategories]);
 
   const filteredItems = portfolioItems.filter(item => 
     item.isActive && (selectedCategory === 'all' || item.category === selectedCategory)
@@ -24,7 +32,7 @@ const PortfolioGalleryPage = () => {
     navigate(url);
   };
 
-  if (loading) {
+  if (loading || categoriesLoading) {
     return <LoadingSpinner fullScreen text="載入作品集..." />;
   }
 
