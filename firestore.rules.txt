@@ -113,9 +113,10 @@ service cloud.firestore {
       // 使用者僅能為自己建立預約；員工可為客戶建立
       allow create: if isAuthenticated() && (request.resource.data.userId == request.auth.uid || isStaff());
       
-      // 使用者可取消自己的預約；員工可更新預約狀態
+      // 使用者可取消自己的預約；員工可更新預約狀態；使用者可填寫評價
       allow update: if isAuthenticated() && (
         (resource.data.userId == request.auth.uid && request.resource.data.status == 'cancelled') || 
+        (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['customerFeedback'])) ||
         isStaff()
       );
       
@@ -172,7 +173,8 @@ service cloud.firestore {
     }
 
     // 問題回報/待辦事項
-    match /feedback/{feedbackId} {
+    // 問題回報/待辦事項 (含評論子集合)
+    match /feedback/{feedbackId}/{document=**} {
       allow read, write: if isStaff();
     }
   }

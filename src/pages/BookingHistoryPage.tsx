@@ -75,6 +75,14 @@ const BookingHistoryPage = () => {
                         {isCancelling === booking.id ? '取消中...' : '取消預約'}
                       </button>
                     )}
+                    {booking.status === 'completed' && (
+                        <a 
+                            href={`/orders/${booking.id}/feedback`}
+                            className="px-4 py-2 text-sm font-medium text-primary bg-primary/10 border border-primary/20 rounded-md shadow-sm hover:bg-primary/20 transition-colors text-center"
+                        >
+                            {booking.customerFeedback ? '查看評價' : '給予評價'}
+                        </a>
+                    )}
                   </div>
                 </div>
               </div>

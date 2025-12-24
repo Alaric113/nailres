@@ -159,6 +159,23 @@ const OrderEditPage = () => {
     fetchBooking();
   }, [orderId, navigate, showToast]);
 
+  const sendLineNotification = (status: BookingStatus) => {
+    if (!booking) return;
+    fetch('/api/send-line-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bookingId: booking.id,
+        type: 'booking_notification',
+        userId: booking.userId,
+        serviceNames: booking.serviceNames,
+        dateTime: (booking.dateTime as Timestamp).toDate().toISOString(),
+        amount: booking.amount,
+        status: status
+      }),
+    }).catch(err => console.error("Failed to send LINE notification:", err));
+  };
+
   const handleStatusUpdate = async () => {
     if (!booking || !status) return;
     setSaving(true);
@@ -167,6 +184,12 @@ const OrderEditPage = () => {
       await updateDoc(docRef, { status: status as BookingStatus });
       showToast('訂單狀態已更新', 'success');
       setBooking(prev => prev ? { ...prev, status: status as BookingStatus } : null);
+      
+      // Send Notification
+      if (['confirmed', 'completed', 'cancelled'].includes(status)) {
+         sendLineNotification(status as BookingStatus);
+      }
+
     } catch (err) {
       console.error(err);
       showToast('狀態更新失敗', 'error');

@@ -22,7 +22,8 @@ import CustomerListPage from './pages/CustomerListPage';
 import HoursSettingsPage from './pages/HoursSettingsPage';
 import OrderManagementPage from './pages/OrderManagementPage';
 import OrderEditPage from './pages/OrderEditPage';
-import FeedbackPage from './pages/FeedbackPage'; // New Import
+import OrderFeedbackPage from './pages/OrderFeedbackPage'; // New Import
+import FeedbackPage from './pages/FeedbackPage';
 import CalendarPage from './pages/CalendarPage';
 import SettingsPage from './pages/SettingsPage';
 import StaffManagementPage from './pages/StaffManagementPage';
@@ -100,6 +101,7 @@ const routes = [
             ],
           },
           { path: 'liff', element: <LiffEntry /> },
+          { path: 'orders/:orderId/feedback', element: <OrderFeedbackPage /> }, // Feedback Route
         ],
       },
       {

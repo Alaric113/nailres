@@ -21,7 +21,7 @@ const MobileCartBar: React.FC<MobileCartBarProps> = ({ onNext }) => {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             className={`
-                bg-[#2C2825] text-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto flex flex-col
+                bg-primary text-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto flex flex-col
                 ${isEmpty ? 'opacity-90 scale-95 origin-bottom' : ''} 
             `}
          >
@@ -32,24 +32,24 @@ const MobileCartBar: React.FC<MobileCartBarProps> = ({ onNext }) => {
                         initial={{ height: 0 }}
                         animate={{ height: 'auto' }}
                         exit={{ height: 0 }}
-                        className="overflow-hidden bg-[#3a3633]"
+                        className="overflow-hidden bg-primary-dark"
                     >
                         <div className="p-4 max-h-[50vh] overflow-y-auto space-y-4">
-                             <div className="flex justify-between items-center pb-2 border-b border-white/10">
+                             <div className="flex justify-between items-center pb-2 border-b border-white/20">
                                  <h3 className="font-bold">目前訂單</h3>
-                                 <button onClick={() => setIsExpanded(false)} className="text-xs text-gray-400">收起</button>
+                                 <button onClick={() => setIsExpanded(false)} className="text-xs text-white/80">收起</button>
                              </div>
                              {cart.map(item => (
                                  <div key={item.itemId} className="flex justify-between items-start text-sm">
                                      <div className="flex-1">
                                          <div className="font-medium text-white">{item.service.name}</div>
-                                         <div className="text-xs text-gray-400">
+                                         <div className="text-xs text-white/70">
                                              {Object.values(item.selectedOptions).flat().map(o => o.name).join(', ')}
                                          </div>
                                      </div>
                                      <div className="flex items-center gap-3">
                                          <span className="font-serif">NT${item.totalPrice}</span>
-                                         <button onClick={() => removeFromCart(item.itemId)} className="text-gray-400 hover:text-red-400">
+                                         <button onClick={() => removeFromCart(item.itemId)} className="text-white/60 hover:text-white">
                                              <TrashIcon className="w-4 h-4" />
                                          </button>
                                      </div>
@@ -63,14 +63,14 @@ const MobileCartBar: React.FC<MobileCartBarProps> = ({ onNext }) => {
             {/* Bar Content */}
             <div 
                 onClick={() => !isEmpty && setIsExpanded(!isExpanded)}
-                className="p-4 flex justify-between items-center cursor-pointer active:bg-white/5 transition-colors"
+                className="p-4 flex justify-between items-center cursor-pointer active:bg-white/10 transition-colors"
             >
                 <div className="flex items-center gap-3">
-                   <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm border border-primary/50">
+                   <div className="w-8 h-8 rounded-full bg-white text-primary flex items-center justify-center font-bold text-sm shadow-sm">
                       {cart.length}
                    </div>
                    <div className="flex flex-col">
-                      <span className="text-xs text-gray-400">預計金額</span>
+                      <span className="text-xs text-black font-bold">預計金額</span>
                       <span className="font-bold font-serif text-lg">NT$ {getCartTotal()}</span>
                    </div>
                 </div>
@@ -85,7 +85,7 @@ const MobileCartBar: React.FC<MobileCartBarProps> = ({ onNext }) => {
                        px-6 py-2 font-bold rounded-lg transition-colors
                        ${isEmpty 
                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                           : 'bg-white text-[#2C2825] hover:bg-gray-100'
+                           : 'bg-white text-primary hover:bg-gray-50'
                        }
                    `}
                 >

@@ -210,9 +210,10 @@ const StoreInfoPage: React.FC = () => {
                     <div className="flex gap-4">
                       {[
                         { name: 'Instagram', url: 'https://www.instagram.com/treering_83/', icon: 'fa-brands fa-instagram' },
+                        { name: 'LINE', url: 'https://page.line.me/985jirte', icon: 'fa-brands fa-line' },
                         { name: 'Facebook', url: 'https://www.facebook.com/share/19Z1mqXuKG/?mibextid=wwXIfr', icon: 'fa-brands fa-facebook' },
                         { name: 'TikTok', url: 'https://www.tiktok.com/@treering_83?is_from_webapp=1&sender_device=pc', icon: 'fa-brands fa-tiktok' },
-                        { name: 'LINE', url: 'https://page.line.me/985jirte', icon: 'fa-brands fa-line' },
+                        
                       ].map((social) => (
                         <a 
                           key={social.name}

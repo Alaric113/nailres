@@ -3,8 +3,8 @@ import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp
 import { db } from '../lib/firebase';
 import type { Feedback } from '../types/feedback';
 import { useToast } from '../context/ToastContext';
-import { TrashIcon, CheckCircleIcon } from '@heroicons/react/24/outline'; // Adjust icons
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import FeedbackItem from '../components/admin/FeedbackItem';
 
 const FeedbackPage = () => {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
@@ -79,25 +79,28 @@ const FeedbackPage = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl overflow-x-hidden w-full">
-      <h1 className="text-2xl font-bold font-serif mb-6 text-gray-800">問題回報與待辦事項</h1>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-3xl overflow-x-hidden w-full">
+      <div className="mb-8">
+          <h1 className="text-2xl font-bold font-serif text-gray-800">問題回報與待辦事項</h1>
+          <p className="text-sm text-gray-500 mt-1">追蹤待辦事項並與團隊成員討論解決方案。</p>
+      </div>
       
       {/* Add New Feedback */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 w-full">
-        <form onSubmit={handleAddFeedback} className="flex flex-col sm:flex-row gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 w-full">
+        <form onSubmit={handleAddFeedback} className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             value={newFeedback}
             onChange={(e) => setNewFeedback(e.target.value)}
             placeholder="輸入新的問題或待辦事項..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all w-full"
+            className="flex-1 px-4 py-3 border border-gray-200 bg-gray-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all w-full"
           />
           <button
             type="submit"
             disabled={!newFeedback.trim()}
-            className="px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm w-full sm:w-auto"
+            className="px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all shadow-sm w-full sm:w-auto"
           >
-            新增
+            新增事項
           </button>
         </form>
       </div>
@@ -107,48 +110,32 @@ const FeedbackPage = () => {
       ) : (
         <div className="space-y-4 w-full">
           {feedbacks.length === 0 ? (
-             <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-               目前沒有任何待辦事項。
+             <div className="text-center py-16 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+               <p>目前沒有任何待辦事項</p>
+               <p className="text-xs mt-2">享受清空的一天！</p>
              </div>
           ) : (
-            feedbacks.map(feedback => (
-              <div
-                key={feedback.id}
-                className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-white rounded-lg shadow-sm border transition-all gap-4 ${
-                  feedback.status === 'done' ? 'border-green-200 bg-green-50/30' : 'border-gray-200 hover:border-primary/30'
-                }`}
-              >
-                <div className="flex items-start gap-4 flex-1 w-full sm:w-auto">
-                  <button
-                    onClick={() => toggleStatus(feedback.id, feedback.status)}
-                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors mt-1 sm:mt-0 ${
-                      feedback.status === 'done'
-                        ? 'bg-green-500 border-green-500 text-white'
-                        : 'border-gray-300 hover:border-primary'
-                    }`}
-                  >
-                    {feedback.status === 'done' && <CheckCircleIcon className="w-4 h-4" />}
-                  </button>
-                  <span className={`text-lg transition-all break-words break-all ${feedback.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
-                    {feedback.content}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-end w-full sm:w-auto gap-4 sm:ml-4 border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-100">
-                  {feedback.createdAt && (
-                     <span className="text-xs text-gray-400">
-                       {feedback.createdAt.toDate().toLocaleDateString()}
-                     </span>
-                  )}
-                  <button
-                    onClick={() => handleDelete(feedback.id)}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                    title="刪除"
-                  >
-                    <TrashIcon className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
+            // Sorting Logic: Pending first, then Done. Within status, sort by date (desc) usually, but user asked for "Done at bottom".
+            // Adding a secondary sort might be nice, but primary is Status.
+             [...feedbacks]
+             .sort((a, b) => {
+                // 1. Status Check: Pending (0) < Done (1)
+                const statusA = a.status === 'pending' ? 0 : 1;
+                const statusB = b.status === 'pending' ? 0 : 1;
+                if (statusA !== statusB) return statusA - statusB;
+
+                // 2. Date Check: Newest first
+                const dateA = a.createdAt?.toMillis() || 0;
+                const dateB = b.createdAt?.toMillis() || 0;
+                return dateB - dateA;
+             })
+             .map(feedback => (
+                <FeedbackItem 
+                    key={feedback.id} 
+                    feedback={feedback} 
+                    onToggleStatus={toggleStatus} 
+                    onDelete={handleDelete} 
+                />
             ))
           )}
         </div>

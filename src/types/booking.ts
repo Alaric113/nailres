@@ -10,6 +10,14 @@ export interface BookingItem {
   options?: Record<string, { name: string; price: number; duration: number }[]>; // optionName -> selected items
 }
 
+// Feedback from the customer after the order is completed
+export interface CustomerFeedback {
+  comment: string;
+  rating?: number; // 1-5 stars
+  photos: string[];
+  createdAt: Timestamp;
+}
+
 // This represents the data stored in the /bookings/{bookingId} document
 export interface BookingDocument {
   userId: string;
@@ -25,4 +33,5 @@ export interface BookingDocument {
   duration: number;
   couponId?: string | null;
   couponName?: string | null;
+  customerFeedback?: CustomerFeedback; // Optional feedback
 }

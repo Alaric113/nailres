@@ -204,7 +204,7 @@ const HoursSettingsPage = () => {
           setTimeSlots(data.timeSlots && data.timeSlots.length > 0 ? data.timeSlots : [{ start: '10:00', end: '19:00' }]);
         } else {
           // Default logic: Reset to standard hours
-          setTimeSlots([{ start: '10:00', end: '19:00' }]);
+          setTimeSlots([{ start: '10:00', end: '20:00' }]);
           setIsClosed(false);
         }
       } catch (e) {

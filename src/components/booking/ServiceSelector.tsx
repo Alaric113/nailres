@@ -166,11 +166,14 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
                         <div 
                             key={category} 
                             ref={(el) => { categoryRefs.current[category] = el; }}
-                            className="scroll-mt-16"
+                            className="scroll-mt-24 pb-8 border-b border-gray-100 last:border-0"
                         >
-                            <h3 className="text-xl font-serif font-bold text-text-main mb-4 px-2">
-                                {category}
-                            </h3>
+                            <div className="flex items-center gap-4 mb-6 px-2">
+                                <h3 className="text-2xl font-sans font-bold text-primary-dark tracking-wide">
+                                    {category}
+                                </h3>
+                                <div className="h-px bg-primary/20 flex-1"></div>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {groupedServices[category].map(service => {
                                     const { price, isPlatinum, originalPrice } = getPriceForUser(service);
@@ -206,8 +209,8 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
                                                     <img src={service.imageUrl} alt={service.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                                 </div>
                                             ) : (
-                                                <div className="w-24 h-24 rounded-lg bg-gray-50 flex items-center justify-center text-gray-300 shrink-0">
-                                                    <span className="text-xs">No Image</span>
+                                                <div className="w-24 h-24 rounded-lg  flex items-center justify-center text-gray-300 shrink-0">
+                                                    
                                                 </div>
                                             )}
                                             

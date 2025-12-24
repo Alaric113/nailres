@@ -129,8 +129,37 @@ const statusStyles: Record<string, {
   },
 };
 
-const createBookingConfirmationFlex = (customerName: string, serviceNames: string[], formattedDateTime: string, amount: number, status: string) => {
+const createBookingConfirmationFlex = (customerName: string, serviceNames: string[], formattedDateTime: string, amount: number, status: string, bookingId: string) => {
   const style = statusStyles[status] || statusStyles.default;
+
+  const footerContents: any[] = [
+    {
+      type: 'button',
+      action: {
+        type: 'uri',
+        label: '查看詳細資訊',
+        uri: 'https://liff.line.me/' + process.env.VITE_LIFF_ID
+      },
+      style: status === 'completed' ? 'secondary' : 'primary', // De-emphasize details if completed? Or keep same?
+      color: '#9F9586',
+      height: 'sm'
+    }
+  ];
+
+  if (status === 'completed') {
+    footerContents.unshift({ // Add to top or bottom? User requested "increase a button"
+      type: 'button',
+      action: {
+        type: 'uri',
+        label: '給予評價',
+        uri: 'https://liff.line.me/' + process.env.VITE_LIFF_ID + '/orders/' + bookingId + '/feedback'
+      },
+      style: 'primary',
+      color: '#D97706', // Accent color for feedback? Or brand color? Using Amber for now to stand out or maybe consistent.
+      height: 'sm',
+      margin: 'md'
+    });
+  }
 
   return {
     type: 'bubble',
@@ -188,7 +217,7 @@ const createBookingConfirmationFlex = (customerName: string, serviceNames: strin
         },
         {
           type: 'text',
-          text: '感謝您的預約，以下是您的詳細資訊：',
+          text: status === 'completed' ? '感謝您的光臨，期待再次為您服務！' : '感謝您的預約，以下是您的詳細資訊：',
           size: 'xs',
           color: '#6B7280',
           margin: 'sm',
@@ -236,20 +265,10 @@ const createBookingConfirmationFlex = (customerName: string, serviceNames: strin
       type: 'box',
       layout: 'vertical',
       contents: [
-        {
-          type: 'button',
-          action: {
-            type: 'uri',
-            label: '查看詳細資訊',
-            uri: 'https://liff.line.me/' + process.env.VITE_LIFF_ID // Assuming this or similar link
-          },
-          style: 'primary', // Filled button
-          color: '#9F9586',
-          height: 'sm'
-        },
+        ...footerContents,
         {
           type: 'text',
-          text: '如需更改或取消，請提前聯繫我們。',
+          text: status === 'completed' ? '如有任何問題，歡迎隨時聯繫我們。' : '如需更改或取消，請提前聯繫我們。',
           size: 'xxs',
           color: '#9CA3AF',
           align: 'center',
@@ -288,7 +307,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       bodyContent = Buffer.from(bodyContent, 'base64').toString('utf-8');
     }
     const body = JSON.parse(bodyContent);
-    const { type, userId, serviceNames, dateTime, amount, notes, status } = body;
+    const { type, userId, serviceNames, dateTime, amount, notes, status, bookingId } = body;
 
     // 1. Get all Admins who want to receive notifications
     const adminsQuery = db.collection('users').where('receivesAdminNotifications', '==', true);
@@ -315,8 +334,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     }
 
     // Handle regular booking notification
-    if (!userId || !serviceNames || !dateTime) {
-      return { statusCode: 400, body: JSON.stringify({ message: 'Missing required booking information.' }) };
+    if (!userId || !serviceNames || !dateTime || !bookingId) { // Added bookingId check
+      return { statusCode: 400, body: JSON.stringify({ message: 'Missing required booking information (userId, serviceNames, dateTime, bookingId).' }) };
     }
 
     // 2. Get Customer's LINE User ID from Firestore
@@ -333,8 +352,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     const messagePromises = [];
 
     // 3. Send message to Admin
-    if (adminLineUserIds.length > 0) {
-      const adminMessage = `🔔 新預約通知 🔔\n\n客戶：${customerName}\n服務：${serviceNames.join('、')}\n時間：${formattedDateTime}\n金額：$${amount}\n備註：${notes || '無'}`;
+    if (adminLineUserIds.length > 0 && status !== 'completed') { // Optional: Reduce spam for completed orders if desired? User didn't ask, but maybe useful. Keeping it simple first.
+      const adminMessage = `🔔 新預約通知 🔔\n\n客戶：${customerName}\n服務：${serviceNames.join('、')}\n時間：${formattedDateTime}\n金額：$${amount}\n備註：${notes || '無'}\n狀態：${status || '已確認'}`;
       for (const adminId of adminLineUserIds) {
         messagePromises.push(sendLineMessage(adminId, { type: 'text', text: adminMessage }, adminMessage));
       }
@@ -342,8 +361,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
     // 4. Send message to Customer
     if (customerLineUserId) {
-      const flexMessage = createBookingConfirmationFlex(customerName, serviceNames, formattedDateTime, amount, status || 'confirmed');
-      const altText = `您好，${customerName}！您的預約已成功建立：${serviceNames.join('、')} at ${formattedDateTime}`;
+      const flexMessage = createBookingConfirmationFlex(customerName, serviceNames, formattedDateTime, amount, status || 'confirmed', bookingId);
+      const altText = `您好，${customerName}！您的預約已${status === 'completed' ? '完成' : '成功建立'}：${serviceNames.join('、')} at ${formattedDateTime}`;
       messagePromises.push(sendLineMessage(customerLineUserId, flexMessage, altText));
     }
 
