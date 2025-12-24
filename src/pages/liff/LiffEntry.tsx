@@ -19,7 +19,23 @@ const LiffEntry = () => {
     useEffect(() => {
         console.log('[LiffEntry] Current location:', location.pathname, location.search);
         const queryParams = new URLSearchParams(location.search);
-        const redirectPath = queryParams.get('redirect') || '/booking';
+        
+        let redirectPath = queryParams.get('redirect');
+        
+        // Fallback: Check if liff.state contains the path (LINE sometimes moves params here)
+        if (!redirectPath) {
+            const liffState = queryParams.get('liff.state');
+            if (liffState) {
+                // liff.state is often URL encoded
+                const decodedState = decodeURIComponent(liffState);
+                if (decodedState.startsWith('/')) {
+                    redirectPath = decodedState;
+                }
+            }
+        }
+        
+        redirectPath = redirectPath || '/booking';
+        
         console.log('[LiffEntry] Parsed redirectPath:', redirectPath);
         
         const code = queryParams.get('code');
