@@ -17,8 +17,11 @@ const LiffEntry = () => {
     const [errorMessage, setErrorMessage] = useState('');
 
     useEffect(() => {
+        console.log('[LiffEntry] Current location:', location.pathname, location.search);
         const queryParams = new URLSearchParams(location.search);
         const redirectPath = queryParams.get('redirect') || '/booking';
+        console.log('[LiffEntry] Parsed redirectPath:', redirectPath);
+        
         const code = queryParams.get('code');
         const state = queryParams.get('state');
 
