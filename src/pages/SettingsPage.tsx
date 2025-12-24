@@ -7,6 +7,7 @@ import type { EnrichedUser } from '../types/user';
 import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore'; // Import useAuthStore
 import { useNotification } from '../hooks/useNotification';
+import ImageManagementModal from '../components/admin/ImageManagementModal'; // Import Modal
 import { 
   BellAlertIcon, 
   ClockIcon, 
@@ -15,7 +16,8 @@ import {
   TicketIcon,
   UserGroupIcon,
   UserCircleIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  HomeIcon
 } from '@heroicons/react/24/outline';
 
 // Import auth linking
@@ -542,6 +544,7 @@ const SettingsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentView = searchParams.get('view') || 'dashboard';
   const { userProfile } = useAuthStore();
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   // Define cards available to all staff, then filter based on role
   const allSettingsCards = [
@@ -560,6 +563,14 @@ const SettingsPage: React.FC = () => {
       subtext: "設定 LINE 通知接收人員", 
       onClick: () => setSearchParams({ view: 'notifications' }),
       roles: ['admin', 'manager', 'designer']
+    },
+    { 
+      title: "首頁圖片", 
+      icon: HomeIcon, 
+      color: "bg-orange-500", 
+      subtext: "設定首頁輪播與封面圖片",
+      onClick: () => setIsImageModalOpen(true),
+      roles: ['admin', 'manager']
     },
     { 
       title: "會員方案", 
@@ -666,6 +677,11 @@ const SettingsPage: React.FC = () => {
             />
           ))}
        </div>
+
+       {/* Image Management Modal */}
+       {isImageModalOpen && (
+        <ImageManagementModal onClose={() => setIsImageModalOpen(false)} />
+       )}
     </div>
   );
 };
