@@ -264,6 +264,7 @@ const createBookingConfirmationFlex = (customerName: string, serviceNames: strin
     footer: {
       type: 'box',
       layout: 'vertical',
+      spacing: 'md',
       contents: [
         ...footerContents,
         {
