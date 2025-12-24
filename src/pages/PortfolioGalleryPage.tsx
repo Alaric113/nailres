@@ -13,7 +13,9 @@ const PortfolioGalleryPage = () => {
   // Use dynamic categories from Firestore
   // Sort order is already handled by useServiceCategories hook
   const categories = useMemo(() => {
-    const dynCats = serviceCategories.map(c => c.name);
+    const dynCats = serviceCategories
+      .map(c => c.name)
+      .filter(name => name !== '加購項目'); // Filter out '加購項目'
     // Ensure '其他' is included if present in items but not in categories? 
     // For now, assume serviceCategories covers main ones. 
     // We add 'all' at the start.
@@ -21,7 +23,9 @@ const PortfolioGalleryPage = () => {
   }, [serviceCategories]);
 
   const filteredItems = portfolioItems.filter(item => 
-    item.isActive && (selectedCategory === 'all' || item.category === selectedCategory)
+    item.isActive && 
+    item.category !== '加購項目' && // Explicitly exclude '加購項目' items
+    (selectedCategory === 'all' || item.category === selectedCategory)
   );
 
   const handleBookStyle = (category: string) => {
