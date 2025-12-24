@@ -294,15 +294,29 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     };
   }
 
-  if (!process.env.LINE_CHANNEL_ACCESS_TOKEN || !process.env.FIREBASE_SERVICE_ACCOUNT) {
-    const missingKeys = [];
-    if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) missingKeys.push('LINE_CHANNEL_ACCESS_TOKEN');
-    if (!process.env.FIREBASE_SERVICE_ACCOUNT) missingKeys.push('FIREBASE_SERVICE_ACCOUNT');
-
-    console.error('[send-line-message] Missing Server Environment Variables:', missingKeys.join(', '));
+  // Check for LINE Token
+  if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) {
+    console.error('[send-line-message] Missing LINE_CHANNEL_ACCESS_TOKEN');
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: `Server environment is not configured correctly. Missing: ${missingKeys.join(', ')}` }),
+      body: JSON.stringify({ message: 'Server environment is not configured correctly. Missing: LINE_CHANNEL_ACCESS_TOKEN' }),
+    };
+  }
+
+  // Check for Firebase Config (Either full JSON or split keys)
+  const hasFirebaseConfig = process.env.FIREBASE_SERVICE_ACCOUNT || (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL);
+
+  if (!hasFirebaseConfig) {
+    const missingKeys = [];
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT) missingKeys.push('FIREBASE_SERVICE_ACCOUNT');
+    // We only complain about split keys if the main one is also missing
+    if (!process.env.FIREBASE_PRIVATE_KEY) missingKeys.push('FIREBASE_PRIVATE_KEY');
+    if (!process.env.FIREBASE_CLIENT_EMAIL) missingKeys.push('FIREBASE_CLIENT_EMAIL');
+
+    console.error('[send-line-message] Missing Firebase Configuration (FIREBASE_SERVICE_ACCOUNT or PRIVATE_KEY/CLIENT_EMAIL). Missing:', missingKeys.join(', '));
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: 'Server environment is not configured correctly. Missing Firebase Credentials.' }),
     };
   }
 
