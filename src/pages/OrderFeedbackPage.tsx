@@ -153,13 +153,29 @@ const OrderFeedbackPage = () => {
 
         setSubmitting(true);
         try {
+            // 1. Update Booking (Private)
             await updateDoc(doc(db, 'bookings', booking.id), {
                 customerFeedback: {
                     rating,
                     comment,
                     photos,
-                    createdAt: serverTimestamp() // Will use server timestamp on save
+                    createdAt: serverTimestamp()
                 }
+            });
+
+            // 2. Create/Update Public Review (Public)
+            // We use setDoc with booking.id to keep them linked 1:1
+            const { setDoc } = await import('firebase/firestore'); 
+            await setDoc(doc(db, 'public_reviews', booking.id), {
+                bookingId: booking.id,
+                userId: currentUser!.uid, 
+                rating,
+                comment,
+                photos,
+                designerName: booking.designerName,
+                serviceNames: booking.serviceNames, // Array of strings
+                createdAt: serverTimestamp(),
+                // We exclude customer name for privacy, or store a masked version if needed in future
             });
             showToast('评价已送出，謝謝您的回饋！', 'success');
             navigate('/member/history');

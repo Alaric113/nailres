@@ -172,7 +172,13 @@ service cloud.firestore {
       allow write: if isStaff(); // Admins/Staff can manage
     }
 
-    // 問題回報/待辦事項
+    // Public Reviews (Derived from bookings)
+    match /public_reviews/{reviewId} {
+      allow read: if true;
+      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Alternatively, stricter: verify the booking exists and belongs to user, but that needs get().
+    }
+
     // 問題回報/待辦事項 (含評論子集合)
     match /feedback/{feedbackId}/{document=**} {
       allow read, write: if isStaff();

@@ -6,10 +6,18 @@ import { Sparkles, Calendar, Image as ImageIcon, ChevronRight } from 'lucide-rea
 
 // Swiper Imports
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay } from 'swiper/modules';
+import { Autoplay, EffectFade } from 'swiper/modules';
 import 'swiper/css';
 // @ts-ignore
 import 'swiper/css/autoplay';
+// @ts-ignore
+import 'swiper/css/effect-fade';
+
+// New Imports for Feedback
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+
+import { UserCircleIcon } from '@heroicons/react/24/solid'; // Use solid for avatar placeholder
+import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 
 const Home = () => {
   const [homepageImages, setHomepageImages] = useState<{
@@ -23,25 +31,188 @@ const Home = () => {
     nailImages: [],
     browImages: [],
   });
+  const [reviews, setReviews] = useState<any[]>([]); // Store filtered feedback bookings
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchImages = async () => {
+    const fetchData = async () => {
       try {
-        const docRef = doc(db, 'globals', 'homepageImages');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data() as any;
-          setHomepageImages(data);
+        // Fetch Homepage Images
+        const imgDocRef = doc(db, 'globals', 'homepageImages');
+        const imgDocSnap = await getDoc(imgDocRef);
+        if (imgDocSnap.exists()) {
+          setHomepageImages(imgDocSnap.data() as any);
         }
+
+        // Fetch Public Reviews (Direct Firestore Query)
+        const reviewsRef = collection(db, 'public_reviews');
+        const q = query(
+            reviewsRef, 
+            // orderBy('createdAt', 'desc'), // Comment out to test if Index is the issue
+            limit(5)
+        );
+        
+        try {
+           console.log("Fetching reviews from public_reviews...");
+           const querySnapshot = await getDocs(q);
+           console.log(`Fetched ${querySnapshot.size} reviews`);
+           
+           let fetchedReviews = querySnapshot.docs.map(doc => {
+              const data = doc.data();
+              console.log("Review data:", data);
+              return {
+                 id: doc.id,
+                 customerFeedback: {
+                    rating: data.rating,
+                    comment: data.comment
+                 },
+                 serviceNames: data.serviceNames
+              };
+           });
+
+           // DEBUG: Inject dummy data if empty to test UI
+           if (fetchedReviews.length === 0) {
+              console.log("No reviews found, injecting Dummy Data for testing!");
+              fetchedReviews = [{
+                  id: 'test-1',
+                  customerFeedback: { rating: 5, comment: "這是一個測試評論，如果看到這個表示 UI 正常，是資料庫沒抓到資料。" },
+                  serviceNames: ['測試服務']
+              }];
+           }
+
+           setReviews(fetchedReviews);
+        } catch (err) {
+           console.error("Error fetching public reviews:", err);
+        }
+
       } catch (error) {
-        console.error("Error fetching homepage images:", error);
+        console.error("Error fetching home data:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchImages();
+    fetchData();
   }, []);
+
+  // Services Data
+// ... (rest of services array)
+
+// ...
+
+        {/* Portfolio Preview */}
+        {!isLoading && homepageImages.lashImages.length > 0 && (
+          <section>
+             {/* ... Swiper Carousel ... */}
+             {/* ... (Existing Swiper code) ... */}
+            <Swiper
+              modules={[Autoplay]}
+              spaceBetween={12}
+              slidesPerView={2.2}
+              loop={true}
+              speed={1000}
+              autoplay={{
+                delay: 2000,
+                disableOnInteraction: false,
+                pauseOnMouseEnter: true
+              }}
+              breakpoints={{
+                640: {
+                  slidesPerView: 3.2,
+                  spaceBetween: 16,
+                },
+                768: {
+                  slidesPerView: 4.2,
+                  spaceBetween: 16,
+                },
+              }}
+              className="w-full py-2" // Added py-2 for potential shadow clipping
+            >
+              {[...homepageImages.lashImages, ...homepageImages.nailImages, ...homepageImages.browImages]
+                .slice(0, 8) 
+                .map((image, index) => (
+                  <SwiperSlide key={index}>
+                    <Link
+                      to="/portfolio"
+                      className="block aspect-square rounded-xl overflow-hidden shadow-soft hover:shadow-medium transition-all active:scale-95 relative group"
+                    >
+                       <img
+                        src={image}
+                        alt={`作品 ${index + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        loading="lazy"
+                      />
+                       {/* Subtle Overlay */}
+                       <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors pointer-events-none" />
+                    </Link>
+                  </SwiperSlide>
+                ))}
+            </Swiper>
+          </section>
+        )}
+
+        {/* Customer Reviews Section */}
+        {!isLoading && reviews.length > 0 && (
+          <section className="bg-white rounded-2xl p-6 shadow-soft relative overflow-hidden">
+             
+             {/* Decorative Background Icon */}
+             <div className="absolute -right-4 -top-4 text-gray-50 opacity-50 pointer-events-none">
+                <Sparkles className="w-32 h-32" />
+             </div>
+
+             <div className="flex items-center gap-2 mb-6 relative z-10">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-serif font-bold text-text-main">
+                  客戶好評
+                </h2>
+             </div>
+
+             <Swiper
+                modules={[Autoplay, EffectFade]}
+                effect={'fade'}
+                fadeEffect={{ crossFade: true }}
+                spaceBetween={20}
+                slidesPerView={1}
+                loop={true}
+                speed={800}
+                autoplay={{
+                  delay: 4000,
+                  disableOnInteraction: false,
+                }}
+                className="w-full relative z-10"
+             >
+                {reviews.map((review, index) => (
+                   <SwiperSlide key={index}>
+                      <div className="flex flex-col items-center text-center space-y-4 px-4">
+                         {/* Stars */}
+                         <div className="flex gap-1">
+                            {[...Array(review.customerFeedback.rating)].map((_, i) => (
+                               <StarIconSolid key={i} className="w-5 h-5 text-yellow-400" />
+                            ))}
+                         </div>
+                         
+                         {/* Comment */}
+                         <p className="text-text-main font-medium leading-relaxed italic text-lg">
+                            "{review.customerFeedback.comment}"
+                         </p>
+
+                         {/* User Info Placeholder */}
+                         <div className="flex items-center gap-3 mt-2">
+                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                               <UserCircleIcon className="w-6 h-6 text-gray-400" />
+                            </div>
+                            <div className="text-left">
+                               <p className="text-sm font-bold text-gray-900">貴賓客戶</p>
+                               <div className="flex items-center gap-2 text-xs text-gray-400">
+                                  <span>{review.serviceNames?.[0] || '美甲服務'}</span>
+                               </div>
+                            </div>
+                         </div>
+                      </div>
+                   </SwiperSlide>
+                ))}
+             </Swiper>
+          </section>
+        )}
 
   // Services Data
   const services = [
