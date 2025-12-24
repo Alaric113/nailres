@@ -5,6 +5,13 @@ import { db } from '../lib/firebase';
 import { Sparkles, Calendar, Image as ImageIcon, ChevronRight } from 'lucide-react';
 import Card from '../components/common/Card';
 
+// Swiper Imports
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay } from 'swiper/modules';
+import 'swiper/css';
+// @ts-ignore
+import 'swiper/css/autoplay';
+
 const Home = () => {
   const [homepageImages, setHomepageImages] = useState<{
     beforeAfter: { before: string; after: string };
@@ -41,15 +48,6 @@ const Home = () => {
   const services = [
     {
       id: 1,
-      title: '韓式霧眉',
-      price: 5500,
-      description: 'POWDER BROWS',
-      category: '霧眉',
-      image: homepageImages.browImages[0] || '',
-      icon: '💅',
-    },
-    {
-      id: 2,
       title: '日式美睫',
       price: 1000,
       description: 'EYELASH',
@@ -58,12 +56,21 @@ const Home = () => {
       icon: '👁️',
     },
     {
-      id: 3,
+      id: 2,
       title: '質感美甲',
       price: 1000,
       description: 'NAILS',
       category: '美甲',
       image: homepageImages.nailImages[0] || '',
+      icon: '💅',
+    },
+    {
+      id: 3,
+      title: '韓式霧眉',
+      price: 5500,
+      description: 'POWDER BROWS',
+      category: '霧眉',
+      image: homepageImages.browImages[0] || '',
       icon: '💅',
     },
   ];
@@ -175,24 +182,49 @@ const Home = () => {
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <Swiper
+              modules={[Autoplay]}
+              spaceBetween={12}
+              slidesPerView={2.2}
+              loop={true}
+              speed={1000}
+              autoplay={{
+                delay: 2000,
+                disableOnInteraction: false,
+                pauseOnMouseEnter: true
+              }}
+              breakpoints={{
+                640: {
+                  slidesPerView: 3.2,
+                  spaceBetween: 16,
+                },
+                768: {
+                  slidesPerView: 4.2,
+                  spaceBetween: 16,
+                },
+              }}
+              className="w-full py-2" // Added py-2 for potential shadow clipping
+            >
               {[...homepageImages.lashImages, ...homepageImages.nailImages, ...homepageImages.browImages]
-                .slice(0, 6)
+                .slice(0, 8) 
                 .map((image, index) => (
-                  <Link
-                    key={index}
-                    to="/portfolio"
-                    className="aspect-square rounded-xl overflow-hidden shadow-soft hover:shadow-medium transition-all active:scale-95"
-                  >
-                    <img
-                      src={image}
-                      alt={`作品 ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </Link>
+                  <SwiperSlide key={index}>
+                    <Link
+                      to="/portfolio"
+                      className="block aspect-square rounded-xl overflow-hidden shadow-soft hover:shadow-medium transition-all active:scale-95 relative group"
+                    >
+                       <img
+                        src={image}
+                        alt={`作品 ${index + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        loading="lazy"
+                      />
+                       {/* Subtle Overlay */}
+                       <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors pointer-events-none" />
+                    </Link>
+                  </SwiperSlide>
                 ))}
-            </div>
+            </Swiper>
           </section>
         )}
 
