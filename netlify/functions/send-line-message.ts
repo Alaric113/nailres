@@ -309,6 +309,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     const body = JSON.parse(bodyContent);
     const { type, userId, serviceNames, dateTime, amount, notes, status, bookingId } = body;
 
+    console.log(`[send-line-message] Request: type=${type}, bookingId=${bookingId}, status=${status}, userId=${userId}`);
+
     // 1. Get all Admins who want to receive notifications
     const adminsQuery = db.collection('users').where('receivesAdminNotifications', '==', true);
     const adminSnapshot = await adminsQuery.get();
