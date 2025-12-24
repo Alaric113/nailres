@@ -84,7 +84,7 @@ const MobileCartBar: React.FC<MobileCartBarProps> = ({ onNext }) => {
                    className={`
                        px-6 py-2 font-bold rounded-lg transition-colors
                        ${isEmpty 
-                           ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                           ? 'bg-white text-primary cursor-not-allowed' 
                            : 'bg-white text-primary hover:bg-gray-50'
                        }
                    `}

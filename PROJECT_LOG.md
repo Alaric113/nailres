@@ -1,7 +1,7 @@
 # 美甲店預約管理系統 - 專案儀表板
 
 **文件版本:** 2.3
-**最後更新:** 2025-12-10
+**最後更新:** 2025-12-24
 **主要貢獻者:** Gemini Code Assist
 
 ---
@@ -9,8 +9,7 @@
 ## 1. 專案狀態總覽 (Project Status Overview)
 
 ### **當前狀態 (Current Status)**
-系統已完成全面的 UI/UX 重構，採用 **Fresh/Origin Natural** 設計風格 (Primary: #9F9586)。前台 (首頁、預約) 與後台 (管理員儀表板及所有子頁面) 皆已統一視覺語言，並優化了 RWD 響應式體驗。
-已修復 **預約日曆中「今日」無法選擇** 的問題，將日期禁用邏輯改為基於 `date-fns` 的精確比較，排除時區與時間差的干擾。
+系統進一步增強了客戶互動與後台管理功能。修復了 LINE LIFF 連結跳轉錯誤，並解決了 LINE 通知發送時的 500 錯誤 (Firebase 憑證問題)。新增了訂單完成後的「填寫評價」功能，並在後台恢復了因 UI 重構而遺失的「首頁圖片設定」。
 
 ### **下一步行動 (Next Immediate Action)**
 **整合「優惠券發送與使用」功能至前端預約流程：** 讓客戶在預約時能選擇並使用已持有的優惠券。
@@ -20,16 +19,42 @@
 - **[✔️] 預約系統:** 
     - 全新設計的預約流程，包含服務選擇、日曆與時段選擇。
     - 支援服務分類、多選服務、價格根據會員等級變化。
+- **[✔️] 顧客回饋系統:**
+    - 新增訂單評價頁面，支援評分、評論與上傳圖片。
+    - LINE 通知整合「給予評價」按鈕，自動帶入訂單資訊。
+    - 管理員後台可檢視、回覆及管理評價狀態。
 - **[✔️] 管理員後台:**
-    - **全站重構:** 所有管理頁面皆已套用新版設計系統，提升操作體驗與視覺舒適度。
-    - **完整功能:** 涵蓋儀表板、訂單、行事曆、客戶、服務、營業時間、優惠與設定等全方位管理。
-- **[✔️] UI/UX 設計:** 確立 'Fresh/Origin Natural' 風格，使用 Noto Sans TC 與 Playfair Display 字體，搭配 Earth Tone 色系。
+    - **全站重構:** 所有管理頁面皆已套用新版設計系統。
+    - **功能修復:** 恢復首頁輪播圖與封面圖片的設定介面。
 
 ---
 
 ## 2. 主要功能模組詳述 (Completed Feature Modules)
 
+### **2.10. LINE 整合與除錯 (LINE Integration Debugging)**
+- **[✔️] LIFF 網址重導向修復:** 
+    - 修正了 `send-line-message.ts` 中 LIFF URL 的參數傳遞方式，將目標路徑編碼為 `redirect` 參數。
+    - 在前端 `LiffEntry.tsx` 新增邏輯，若 `redirect` 參數遺失，自動解析 `liff.state` 作為備援，確保「給予評價」按鈕能正確導向至 `OrderFeedbackPage`。
+- **[✔️] LINE 通知發送修復:**
+    - 修正了 `send-line-message` Function 因環境變數讀取錯誤導致的 500 錯誤。
+    - 支援 Split Credential 模式 (同時兼容 `FIREBASE_SERVICE_ACCOUNT` JSON 字串與 `FIREBASE_PRIVATE_KEY`/`CLIENT_EMAIL` 分離設定)。
+- **[✔️] UI 優化:** 增加 LINE Flex Message 底部按鈕的間距，提升視覺舒適度。
+
+### **2.11. 顧客回饋系統 (Customer Feedback System)**
+- **前端頁面:** 
+    - 建立 `OrderFeedbackPage`，讓消費者在此對已完成的訂單進行評分與留言。
+    - 在「預約紀錄」列表與卡片中新增「給予評價」按鈕。
+- **後台管理:**
+    - 優化 `FeedbackItem` 元件，確保評論數量總是可見。
+    - 修正 Firestore 權限規則，允許用戶寫入自己的評價資料。
+
+### **2.12. 後台設定修復 (Admin Settings Restoration)**
+- **[✔️] 首頁圖片設定:**
+    - 在 `SettingsPage` (設定頁面) 重新加入「首頁圖片」卡片。
+    - 連結至 orphan 的 `ImageManagementModal`，讓管理員能重新編輯首頁輪播圖與封面圖片。
+
 ### **2.8. UI/UX 全面重構 (Design System Overhaul)**
+*(以下保持原樣...)*
 - **設計系統確立:**
     - 定義了 `tailwind.config.js` 中的核心色票 (Primary: #9F9586, Secondary: #EFECE5) 與字體系統。
     - 透過 `index.html` 直接注入 Tailwind 配置，解決 CDN 環境下的樣式客製化問題。
