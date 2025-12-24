@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Sparkles, Calendar, Image as ImageIcon, ChevronRight } from 'lucide-react';
-import Card from '../components/common/Card';
 
 // Swiper Imports
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -127,44 +126,33 @@ const Home = () => {
             </Link>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
             {services.map((service) => (
               <Link
                 key={service.id}
                 to={`/booking?category=${service.category}`}
-                className="block"
+                className="block group active:scale-95 transition-transform"
               >
-                <Card hoverable className="overflow-hidden">
-                  <div className="flex items-center gap-4 p-0">
-                    {/* Service Image */}
-                    <div className="w-24 h-24 flex-shrink-0 bg-secondary-dark overflow-hidden">
-                      {service.image ? (
-                        <img
-                          src={service.image}
-                          alt={service.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-3xl">
-                          {service.icon}
-                        </div>
-                      )}
+                <div className="relative aspect-square rounded-2xl overflow-hidden mb-2 shadow-soft group-hover:shadow-medium transition-all">
+                  {service.image ? (
+                    <img
+                      src={service.image}
+                      alt={service.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-secondary-light flex items-center justify-center text-3xl">
+                      {service.icon}
                     </div>
-
-                    {/* Service Info */}
-                    <div className="flex-1 py-3 pr-4">
-                      <h3 className="font-serif font-bold text-text-main mb-1">
-                        {service.title}
-                      </h3>
-                      <p className="text-xs text-text-light mb-2">{service.description}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-primary font-bold">NT$ {service.price.toLocaleString()}</span>
-                        <ChevronRight className="w-4 h-4 text-text-light" />
-                      </div>
-                    </div>
-                  </div>
-                </Card>
+                  )}
+                </div>
+                
+                <div className="text-center px-1">
+                  <h3 className="font-serif font-bold text-text-main text-sm truncate">
+                    {service.title}
+                  </h3>
+                </div>
               </Link>
             ))}
           </div>
