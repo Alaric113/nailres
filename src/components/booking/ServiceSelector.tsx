@@ -14,7 +14,7 @@ interface ServiceSelectorProps {
   onNext: () => void;
 }
 
-const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
+const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, initialCategory }) => {
   const { services, isLoading, error } = useServices();
   const { categories } = useServiceCategories();
   const { userProfile } = useAuthStore();
@@ -33,6 +33,16 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
       setActiveCategory(categories[0].name);
     }
   }, [categories, activeCategory]);
+
+  // Handle initial category scroll
+  useEffect(() => {
+    if (initialCategory && categories.length > 0 && !isLoading) {
+      // Small timeout to ensure refs are bound
+      setTimeout(() => {
+        scrollToCategory(initialCategory);
+      }, 300);
+    }
+  }, [initialCategory, categories, isLoading]);
 
   // Handle manual scroll to category
   const scrollToCategory = (categoryName: string) => {
