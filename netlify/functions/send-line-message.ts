@@ -294,10 +294,15 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     };
   }
 
-  if (!LINE_CHANNEL_ACCESS_TOKEN || !FIREBASE_SERVICE_ACCOUNT) {
+  if (!process.env.LINE_CHANNEL_ACCESS_TOKEN || !process.env.FIREBASE_SERVICE_ACCOUNT) {
+    const missingKeys = [];
+    if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) missingKeys.push('LINE_CHANNEL_ACCESS_TOKEN');
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT) missingKeys.push('FIREBASE_SERVICE_ACCOUNT');
+
+    console.error('[send-line-message] Missing Server Environment Variables:', missingKeys.join(', '));
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: 'Server environment is not configured correctly.' }),
+      body: JSON.stringify({ message: `Server environment is not configured correctly. Missing: ${missingKeys.join(', ')}` }),
     };
   }
 
