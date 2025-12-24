@@ -301,6 +301,10 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     };
   }
 
+  if (!process.env.VITE_LIFF_ID) {
+    console.warn("[send-line-message] VITE_LIFF_ID is missing in environment variables. URLs may be malformed.");
+  }
+
   try {
     let bodyContent = event.body || '{}';
     if (event.isBase64Encoded) {
@@ -310,6 +314,11 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     const { type, userId, serviceNames, dateTime, amount, notes, status, bookingId } = body;
 
     console.log(`[send-line-message] Request: type=${type}, bookingId=${bookingId}, status=${status}, userId=${userId}`);
+
+    // Check Firebase Admin Init
+    if (admin.apps.length === 0) {
+      throw new Error("Firebase Admin not initialized. Check FIREBASE_SERVICE_ACCOUNT or credential config.");
+    }
 
     // 1. Get all Admins who want to receive notifications
     const adminsQuery = db.collection('users').where('receivesAdminNotifications', '==', true);
@@ -336,8 +345,15 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     }
 
     // Handle regular booking notification
-    if (!userId || !serviceNames || !dateTime || !bookingId) { // Added bookingId check
-      return { statusCode: 400, body: JSON.stringify({ message: 'Missing required booking information (userId, serviceNames, dateTime, bookingId).' }) };
+    if (!userId || !serviceNames || !dateTime || !bookingId) {
+      const missing = [];
+      if (!userId) missing.push('userId');
+      if (!serviceNames) missing.push('serviceNames');
+      if (!dateTime) missing.push('dateTime');
+      if (!bookingId) missing.push('bookingId');
+
+      console.error("[send-line-message] Missing required fields:", missing.join(', '));
+      return { statusCode: 400, body: JSON.stringify({ message: `Missing required booking information: ${missing.join(', ')}` }) };
     }
 
     // 2. Get Customer's LINE User ID from Firestore
@@ -354,7 +370,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     const messagePromises = [];
 
     // 3. Send message to Admin
-    if (adminLineUserIds.length > 0 && status !== 'completed') { // Optional: Reduce spam for completed orders if desired? User didn't ask, but maybe useful. Keeping it simple first.
+    if (adminLineUserIds.length > 0 && status !== 'completed') {
       const adminMessage = `🔔 新預約通知 🔔\n\n客戶：${customerName}\n服務：${serviceNames.join('、')}\n時間：${formattedDateTime}\n金額：$${amount}\n備註：${notes || '無'}\n狀態：${status || '已確認'}`;
       for (const adminId of adminLineUserIds) {
         messagePromises.push(sendLineMessage(adminId, { type: 'text', text: adminMessage }, adminMessage));
@@ -374,11 +390,18 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       statusCode: 200,
       body: JSON.stringify({ message: 'Notification sent successfully.' }),
     };
-  } catch (error: unknown) {
+  } catch (error: any) {
+    console.error('[send-line-message] Error:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : '';
+
     return {
       statusCode: errorMessage.includes('LINE API Error') ? 502 : 500,
-      body: JSON.stringify({ message: 'Failed to send message', error: errorMessage }),
+      body: JSON.stringify({
+        message: 'Failed to send message',
+        error: errorMessage,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+      }),
     };
   }
 };
