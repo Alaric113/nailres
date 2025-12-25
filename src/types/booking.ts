@@ -10,11 +10,11 @@ export interface BookingItem {
   options?: Record<string, { name: string; price: number; duration: number }[]>; // optionName -> selected items
 }
 
-// Feedback from the customer after the order is completed
 export interface CustomerFeedback {
   comment: string;
   rating?: number; // 1-5 stars
   photos: string[];
+  isAnonymous?: boolean;
   createdAt: Timestamp;
 }
 

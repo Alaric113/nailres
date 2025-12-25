@@ -6,6 +6,7 @@ import HeroSection from '../components/home/HeroSection';
 import ServiceHighlights from '../components/home/ServiceHighlights';
 import PortfolioSection from '../components/home/PortfolioSection';
 import Footer from '../components/home/Footer';
+import CustomerReviews from '../components/home/CustomerReviews';
 
 const LandingPage = () => {
   const [homepageImages, setHomepageImages] = useState<{
@@ -87,7 +88,7 @@ const LandingPage = () => {
         isLoading={isLoading} 
       />
 
-      {/* About / Placeholder Section can be added here if needed */}
+      <CustomerReviews />
 
       <Footer />
 

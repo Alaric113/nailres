@@ -3,21 +3,18 @@ import { Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Sparkles, Calendar, Image as ImageIcon, ChevronRight } from 'lucide-react';
+import CustomerReviews from '../components/home/CustomerReviews';
 
 // Swiper Imports
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, EffectFade } from 'swiper/modules';
+import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
 // @ts-ignore
 import 'swiper/css/autoplay';
 // @ts-ignore
 import 'swiper/css/effect-fade';
 
-// New Imports for Feedback
-import { collection, query, limit, getDocs } from 'firebase/firestore';
 
-import { UserCircleIcon } from '@heroicons/react/24/solid'; // Use solid for avatar placeholder
-import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 
 const Home = () => {
   const [homepageImages, setHomepageImages] = useState<{
@@ -31,7 +28,6 @@ const Home = () => {
     nailImages: [],
     browImages: [],
   });
-  const [reviews, setReviews] = useState<any[]>([]); // Store filtered feedback bookings
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -42,47 +38,6 @@ const Home = () => {
         const imgDocSnap = await getDoc(imgDocRef);
         if (imgDocSnap.exists()) {
           setHomepageImages(imgDocSnap.data() as any);
-        }
-
-        // Fetch Public Reviews (Direct Firestore Query)
-        const reviewsRef = collection(db, 'public_reviews');
-        const q = query(
-            reviewsRef, 
-            // orderBy('createdAt', 'desc'), // Comment out to test if Index is the issue
-            limit(5)
-        );
-        
-        try {
-           console.log("Fetching reviews from public_reviews...");
-           const querySnapshot = await getDocs(q);
-           console.log(`Fetched ${querySnapshot.size} reviews`);
-           
-           let fetchedReviews = querySnapshot.docs.map(doc => {
-              const data = doc.data();
-              console.log("Review data:", data);
-              return {
-                 id: doc.id,
-                 customerFeedback: {
-                    rating: data.rating,
-                    comment: data.comment
-                 },
-                 serviceNames: data.serviceNames
-              };
-           });
-
-           // DEBUG: Inject dummy data if empty to test UI
-           if (fetchedReviews.length === 0) {
-              console.log("No reviews found, injecting Dummy Data for testing!");
-              fetchedReviews = [{
-                  id: 'test-1',
-                  customerFeedback: { rating: 5, comment: "這是一個測試評論，如果看到這個表示 UI 正常，是資料庫沒抓到資料。" },
-                  serviceNames: ['測試服務']
-              }];
-           }
-
-           setReviews(fetchedReviews);
-        } catch (err) {
-           console.error("Error fetching public reviews:", err);
         }
 
       } catch (error) {
@@ -150,69 +105,7 @@ const Home = () => {
           </section>
         )}
 
-        {/* Customer Reviews Section */}
-        {!isLoading && reviews.length > 0 && (
-          <section className="bg-white rounded-2xl p-6 shadow-soft relative overflow-hidden">
-             
-             {/* Decorative Background Icon */}
-             <div className="absolute -right-4 -top-4 text-gray-50 opacity-50 pointer-events-none">
-                <Sparkles className="w-32 h-32" />
-             </div>
-
-             <div className="flex items-center gap-2 mb-6 relative z-10">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-serif font-bold text-text-main">
-                  客戶好評
-                </h2>
-             </div>
-
-             <Swiper
-                modules={[Autoplay, EffectFade]}
-                effect={'fade'}
-                fadeEffect={{ crossFade: true }}
-                spaceBetween={20}
-                slidesPerView={1}
-                loop={true}
-                speed={800}
-                autoplay={{
-                  delay: 4000,
-                  disableOnInteraction: false,
-                }}
-                className="w-full relative z-10"
-             >
-                {reviews.map((review, index) => (
-                   <SwiperSlide key={index}>
-                      <div className="flex flex-col items-center text-center space-y-4 px-4">
-                         {/* Stars */}
-                         <div className="flex gap-1">
-                            {[...Array(review.customerFeedback.rating)].map((_, i) => (
-                               <StarIconSolid key={i} className="w-5 h-5 text-yellow-400" />
-                            ))}
-                         </div>
-                         
-                         {/* Comment */}
-                         <p className="text-text-main font-medium leading-relaxed italic text-lg">
-                            "{review.customerFeedback.comment}"
-                         </p>
-
-                         {/* User Info Placeholder */}
-                         <div className="flex items-center gap-3 mt-2">
-                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                               <UserCircleIcon className="w-6 h-6 text-gray-400" />
-                            </div>
-                            <div className="text-left">
-                               <p className="text-sm font-bold text-gray-900">貴賓客戶</p>
-                               <div className="flex items-center gap-2 text-xs text-gray-400">
-                                  <span>{review.serviceNames?.[0] || '美甲服務'}</span>
-                               </div>
-                            </div>
-                         </div>
-                      </div>
-                   </SwiperSlide>
-                ))}
-             </Swiper>
-          </section>
-        )}
+        
 
   // Services Data
   const services = [
@@ -249,9 +142,18 @@ const Home = () => {
     <div className="min-h-screen bg-secondary-light pb-24">
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {!isLoading && homepageImages.lashImages.length > 0 &&(
+          <section> 
+            <div>
+              <h2 className="text-lg font-serif font-bold text-text-main">
+                TREERING
+              </h2>
+            </div>
+          </section>
+        )}
         
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 hidden">
           <Link
             to="/booking"
             className="bg-white rounded-2xl p-4 shadow-soft hover:shadow-medium transition-all active:scale-95 tap-highlight-none"
@@ -286,7 +188,7 @@ const Home = () => {
         </div>
 
         {/* Featured Services */}
-        <section>
+        <section className='hidden'>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-serif font-bold text-text-main flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
@@ -334,7 +236,7 @@ const Home = () => {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-serif font-bold text-text-main">
-                精選作品
+                ✨精選作品
               </h2>
               <Link to="/portfolio" className="text-sm text-primary hover:text-primary-dark transition-colors">
                 查看更多
@@ -398,6 +300,13 @@ const Home = () => {
             ))}
           </div>
         )}
+        {/* Customer Reviews Section */}
+        <section className="bg-white rounded-2xl p-6 shadow-soft">
+          <h2 className="text-lg font-serif font-bold text-text-main">
+            客戶好評
+          </h2>
+          <CustomerReviews />
+        </section>
 
         {/* About Section */}
         <section className="bg-white rounded-2xl p-6 shadow-soft">

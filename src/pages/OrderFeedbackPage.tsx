@@ -93,6 +93,7 @@ const OrderFeedbackPage = () => {
     const [rating, setRating] = useState(5);
     const [comment, setComment] = useState('');
     const [photos, setPhotos] = useState<string[]>([]);
+    const [isAnonymous, setIsAnonymous] = useState(false); // New State
 
     useEffect(() => {
         if (!orderId) return;
@@ -131,6 +132,7 @@ const OrderFeedbackPage = () => {
                         setRating(data.customerFeedback.rating || 5);
                         setComment(data.customerFeedback.comment || '');
                         setPhotos(data.customerFeedback.photos || []);
+                        setIsAnonymous(data.customerFeedback.isAnonymous || false);
                     }
                 } else {
                     showToast('找不到訂單', 'error');
@@ -153,12 +155,17 @@ const OrderFeedbackPage = () => {
 
         setSubmitting(true);
         try {
+            const { useAuthStore } = await import('../store/authStore'); // Dynamic import to ensure latest state if needed, or just rely on hook
+            const storeState = useAuthStore.getState();
+            const userProfile = storeState.userProfile;
+
             // 1. Update Booking (Private)
             await updateDoc(doc(db, 'bookings', booking.id), {
                 customerFeedback: {
                     rating,
                     comment,
                     photos,
+                    isAnonymous,
                     createdAt: serverTimestamp()
                 }
             });
@@ -166,7 +173,8 @@ const OrderFeedbackPage = () => {
             // 2. Create/Update Public Review (Public)
             // We use setDoc with booking.id to keep them linked 1:1
             const { setDoc } = await import('firebase/firestore'); 
-            await setDoc(doc(db, 'public_reviews', booking.id), {
+            
+            const reviewData: any = {
                 bookingId: booking.id,
                 userId: currentUser!.uid, 
                 rating,
@@ -175,8 +183,17 @@ const OrderFeedbackPage = () => {
                 designerName: booking.designerName,
                 serviceNames: booking.serviceNames, // Array of strings
                 createdAt: serverTimestamp(),
-                // We exclude customer name for privacy, or store a masked version if needed in future
-            });
+                isAnonymous
+            };
+
+            // If NOT anonymous, attach user info
+            if (!isAnonymous && userProfile) {
+                reviewData.userName = userProfile.profile?.displayName || '客戶';
+                reviewData.userAvatarUrl = userProfile.profile?.avatarUrl || null;
+            }
+
+            await setDoc(doc(db, 'public_reviews', booking.id), reviewData);
+
             showToast('评价已送出，謝謝您的回饋！', 'success');
             navigate('/member/history');
         } catch (err) {
@@ -299,6 +316,20 @@ const OrderFeedbackPage = () => {
                             onUpload={(url) => setPhotos([...photos, url])}
                             onDelete={(idx) => setPhotos(photos.filter((_, i) => i !== idx))}
                         />
+                    </div>
+
+                    {/* Anonymous Checkbox */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
+                        <input
+                            type="checkbox"
+                            id="isAnonymous"
+                            checked={isAnonymous}
+                            onChange={(e) => setIsAnonymous(e.target.checked)}
+                            className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                        />
+                        <label htmlFor="isAnonymous" className="text-sm font-medium text-gray-600 cursor-pointer select-none">
+                            匿名評價 (不公開您的暱稱與頭像)
+                        </label>
                     </div>
 
                     <button 
