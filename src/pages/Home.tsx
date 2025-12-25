@@ -14,7 +14,7 @@ import 'swiper/css/autoplay';
 import 'swiper/css/effect-fade';
 
 // New Imports for Feedback
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, limit, getDocs } from 'firebase/firestore';
 
 import { UserCircleIcon } from '@heroicons/react/24/solid'; // Use solid for avatar placeholder
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
