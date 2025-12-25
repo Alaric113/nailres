@@ -112,26 +112,34 @@ const ImageManagementModal: React.FC<ImageManagementModalProps> = ({ onClose }) 
         return (
           <div className="space-y-4">
             {images[categoryKey].map((url, index) => (
-              <div key={index} className="flex items-center gap-4">
-                <ImageUploader
-                  label={`圖片 ${index + 1}`}
-                  imageUrl={url}
-                  onImageUrlChange={(newUrl) => {
-                    const newUrls = [...images[categoryKey]];
-                    newUrls[index] = newUrl;
-                    handleImageChange(categoryKey, newUrls);
-                  }}
-                  storagePath={`homepage/${activeTab}`}
-                />
-                <button onClick={() => removeImageSlot(categoryKey, index)} className="text-red-500 hover:text-red-700 p-2 rounded-full bg-red-100">移除</button>
+              <div key={index} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm group hover:border-primary/30 transition-all">
+                <div className="flex-grow">
+                  <ImageUploader
+                    label={`圖片 ${index + 1}`}
+                    imageUrl={url}
+                    onImageUrlChange={(newUrl) => {
+                      const newUrls = [...images[categoryKey]];
+                      newUrls[index] = newUrl;
+                      handleImageChange(categoryKey, newUrls);
+                    }}
+                    storagePath={`homepage/${activeTab}`}
+                  />
+                </div>
+                <button 
+                  onClick={() => removeImageSlot(categoryKey, index)} 
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                  title="移除此圖片"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
               </div>
             ))}
             <button
               onClick={() => addImageSlot(categoryKey)}
               disabled={images[categoryKey].some(url => !url)} // Disable if any slot is empty
-              className="w-full mt-4 px-4 py-2 border border-dashed border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-200 disabled:cursor-not-allowed"
+              className="w-full mt-4 px-4 py-3 border-2 border-dashed border-gray-200 text-sm font-bold text-gray-500 rounded-xl hover:border-primary hover:text-primary hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              + 新增圖片
+              <span className="text-xl">+</span> 新增圖片欄位
             </button>
           </div>
         );
@@ -148,17 +156,62 @@ const ImageManagementModal: React.FC<ImageManagementModalProps> = ({ onClose }) 
   ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-800">編輯首頁圖片</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><XMarkIcon className="h-6 w-6" /></button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[100] p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-slide-up">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-secondary-light/30">
+          <div>
+            <h2 className="text-xl font-serif font-bold text-text-main">編輯首頁圖片</h2>
+            <p className="text-xs text-text-light mt-1">管理首頁輪播與作品集展示圖片</p>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
+          >
+            <XMarkIcon className="h-6 w-6" />
+          </button>
         </div>
-        <div className="border-b border-gray-200"><nav className="-mb-px flex space-x-8 px-6">{tabs.map(tab => (<button key={tab.key} onClick={() => setActiveTab(tab.key as Tab)} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab.key ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>{tab.label}</button>))}</nav></div>
-        <div className="p-6 flex-grow overflow-y-auto">{renderTabContent()}</div>
-        <div className="p-6 bg-gray-50 rounded-b-lg flex justify-end gap-4">
-          <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">取消</button>
-          <button onClick={handleSave} disabled={isSaving || isLoading} className="px-4 py-2 bg-pink-500 text-white font-semibold rounded-md hover:bg-pink-600 disabled:bg-gray-400">{isSaving ? '儲存中...' : '儲存變更'}</button>
+
+        {/* Tabs */}
+        <div className="border-b border-gray-100 px-6 bg-white sticky top-0 z-10">
+          <nav className="-mb-px flex space-x-8 overflow-x-auto no-scrollbar">
+            {tabs.map(tab => (
+              <button 
+                key={tab.key} 
+                onClick={() => setActiveTab(tab.key as Tab)} 
+                className={`
+                  whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-all
+                  ${activeTab === tab.key 
+                    ? 'border-primary text-primary' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+                `}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 flex-grow overflow-y-auto bg-[#FAF9F6]">
+          {renderTabContent()}
+        </div>
+
+        {/* Footer */}
+        <div className="p-5 bg-white border-t border-gray-100 flex justify-end gap-3">
+          <button 
+            onClick={onClose} 
+            className="px-5 py-2.5 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+          >
+            取消
+          </button>
+          <button 
+            onClick={handleSave} 
+            disabled={isSaving || isLoading} 
+            className="px-5 py-2.5 text-sm font-bold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? '儲存中...' : '儲存變更'}
+          </button>
         </div>
       </div>
     </div>
