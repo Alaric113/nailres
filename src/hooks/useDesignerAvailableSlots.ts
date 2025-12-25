@@ -11,7 +11,7 @@ interface AvailableSlots {
   error: string | null;
 }
 
-const SLOT_INTERVAL = 15; // Set slot interval to 15 minutes
+const SLOT_INTERVAL = 30; // Set slot interval to 15 minutes
 const BUFFER_TIME = 15;   // Set buffer time to 15 minutes
 
 /**

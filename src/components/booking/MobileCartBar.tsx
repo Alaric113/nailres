@@ -70,7 +70,7 @@ const MobileCartBar: React.FC<MobileCartBarProps> = ({ onNext }) => {
                       {cart.length}
                    </div>
                    <div className="flex flex-col">
-                      <span className="text-xs text-black font-bold">預計金額</span>
+                      <span className="text-xs text-white font-bold">預計金額</span>
                       <span className="font-bold font-serif text-lg">NT$ {getCartTotal()}</span>
                    </div>
                 </div>

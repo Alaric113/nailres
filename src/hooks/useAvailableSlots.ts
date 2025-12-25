@@ -69,7 +69,7 @@ export const useAvailableSlots = (date: string | null, serviceDuration: number |
 
         // 3. Generate all possible slots and filter out conflicts
         const slots: Date[] = [];
-        const slotInterval = 15; // Generate slots every 15 minutes
+        const slotInterval = 30; // Generate slots every 15 minutes
 
         dayTimeSlots.forEach(timeSlot => {
           const [startHour, startMinute] = timeSlot.start.split(':').map(Number);

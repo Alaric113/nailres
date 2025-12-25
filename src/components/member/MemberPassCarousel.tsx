@@ -79,12 +79,10 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
 
                 {/* Header Content Overlay */}
                 <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-10">
-                    <div>
-                         <h3 className="text-2xl font-serif font-bold text-white tracking-wide text-shadow-md">{pass.name}</h3>
-                         <p className="text-white/90 text-xs mt-1 font-medium bg-white/20 backdrop-blur-md inline-block px-2 py-0.5 rounded-full border border-white/20">
-                            效期: {pass.duration}
-                         </p>
-                    </div>
+                    <h3 className="text-2xl font-serif font-bold text-white tracking-wide text-shadow-md">{pass.name}</h3>
+                    <p className="text-white/90 shrink-0 text-xs mt-1 font-medium bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/20">
+                        效期: {pass.duration}
+                    </p>
                 </div>
             </div>
 
@@ -93,12 +91,12 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
                 {/* Pricing - Always Visible at Top of Content */}
                 <div className="mb-2 shrink-0">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">方案價格</p>
-                    <div className="space-y-2">
+                    <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                         {pass.variants && pass.variants.length > 0 ? (
                             pass.variants.map((variant, idx) => (
-                                <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                    <span className="font-bold text-gray-800 text-base">{variant.name}</span>
-                                    <div className="flex flex-col items-end">
+                                <div key={idx} className="flex-1 min-w-[120px] flex flex-col justify-center items-center bg-gray-50 p-3 rounded-xl border border-gray-100 text-center shrink-0">
+                                    <span className="font-bold text-gray-800 text-sm mb-1 w-full break-words">{variant.name}</span>
+                                    <div className="flex flex-col items-center">
                                         {variant.originalPrice !== undefined && variant.originalPrice > 0 && (
                                             <span className="text-xs text-gray-400 line-through">
                                                 ${variant.originalPrice}
@@ -109,7 +107,7 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
                                 </div>
                             ))
                         ) : (
-                            <div className="text-sm text-gray-500 py-2">暫無價格資訊</div>
+                            <div className="text-sm text-gray-500 py-2 w-full text-center">暫無價格資訊</div>
                         )}
                     </div>
                 </div>
@@ -118,10 +116,9 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
                 <div className="space-y-3 flex-1">
                     <div className="pb-2">
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">包含內容</p>
-                        <ul className="space-y-2">
+                        <ul className="flex flex-wrap gap-2">
                             {pass.contentItems.map((item, idx) => (
-                                <li key={idx} className="flex items-start text-sm text-gray-600 leading-relaxed">
-                                    <span className="mr-2 mt-1.5 w-1.5 h-1.5 rounded-full bg-[#9F9586] shrink-0"></span>
+                                <li key={idx} className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-50 text-sm text-gray-700 border border-gray-200 shadow-sm">
                                     {item}
                                 </li>
                             ))}

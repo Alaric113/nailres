@@ -24,21 +24,21 @@ const UserMemberPage = () => {
       subtitle: '查看過往服務紀錄',
       icon: ArchiveBoxIcon, 
       path: '/member/history',
-      color: 'bg-orange-50 text-orange-600'
+      color: 'bg-[#FAF9F6] text-black/70'
     },
     { 
       title: '點數兌換', 
       subtitle: '使用點數兌換優惠',
       icon: GiftIcon, 
       path: '/member/rewards',
-      color: 'bg-blue-50 text-blue-600'
+      color: 'bg-[#FAF9F6] text-black/70'
     },
     { 
       title: '季卡方案', 
       subtitle: '購買超值會員方案',
       icon: TicketIcon, 
       path: '/member/pass',
-      color: 'bg-green-50 text-green-600'
+      color: 'bg-[#FAF9F6] text-black/70'
     },
   ];
 

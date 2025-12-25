@@ -1,7 +1,7 @@
 import React from 'react';
 
 const AnnouncementBanner: React.FC = () => {
-  const announcementText = "歡迎加入 TREERING | 註冊即贈100 元禮金，單筆滿1,000元再贈送一點!!!";
+  const announcementText = "歡迎加入 TREERING | 註冊即贈50 元禮金，單筆滿1,000元再贈送一點!!!";
 
   return (
     <>
