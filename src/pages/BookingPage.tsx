@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { useBookingStore } from '../store/bookingStore'; // NEW IMPORT
+import { useBookingStore } from '../store/bookingStore'; 
+import { useGlobalSettings } from '../hooks/useGlobalSettings'; // NEW IMPORT
+import Modal from '../components/common/Modal'; // NEW IMPORT
 import ServiceSelector from '../components/booking/ServiceSelector';
 import DesignerSelector from '../components/booking/DesignerSelector';
 import TimeSlotSelector from '../components/booking/TimeSlotSelector';
@@ -44,8 +46,10 @@ const BookingPage = () => {
   
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false); // NEW STATE
   
   const { userProfile, currentUser } = useAuthStore();
+  const { settings: globalSettings } = useGlobalSettings(); // NEW HOOK
   const { cart, clearCart } = useBookingStore(); // Use Booking Store
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -97,7 +101,11 @@ const BookingPage = () => {
   }, [cart, selectedCoupon]);
 
 
-  const handleBookingSubmit = async () => {
+  // Renamed from handleBookingSubmit to processBooking for internal use
+  const processBooking = async () => {
+    // Dismiss modal if open
+    setShowConfirmModal(false);
+
     if (!currentUser) {
       showToast('您必須登入才能預約。', 'error');
       // maybe redirect to login?
@@ -243,6 +251,28 @@ const BookingPage = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // New Handler triggered by UI button
+  const handleBookingSubmit = () => {
+      if (!currentUser) {
+        showToast('您必須登入才能預約。', 'error');
+        return;
+      }
+      if (!selectedDesigner) {
+         showToast('請選擇一位設計師。', 'error');
+         return;
+      }
+      if (!selectedTime) {
+          showToast('請選擇預約時間。', 'error');
+          return;
+      }
+
+      if (globalSettings.bookingNotice && globalSettings.bookingNotice.trim()) {
+          setShowConfirmModal(true);
+      } else {
+          processBooking();
+      }
   };
 
   const nextStep = () => {
@@ -569,6 +599,41 @@ const BookingPage = () => {
         selectedDesigner={selectedDesigner}
         currentPrice={originalPrice}
       />
+      <CouponSelectorModal
+        isOpen={isCouponModalOpen}
+        onClose={() => setIsCouponModalOpen(false)}
+        onSelect={handleCouponSelect}
+        selectedServices={cart.map(item => item.service)}
+        selectedDesigner={selectedDesigner}
+        currentPrice={originalPrice}
+      />
+
+      {/* Confirmation Modal */}
+      <Modal 
+        isOpen={showConfirmModal} 
+        onClose={() => setShowConfirmModal(false)} 
+        title="預約注意事項"
+      >
+        <div className="p-1">
+            <div className="bg-orange-50 p-4 rounded-lg mb-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto">
+                {globalSettings.bookingNotice}
+            </div>
+            <div className="flex gap-3 mt-6">
+                <button 
+                    onClick={() => setShowConfirmModal(false)}
+                    className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200"
+                >
+                    取消
+                </button>
+                <button 
+                    onClick={processBooking}
+                    className="flex-1 py-3 bg-[#9F9586] text-white rounded-xl font-bold hover:bg-[#8a8175] shadow-md"
+                >
+                    同意並預約
+                </button>
+            </div>
+        </div>
+      </Modal>
     </div>
   );
 };

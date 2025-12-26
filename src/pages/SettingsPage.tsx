@@ -1,23 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { 
+  doc, 
+  updateDoc, 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  setDoc, 
+  getDoc 
+} from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import SummaryCard from '../components/admin/SummaryCard';
 import type { EnrichedUser } from '../types/user';
 import { useSearchParams } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore'; // Import useAuthStore
+import { useAuthStore } from '../store/authStore';
 import { useNotification } from '../hooks/useNotification';
-import ImageManagementModal from '../components/admin/ImageManagementModal'; // Import Modal
-import { 
-  BellAlertIcon, 
-  ClockIcon, 
-  PhotoIcon, 
-  CubeIcon, 
+
+import ImageManagementModal from '../components/admin/ImageManagementModal';
+import {
+  BellAlertIcon,
+  ClockIcon,
+  PhotoIcon,
+  CubeIcon,
   TicketIcon,
   UserGroupIcon,
   UserCircleIcon,
   ShieldCheckIcon,
-  HomeIcon
+  HomeIcon,
+  ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/outline';
 
 // Import auth linking
@@ -532,7 +543,96 @@ const NotificationSettingsView: React.FC = () => {
   );
 };
 
-// --- Main Settings Dashboard ---
+// --- Booking Settings Sub-View ---
+const BookingSettingsView: React.FC = () => {
+    const [notice, setNotice] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    // Ensure SettingsPage has ToastProvider or passthrough? SettingsPage uses 'useToast' from context? No, it imports `useNotification`. 
+    // Wait, SettingsPage doesn't import useToast. I need to add it or use message state.
+    // HoursSettingsPage uses useToast. SettingsPage has local message state in subviews. 
+    // I will use local message state for consistency with AccountSettingsView OR import useToast if available in context.
+    // BookingPage uses useToast.
+    // I'll skip useToast and use local message state like AccountSettingsView for now to avoid refactoring widely, OR I check if I can import useToast.
+    // SettingsPage doesn't import ToastContext. I'll add the import in the top chunk if I reuse it, but simpler to use local state.
+    // Actually, let's use the pattern in AccountSettingsView.
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+             try {
+                const docRef = doc(db, 'globals', 'settings');
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    setNotice(snap.data().bookingNotice || '');
+                }
+             } catch(e) {
+                 console.error(e);
+             }
+        };
+        fetchSettings();
+    }, []);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        setMessage(null);
+        try {
+            await setDoc(doc(db, 'globals', 'settings'), {
+                bookingNotice: notice
+            }, { merge: true });
+            setMessage({ type: 'success', text: '預約注意事項已儲存' });
+        } catch (e) {
+            console.error(e);
+            setMessage({ type: 'error', text: '儲存失敗' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+             <div className="mb-6">
+                 <h2 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2">
+                     <ClipboardDocumentCheckIcon className="w-6 h-6 text-purple-600" /> 預約設定
+                 </h2>
+                 <p className="text-sm text-gray-500 mt-1 ml-8">
+                     設定顧客在確認預約前看到的注意事項或條款。
+                 </p>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-sm border border-[#EFECE5] p-6 max-w-2xl">
+                 <div className="space-y-4">
+                     <div>
+                         <label className="block text-sm font-bold text-gray-700 mb-2">預約注意事項 (Confirmation Notice)</label>
+                         <p className="text-xs text-gray-500 mb-2">當顧客點擊「確認預約」時，會彈出此內容要求顧客確認。留空則不會顯示。</p>
+                         <textarea 
+                             rows={6}
+                             className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
+                             placeholder="例如：請勿遲到超過10分鐘，取消請提前24小時告知..."
+                             value={notice}
+                             onChange={(e) => setNotice(e.target.value)}
+                         />
+                     </div>
+
+                     {message && (
+                        <div className={`p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                            {message.text}
+                        </div>
+                     )}
+
+                     <div className="flex justify-end pt-4">
+                         <button 
+                             onClick={handleSave}
+                             disabled={isSaving}
+                             className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors font-medium text-sm"
+                         >
+                             {isSaving ? '儲存中...' : '儲存設定'}
+                         </button>
+                     </div>
+                 </div>
+            </div>
+        </div>
+    );
+};
 
 import SeasonPassSettings from '../components/admin/settings/SeasonPassSettings';
 
@@ -629,6 +729,14 @@ const SettingsPage: React.FC = () => {
       subtext: "設定優惠券與促銷活動",
       roles: ['admin', 'manager', 'designer']
     },
+    { 
+      title: "預約設定", 
+      icon: ClipboardDocumentCheckIcon, 
+      color: "bg-purple-600", 
+      subtext: "預約注意事項與條款", 
+      onClick: () => setSearchParams({ view: 'booking' }),
+      roles: ['admin', 'manager']
+    },
   ];
 
   const filteredCards = allSettingsCards.filter(card => 
@@ -648,6 +756,14 @@ const SettingsPage: React.FC = () => {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <AccountSettingsView />
+      </div>
+    );
+  }
+
+  if (currentView === 'booking') {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <BookingSettingsView />
       </div>
     );
   }

@@ -4,10 +4,11 @@ import { db } from '../lib/firebase';
 
 export interface GlobalSettings {
   bookingDeadline: Date | null;
+  bookingNotice?: string;
 }
 
 export const useGlobalSettings = () => {
-  const [settings, setSettings] = useState<GlobalSettings>({ bookingDeadline: null });
+  const [settings, setSettings] = useState<GlobalSettings>({ bookingDeadline: null, bookingNotice: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,6 +21,7 @@ export const useGlobalSettings = () => {
           const data = docSnap.data();
           setSettings({
             bookingDeadline: data.bookingDeadline ? data.bookingDeadline.toDate() : null,
+            bookingNotice: data.bookingNotice || '',
           });
         }
       } catch (err) {
