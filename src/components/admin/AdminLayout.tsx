@@ -12,7 +12,8 @@ import {
   ClockIcon,
   TicketIcon,
   ArrowRightOnRectangleIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import AdminMobileHeader from './AdminMobileHeader';
 import AdminBottomNav from './AdminBottomNav';
@@ -135,6 +136,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
                     返回前台
                   </Link>
                   <button
+                    onClick={() => window.location.reload()}
+                    className="w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                  >
+                    <ArrowPathIcon className="mr-3 flex-shrink-0 h-6 w-6 text-gray-400 group-hover:text-gray-500" />
+                    更新網頁
+                  </button>
+                  <button
                     onClick={async () => {
                       try {
                         await logout();
@@ -158,8 +166,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
         <AdminMobileHeader pageTitle={currentTitle} onBack={backAction} />
 
         {/* Page Title Header (Desktop) */}
-        <div className="hidden lg:block border-b border-gray-200 bg-white px-4 py-4 sm:px-6 lg:px-8">
+        <div className="hidden lg:flex justify-between items-center border-b border-gray-200 bg-white px-4 py-4 sm:px-6 lg:px-8">
           <h1 className="text-xl font-serif font-bold leading-7 text-gray-900">{currentTitle}</h1>
+          <div id="admin-header-actions" className="flex items-center gap-2"></div>
         </div>
 
         {/* Main Content Area */}

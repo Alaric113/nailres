@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { format, isToday } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
@@ -217,19 +218,45 @@ const OrderManagementPage = () => {
                 
                 {/* Designer Filter (Admin/Manager Only) */}
                 {(userProfile?.role === 'admin' || userProfile?.role === 'manager') && (
-                    <div className="flex items-center gap-2">
-                        <UserCircleIcon className="w-5 h-5 text-gray-400" />
-                        <select
-                            value={selectedDesignerFilter}
-                            onChange={(e) => setSelectedDesignerFilter(e.target.value)}
-                            className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block p-2"
-                        >
-                            <option value="all">所有設計師</option>
-                            {allDesigners.map(d => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <>
+                        {/* Mobile: Portal to Mobile Header */}
+                        {document.getElementById('admin-mobile-header-actions') && createPortal(
+                             <div className="flex items-center">
+                                <select
+                                    value={selectedDesignerFilter}
+                                    onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                                    // Remove background/border to blend with header, or keep minimal
+                                    className="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 p-0 pr-6 dir-rtl"
+                                    style={{ direction: 'rtl' }} // Trick to align text if needed, or just keep standard
+                                >
+                                    <option value="all">篩選</option>
+                                    {allDesigners.map(d => (
+                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                    ))}
+                                </select>
+                                <UserCircleIcon className="w-5 h-5 text-gray-400 -ml-5 pointer-events-none" />
+                            </div>,
+                            document.getElementById('admin-mobile-header-actions')!
+                        )}
+
+                        {/* Desktop: Portal to Header */}
+                        {document.getElementById('admin-header-actions') && createPortal(
+                            <div className="flex items-center gap-2">
+                                <UserCircleIcon className="w-5 h-5 text-gray-400" />
+                                <select
+                                    value={selectedDesignerFilter}
+                                    onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                                    className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block p-2 min-w-[150px]"
+                                >
+                                    <option value="all">所有設計師</option>
+                                    {allDesigners.map(d => (
+                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                    ))}
+                                </select>
+                            </div>,
+                            document.getElementById('admin-header-actions')!
+                        )}
+                    </>
                 )}
             </div>
             

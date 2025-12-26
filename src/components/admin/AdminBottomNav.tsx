@@ -91,11 +91,37 @@ const AdminBottomNav: React.FC<AdminBottomNavProps> = () => {
           
           const Icon = isActive ? item.activeIcon : item.icon;
 
+          // Long press logic for Settings
+          const isSettings = item.name === '設定';
+          const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+             if (!isSettings) return;
+             // e.preventDefault(); // Don't prevent default immediately allows click
+             const timer = setTimeout(() => {
+                 if (window.confirm('是否要在背景強制重新整理網頁？')) {
+                     window.location.reload();
+                 }
+             }, 1000); // 1 second long press
+             (window as any)._longPressTimer = timer;
+          };
+
+          const handleTouchEnd = () => {
+              if (!isSettings) return;
+              if ((window as any)._longPressTimer) {
+                  clearTimeout((window as any)._longPressTimer);
+                  (window as any)._longPressTimer = null;
+              }
+          };
+
           return (
             <Link
               key={item.name}
               to={item.path}
-              className="relative flex flex-col items-center justify-center w-full h-full space-y-1"
+              className="relative flex flex-col items-center justify-center w-full h-full space-y-1 select-none"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              onMouseDown={handleTouchStart}
+              onMouseUp={handleTouchEnd}
+              onMouseLeave={handleTouchEnd}
             >
               {isActive && (
                 <motion.div
