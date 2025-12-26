@@ -56,7 +56,7 @@ const BookingSettings: React.FC = () => {
                          <label className="block text-sm font-bold text-gray-700 mb-2">預約注意事項 (Confirmation Notice)</label>
                          <p className="text-xs text-gray-500 mb-2">當顧客點擊「確認預約」時，會彈出此內容要求顧客確認。留空則不會顯示。</p>
                          <textarea 
-                             rows={6}
+                             rows={8}
                              className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
                              placeholder="例如：請勿遲到超過10分鐘，取消請提前24小時告知..."
                              value={notice}
