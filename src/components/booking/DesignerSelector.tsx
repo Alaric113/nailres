@@ -44,7 +44,7 @@ const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, s
   return (
     <div className="space-y-4 p-4">
       <h3 className="font-serif font-bold text-gray-900 text-xl text-center mb-6">選擇設計師</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1  gap-4">
         <AnimatePresence>
           {designers.map(designer => (
             <motion.div
