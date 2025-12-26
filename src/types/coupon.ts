@@ -23,6 +23,8 @@ export interface Coupon {
   createdAt: Timestamp | FieldValue;
 }
 
+export type CouponDocument = Omit<Coupon, 'id'>;
+
 
 export interface UserCoupon {
   id: string; // The specific user_coupon instance ID

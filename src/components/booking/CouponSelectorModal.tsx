@@ -58,7 +58,7 @@ const CouponSelectorModal = ({ isOpen, onClose, onSelect, selectedServices, sele
     });
   }, [userCoupons, selectedServices, currentPrice]);
 
-  const getDiscountText = (coupon: Coupon) => {
+  const getDiscountText = (coupon: { type: Coupon['type']; value: number }) => {
     return coupon.type === 'fixed' ? `$${coupon.value} 折扣` : `${coupon.value}% 折扣`;
   };
 
