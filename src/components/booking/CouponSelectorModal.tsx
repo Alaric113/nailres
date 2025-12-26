@@ -4,6 +4,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import { useUserCoupons } from '../../hooks/useUserCoupons';
 import type { Coupon } from '../../types/coupon';
 import type { Service } from '../../types/service';
+import type { Designer } from '../../types/designer';
 import { format } from 'date-fns';
 
 interface CouponSelectorModalProps {
@@ -11,10 +12,11 @@ interface CouponSelectorModalProps {
   onClose: () => void;
   onSelect: (coupon: Coupon | null) => void;
   selectedServices: Service[];
+  selectedDesigner: Designer | null;
   currentPrice: number;
 }
 
-const CouponSelectorModal = ({ isOpen, onClose, onSelect, selectedServices, currentPrice }: CouponSelectorModalProps) => {
+const CouponSelectorModal = ({ isOpen, onClose, onSelect, selectedServices, selectedDesigner, currentPrice }: CouponSelectorModalProps) => {
   const { userCoupons, isLoading, error } = useUserCoupons();
 
   const availableCoupons = useMemo(() => {
@@ -48,6 +50,8 @@ const CouponSelectorModal = ({ isOpen, onClose, onSelect, selectedServices, curr
           return selectedServices.some(service => scopeIds.includes(service.category));
         case 'service':
           return selectedServices.some(service => scopeIds.includes(service.id));
+        case 'designer':
+          return selectedDesigner ? scopeIds.includes(selectedDesigner.id) : false;
         default:
           return true; // Treat unknown scope as 'all' to avoid hiding valid coupons
       }

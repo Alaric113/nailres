@@ -1,7 +1,7 @@
 import type { Timestamp, FieldValue } from 'firebase/firestore';
 
 export type CouponType = 'fixed' | 'percentage';
-export type CouponScope = 'all' | 'category' | 'service';
+export type CouponScope = 'all' | 'category' | 'service' | 'designer';
 
 export interface Coupon {
   id: string;

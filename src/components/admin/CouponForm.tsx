@@ -19,6 +19,7 @@ import {
 import { useServices } from '../../hooks/useServices';
 import { useServiceCategories } from '../../hooks/useServiceCategories';
 import type { Coupon, CouponDocument, CouponScope, CouponType } from '../../types/coupon';
+import { useDesigners } from '../../hooks/useDesigners';
 
 interface CouponFormProps {
   coupon?: Coupon | null;
@@ -102,6 +103,7 @@ const CouponForm = ({ coupon, onClose, onSave }: CouponFormProps) => {
 
   const { services } = useServices();
   const { categories } = useServiceCategories();
+  const { designers } = useDesigners();
 
   useEffect(() => {
     if (coupon) {
@@ -184,6 +186,7 @@ const CouponForm = ({ coupon, onClose, onSave }: CouponFormProps) => {
   const scopeOptions = useMemo(() => {
     if (formData.scopeType === 'category') return categories.map(c => ({ value: c.name, label: c.name }));
     if (formData.scopeType === 'service') return services.map(s => ({ value: s.id, label: s.name }));
+    if (formData.scopeType === 'designer') return designers.map(d => ({ value: d.id, label: d.name }));
     return [];
   }, [formData.scopeType, categories, services]);
 
@@ -280,6 +283,7 @@ const CouponForm = ({ coupon, onClose, onSave }: CouponFormProps) => {
             <option value="all">全部服務</option>
             <option value="category">指定分類</option>
             <option value="service">指定服務</option>
+            <option value="designer">指定設計師</option>
           </select>
         </div>
         {formData.scopeType !== 'all' && (

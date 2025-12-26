@@ -566,6 +566,7 @@ const BookingPage = () => {
         onClose={() => setIsCouponModalOpen(false)}
         onSelect={handleCouponSelect}
         selectedServices={cart.map(item => item.service)}
+        selectedDesigner={selectedDesigner}
         currentPrice={originalPrice}
       />
     </div>
