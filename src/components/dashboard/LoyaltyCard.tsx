@@ -55,7 +55,7 @@ const LoyaltyCard = () => {
             <div className="text-sm text-white font-medium mb-1">目前累積點數</div>
             {/* Description moved here */}
             <p className="text-white/80 font-light text-xs sm:text-xs  mt-1"> 
-              每消費 $1,000 累積 1 點，可折抵消費
+              每消費 $1,000 累積 1 點
             </p>
             <div className="flex items-baseline gap-2">
               <span className="text-5xl sm:text-6xl font-serif font-bold leading-none">
@@ -67,7 +67,7 @@ const LoyaltyCard = () => {
           </div>
           
           <div className="flex items-end"> {/* Only "查看兌換紀錄" button here */}
-            <button className="flex items-center gap-1 text-white hover:text-white/80 transition-colors font-medium group text-xs">
+            <button className="flex hidden items-center gap-1 text-white hover:text-white/80 transition-colors font-medium group text-xs">
               查看兌換紀錄
               <ChevronRightIcon className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </button>

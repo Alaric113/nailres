@@ -16,6 +16,7 @@ import UserMemberPage from './pages/UserMemberPage';
 import MemberHistoryPage from './pages/member/MemberHistoryPage';
 import MemberRewardsPage from './pages/member/MemberRewardsPage';
 import MemberPassPage from './pages/member/MemberPassPage';
+import MemberCouponsPage from './pages/member/MemberCouponsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ServiceManagement from './pages/ServiceManagement';
 import CustomerListPage from './pages/CustomerListPage';
@@ -96,6 +97,7 @@ const routes = [
                   { path: 'history', element: <MemberHistoryPage /> },
                   { path: 'rewards', element: <MemberRewardsPage /> },
                   { path: 'pass', element: <MemberPassPage /> },
+                  { path: 'coupons', element: <MemberCouponsPage /> },
                 ]
               },
             ],

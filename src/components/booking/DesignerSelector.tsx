@@ -80,9 +80,11 @@ const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, s
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-lg text-gray-900 truncate">{designer.name}</h4>
-                  {designer.title && <p className="text-sm text-gray-500 truncate">{designer.title}</p>}
-                  {designer.bio && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{designer.bio}</p>}
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-lg text-gray-900 truncate">{designer.name}</h4>
+                    {designer.title && <p className="text-sm text-gray-500 truncate">{designer.title}</p>}
+                  </div>
+                  {designer.bio && <p className="text-xs text-gray-400 mt-1 line-clamp-3">{designer.bio}</p>}
                 </div>
               </button>
             </motion.div>

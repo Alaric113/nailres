@@ -11,7 +11,7 @@ import CouponSelectorModal from '../components/booking/CouponSelectorModal';
 import type { Coupon } from '../types/coupon';
 import type { Designer } from '../types/designer';
 import type { BookingStatus } from '../types/booking'; // NEW IMPORT
-import { collection, serverTimestamp, writeBatch, doc } from 'firebase/firestore'; // NEW IMPORT
+import { collection, serverTimestamp, writeBatch, doc, increment } from 'firebase/firestore'; // NEW IMPORT
 import { db } from '../lib/firebase'; // NEW IMPORT
 import { useToast } from '../context/ToastContext'; // NEW IMPORT
 import { 
@@ -172,13 +172,25 @@ const BookingPage = () => {
         notes: notes,
       });
 
-      // 2. If a coupon was used, update its usage count
+      // 2. If a coupon was used, update its usage count and mark as used
       if (selectedCoupon) {
-        const couponRef = doc(db, 'coupons', selectedCoupon.id);
-        batch.update(couponRef, { usageCount: selectedCoupon.usageCount + 1 });
+        // selectedCoupon is UserCoupon, so cast it to access specific fields
+        const userCoupon = selectedCoupon as any;
 
-        const userCouponRef = doc(db, 'users', currentUser.uid, 'userCoupons', selectedCoupon.id);
-        batch.set(userCouponRef, { isUsed: true, usedAt: serverTimestamp() }, { merge: true });
+        // Update Template Usage Count (if linked)
+        if (userCoupon.couponId) {
+            const couponRef = doc(db, 'coupons', userCoupon.couponId);
+            batch.update(couponRef, { usageCount: increment(1) });
+        }
+
+        // Update User Coupon Status in ROOT collection
+        const userCouponRef = doc(db, 'user_coupons', selectedCoupon.id);
+        batch.update(userCouponRef, { 
+            status: 'used', 
+            isUsed: true, 
+            redeemedAt: serverTimestamp(),
+            usedAt: serverTimestamp() 
+        });
       }
 
       await batch.commit();

@@ -23,4 +23,22 @@ export interface Coupon {
   createdAt: Timestamp | FieldValue;
 }
 
-export type CouponDocument = Omit<Coupon, 'id'>;
+
+export interface UserCoupon {
+  id: string; // The specific user_coupon instance ID
+  couponId: string; // The template ID
+  code: string; // Unique code (e.g. VIP-1234)
+  title: string;
+  status: 'active' | 'used' | 'expired';
+  value: number;
+  type: CouponType;
+  minSpend: number;
+  scopeType: CouponScope;
+  scopeIds: string[];
+  details: string;
+  validFrom: Timestamp;
+  validUntil: Timestamp;
+  createdAt: Timestamp;
+  redeemedAt?: Timestamp; // When it was used
+  redemptionSource?: string;
+}

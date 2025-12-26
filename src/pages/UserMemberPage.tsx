@@ -27,6 +27,13 @@ const UserMemberPage = () => {
       color: 'bg-[#FAF9F6] text-black/70'
     },
     { 
+      title: '我的優惠券', 
+      subtitle: '查看與領取優惠',
+      icon: TicketIcon, 
+      path: '/member/coupons',
+      color: 'bg-[#FAF9F6] text-black/70'
+    },
+    { 
       title: '點數兌換', 
       subtitle: '使用點數兌換優惠',
       icon: GiftIcon, 

@@ -1,62 +1,58 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
-import type { Coupon } from '../types/coupon';
+import type { UserCoupon } from '../types/coupon';
 
 export const useUserCoupons = () => {
-  const [userCoupons, setUserCoupons] = useState<Coupon[]>([]);
+  const { currentUser } = useAuthStore();
+  const [userCoupons, setUserCoupons] = useState<UserCoupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { currentUser } = useAuthStore();
 
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser?.uid) {
+      setUserCoupons([]);
       setIsLoading(false);
       return;
     }
 
-    const fetchUserCoupons = async () => {
-      setIsLoading(true);
+    setIsLoading(true);
+
+    // Note: Querying a root collection with `where` might require an index if combined with orderBy.
+    // For now, we fetch first then sort in memory to avoid blocking development with index creation requirements.
+    const q = query(
+      collection(db, 'user_coupons'),
+      where('userId', '==', currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const coupons = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as UserCoupon[];
+
+      // Sort in memory: Active first, then by Expiry closest first?
+      // Or just by CreatedAt desc?
+      // Let's sort by Status (Active -> Used -> Expired) then by ValidUntil?
+      // Let's just sort by CreatedAt desc for raw list, filtering handles UI.
+      coupons.sort((a, b) => {
+        // Sort by createdAt desc
+        const aTime = a.createdAt?.seconds || 0;
+        const bTime = b.createdAt?.seconds || 0;
+        return bTime - aTime;
+      });
+
+      setUserCoupons(coupons);
+      setIsLoading(false);
       setError(null);
-      try {
-        // 1. Get user's coupon references
-        const userCouponsRef = collection(db, 'users', currentUser.uid, 'userCoupons');
-        const userCouponsQuery = query(userCouponsRef, where('isUsed', '==', false));
-        const userCouponsSnap = await getDocs(userCouponsQuery);
-        const couponIds = userCouponsSnap.docs.map(doc => doc.data().couponId as string);
+    }, (err) => {
+      console.error("Error fetching user coupons:", err);
+      setError("無法載入優惠券");
+      setIsLoading(false);
+    });
 
-        if (couponIds.length === 0) {
-          setUserCoupons([]);
-          setIsLoading(false);
-          return;
-        }
-
-        // 2. Fetch full coupon details for valid coupons
-        const couponPromises = couponIds.map(id => getDoc(doc(db, 'coupons', id)));
-        const couponDocs = await Promise.all(couponPromises);
-
-        const now = Timestamp.now();
-        const validCoupons = couponDocs
-          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Coupon))
-          .filter(coupon => 
-            coupon.isActive &&
-            coupon.validFrom.seconds <= now.seconds &&
-            coupon.validUntil.seconds >= now.seconds &&
-            // Add check for usage limit
-            (coupon.usageLimit === -1 || coupon.usageCount < coupon.usageLimit)
-          );
-
-        setUserCoupons(validCoupons);
-      } catch (err) {
-        console.error("Error fetching user coupons:", err);
-        setError('讀取您的優惠券失敗。');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserCoupons();
+    return () => unsubscribe();
   }, [currentUser]);
 
   return { userCoupons, isLoading, error };

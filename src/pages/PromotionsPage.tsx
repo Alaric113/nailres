@@ -3,13 +3,15 @@ import Modal from '../components/common/Modal';
 import CouponForm from '../components/admin/CouponForm';
 import LoyaltySettings from '../components/admin/LoyaltySettings';
 import CouponDistribution from '../components/admin/CouponDistribution';
-import CouponCard from '../components/admin/CouponCard'; // New import
-import { useCoupons } from '../hooks/useCoupons'; // New import
-import LoadingSpinner from '../components/common/LoadingSpinner'; // New import
+import CouponCard from '../components/admin/CouponCard';
+import RedemptionSettings from '../components/admin/RedemptionSettings'; // New import
+import { useCoupons } from '../hooks/useCoupons';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 import type { Coupon } from '../types/coupon';
 
-type Tab = 'coupons' | 'distribution' | 'loyalty';
+type Tab = 'coupons' | 'distribution' | 'loyalty' | 'redemption';
 
+// Main Promotions Page Component
 const PromotionsPage = () => {
   const [activeTab, setActiveTab] = useState<Tab>('coupons');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,6 +47,9 @@ const PromotionsPage = () => {
             <button onClick={() => setActiveTab('loyalty')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'loyalty' ? 'border-primary text-primary font-bold' : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'}`}>
               集點卡設定
             </button>
+            <button onClick={() => setActiveTab('redemption')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'redemption' ? 'border-primary text-primary font-bold' : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'}`}>
+              兌換設定
+            </button>
           </nav>
         </div>
 
@@ -76,6 +81,9 @@ const PromotionsPage = () => {
         </div>}
         {activeTab === 'loyalty' && <div className="bg-white p-6 rounded-xl shadow-sm border border-secondary-dark/50">
           <LoyaltySettings />
+        </div>}
+        {activeTab === 'redemption' && <div className="bg-white p-6 rounded-xl shadow-sm border border-secondary-dark/50">
+          <RedemptionSettings />
         </div>}
       </main>
 

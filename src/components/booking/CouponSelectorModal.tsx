@@ -18,21 +18,38 @@ const CouponSelectorModal = ({ isOpen, onClose, onSelect, selectedServices, curr
   const { userCoupons, isLoading, error } = useUserCoupons();
 
   const availableCoupons = useMemo(() => {
+    const now = new Date();
     return userCoupons.filter(coupon => {
-      // Check minimum spend
-      if (currentPrice < coupon.minSpend) {
+      // 1. Audit Status & Expiry
+      // Robust check for legacy data (which might use isUsed boolean)
+      const isUsed = coupon.status === 'used' || (coupon as any).isUsed === true;
+      if (isUsed) return false;
+      
+      const isActive = coupon.status === 'active' || (!coupon.status && !(coupon as any).isUsed);
+      if (!isActive) return false;
+
+      // Check expiry
+      if (coupon.validUntil && coupon.validUntil.toDate() < now) return false;
+
+      // 2. Check minimum spend
+      if (currentPrice < (coupon.minSpend || 0)) {
         return false;
       }
-      // Check service scope
-      switch (coupon.scopeType) {
+
+      // 3. Check service scope
+      // Default to 'all' if scopeType is missing (legacy support)
+      const scopeType = coupon.scopeType || 'all';
+      const scopeIds = coupon.scopeIds || [];
+
+      switch (scopeType) {
         case 'all':
           return true;
         case 'category':
-          return selectedServices.some(service => coupon.scopeIds.includes(service.category));
+          return selectedServices.some(service => scopeIds.includes(service.category));
         case 'service':
-          return selectedServices.some(service => coupon.scopeIds.includes(service.id));
+          return selectedServices.some(service => scopeIds.includes(service.id));
         default:
-          return false;
+          return true; // Treat unknown scope as 'all' to avoid hiding valid coupons
       }
     });
   }, [userCoupons, selectedServices, currentPrice]);

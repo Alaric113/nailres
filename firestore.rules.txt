@@ -183,5 +183,38 @@ service cloud.firestore {
     match /feedback/{feedbackId}/{document=**} {
       allow read, write: if isStaff();
     }
+
+    // =============================================
+    //           兌換功能規則 (Redemption Rules)
+    // =============================================
+
+    // 兌換項目 (由管理員設定，用戶讀取)
+    match /redemption_items/{itemId} {
+      allow read: if true;
+      allow write: if canAdminAllDesigners();
+    }
+
+    // 點數交易紀錄
+    match /point_transactions/{txId} {
+      // 員工可讀取所有；用戶可讀取自己的
+      allow read: if isStaff() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // 用戶兌換時建立交易紀錄 (必須標記為自己的)
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // 不允許修改或刪除
+      allow update, delete: if false; 
+    }
+
+    // 用戶優惠券 (Root Level) - 用於兌換系統
+    match /user_coupons/{docId} {
+      // 員工查看所有；用戶查看自己的
+      allow list: if isStaff() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow get: if isStaff() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      
+      // 用戶兌換時建立優惠券
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // 用戶可更新狀態 (例如使用優惠券)；員工也可更新
+      allow update: if isStaff() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
   }
 }
