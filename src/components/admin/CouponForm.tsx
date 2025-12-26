@@ -93,7 +93,7 @@ const CouponForm = ({ coupon, onClose, onSave }: CouponFormProps) => {
   const [formData, setFormData] = useState({
     code: '', title: '', details: '', rules: '', type: 'fixed' as CouponType,
     value: 0, minSpend: 0, scopeType: 'all' as CouponScope, scopeIds: [] as string[],
-    usageLimit: 1, isActive: true, isNewUserCoupon: false,
+    usageLimit: 1, userLimit: 1, isActive: true, isClaimable: true, isNewUserCoupon: false,
   });
   const [validFrom, setValidFrom] = useState<Date | undefined>();
   const [validUntil, setValidUntil] = useState<Date | undefined>();
@@ -111,7 +111,7 @@ const CouponForm = ({ coupon, onClose, onSave }: CouponFormProps) => {
         code: coupon.code, title: coupon.title, details: coupon.details, rules: coupon.rules,
         type: coupon.type, value: coupon.value, minSpend: coupon.minSpend,
         scopeType: coupon.scopeType, scopeIds: coupon.scopeIds, usageLimit: coupon.usageLimit, 
-        isActive: coupon.isActive, isNewUserCoupon: !!coupon.isNewUserCoupon,
+        userLimit: coupon.userLimit ?? 1, isActive: coupon.isActive, isClaimable: coupon.isClaimable ?? true, isNewUserCoupon: !!coupon.isNewUserCoupon,
       });
       setValidFrom(coupon.validFrom.toDate());
       setValidUntil(coupon.validUntil.toDate());
@@ -121,7 +121,7 @@ const CouponForm = ({ coupon, onClose, onSave }: CouponFormProps) => {
       setFormData({
         code: '', title: '', details: '', rules: '', type: 'fixed' as CouponType,
         value: 0, minSpend: 0, scopeType: 'all' as CouponScope, scopeIds: [] as string[],
-        usageLimit: 1, isActive: true, isNewUserCoupon: false,
+        usageLimit: 1, userLimit: 1, isActive: true, isClaimable: true, isNewUserCoupon: false,
       });
       setValidFrom(undefined);
       setValidUntil(undefined);
@@ -159,6 +159,8 @@ const CouponForm = ({ coupon, onClose, onSave }: CouponFormProps) => {
         value: Number(formData.value),
         minSpend: Number(formData.minSpend),
         usageLimit: isUnlimited ? -1 : Number(formData.usageLimit),
+        userLimit: Number(formData.userLimit),
+        isClaimable: formData.isClaimable,
         validFrom: Timestamp.fromDate(validFrom),
         validUntil: Timestamp.fromDate(validUntil),
       };
@@ -325,28 +327,42 @@ const CouponForm = ({ coupon, onClose, onSave }: CouponFormProps) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div>
-          <label htmlFor="usageLimit" className="block text-sm font-medium text-gray-700 mb-1">總使用次數限制</label>
-          <input 
-            type="number" 
-            id="usageLimit" 
-            value={isUnlimited ? '' : formData.usageLimit} 
-            onChange={e => setFormData(p => ({...p, usageLimit: Number(e.target.value)}))} 
-            min="1" 
-            disabled={isUnlimited} 
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#9F9586]/50 focus:border-transparent transition-shadow sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" 
-          />
-          <div className="flex items-center mt-2">
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="usageLimit" className="block text-sm font-medium text-gray-700 mb-1">總使用次數限制 (總發行量)</label>
             <input 
-                id="isUnlimited" 
-                type="checkbox" 
-                checked={isUnlimited} 
-                onChange={(e) => setIsUnlimited(e.target.checked)} 
-                className="h-4 w-4 text-[#9F9586] focus:ring-[#9F9586] border-gray-300 rounded cursor-pointer" 
+              type="number" 
+              id="usageLimit" 
+              value={isUnlimited ? '' : formData.usageLimit} 
+              onChange={e => setFormData(p => ({...p, usageLimit: Number(e.target.value)}))} 
+              min="1" 
+              disabled={isUnlimited} 
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#9F9586]/50 focus:border-transparent transition-shadow sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" 
             />
-            <label htmlFor="isUnlimited" className="ml-2 block text-sm font-medium text-gray-900 cursor-pointer">不限總使用次數</label>
+            <div className="flex items-center mt-2">
+              <input 
+                  id="isUnlimited" 
+                  type="checkbox" 
+                  checked={isUnlimited} 
+                  onChange={(e) => setIsUnlimited(e.target.checked)} 
+                  className="h-4 w-4 text-[#9F9586] focus:ring-[#9F9586] border-gray-300 rounded cursor-pointer" 
+              />
+              <label htmlFor="isUnlimited" className="ml-2 block text-sm font-medium text-gray-900 cursor-pointer">不限總使用次數</label>
+            </div>
+          </div>
+          <div>
+             <label htmlFor="userLimit" className="block text-sm font-medium text-gray-700 mb-1">每人限領次數</label>
+             <input 
+               type="number" 
+               id="userLimit" 
+               value={formData.userLimit} 
+               onChange={e => setFormData(p => ({...p, userLimit: Number(e.target.value)}))} 
+               min="1" 
+               className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#9F9586]/50 focus:border-transparent transition-shadow sm:text-sm" 
+             />
           </div>
         </div>
+
         <div className="flex flex-col justify-end pb-1 gap-4">
             <div className="flex items-center">
               <input 
@@ -357,6 +373,16 @@ const CouponForm = ({ coupon, onClose, onSave }: CouponFormProps) => {
                 className="h-4 w-4 text-[#9F9586] focus:ring-[#9F9586] border-gray-300 rounded cursor-pointer" 
               />
               <label htmlFor="isNewUserCoupon" className="ml-2 block text-sm font-medium text-gray-900 cursor-pointer">設為新人專屬券</label>
+            </div>
+            <div className="flex items-center">
+              <input 
+                id="isClaimable" 
+                type="checkbox" 
+                checked={formData.isClaimable} 
+                onChange={e => setFormData(p => ({...p, isClaimable: e.target.checked}))} 
+                className="h-4 w-4 text-[#9F9586] focus:ring-[#9F9586] border-gray-300 rounded cursor-pointer" 
+              />
+              <label htmlFor="isClaimable" className="ml-2 block text-sm font-medium text-gray-900 cursor-pointer">開放輸入代碼領取</label>
             </div>
             <div className="flex items-center">
               <input 

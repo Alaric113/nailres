@@ -17,8 +17,10 @@ export interface Coupon {
   validFrom: Timestamp;
   validUntil: Timestamp;
   usageLimit: number;
+  userLimit: number;
   usageCount: number;
   isActive: boolean;
+  isClaimable: boolean;
   isNewUserCoupon?: boolean;
   createdAt: Timestamp | FieldValue;
 }

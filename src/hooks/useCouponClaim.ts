@@ -32,8 +32,7 @@ export const useCouponClaim = () => {
         setError(null);
 
         try {
-            // Standard Pattern:
-            // 1. Query to find the document ID(s) needed.
+            // 1. Find Coupon by Code
             const couponsRef = collection(db, 'coupons');
             const q = query(couponsRef, where('code', '==', code.trim()));
             const querySnapshot = await getDocs(q);
@@ -42,9 +41,29 @@ export const useCouponClaim = () => {
                 throw new Error("無效的優惠碼");
             }
 
-            // Assume code is unique, take first match
             const templateDoc = querySnapshot.docs[0];
             const templateId = templateDoc.id;
+            const templateData = templateDoc.data() as Coupon;
+
+            // 2. Check isClaimable
+            if (templateData.isClaimable === false) {
+                throw new Error("此優惠券無法通過代碼領取");
+            }
+
+            // 3. Check User Usage Limit
+            // Note: This check is outside transaction for query simplicity. 
+            // In high concurrency, a user might claim twice, but low risk for this app.
+            const userLimit = templateData.userLimit ?? 1;
+            const userCouponsQuery = query(
+                collection(db, 'user_coupons'),
+                where('userId', '==', currentUser.uid),
+                where('couponId', '==', templateId)
+            );
+            const userClaimsSnapshot = await getDocs(userCouponsQuery);
+
+            if (userClaimsSnapshot.size >= userLimit) {
+                throw new Error(`每人限領 ${userLimit} 次`);
+            }
 
             await runTransaction(db, async (transaction) => {
                 const couponRef = doc(db, 'coupons', templateId);
@@ -65,17 +84,8 @@ export const useCouponClaim = () => {
                     throw new Error("此優惠券已達兌換上限");
                 }
 
-                // Check if user already claimed?
-                // This requires a query on `user_coupons` for this userId + couponId.
-                // Doing queries inside transaction is tricky. 
-                // For simplicity/performance, we might skip strict duplicate check inside transaction 
-                // OR we fetch user's existing coupons before transaction.
-                // Let's trust client UI or non-transactional check for duplicate claim prevention to avoid complexity,
-                // OR duplicate check outside.
-
                 // CREATE user_coupon
                 const newRef = doc(collection(db, 'user_coupons'));
-                // Use random suffix for unique instance code
                 const uniqueSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
 
                 transaction.set(newRef, {
@@ -85,7 +95,8 @@ export const useCouponClaim = () => {
                     title: data.title,
                     status: 'active',
                     createdAt: now,
-                    // Inherit validity from template
+                    updatedAt: now,
+                    // Inherit schema
                     validFrom: data.validFrom,
                     validUntil: data.validUntil,
                     value: data.value,

@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Modal from '../common/Modal';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { useUserCoupons } from '../../hooks/useUserCoupons';
+import { useCouponClaim } from '../../hooks/useCouponClaim';
 import type { Coupon, UserCoupon } from '../../types/coupon';
 import type { Service } from '../../types/service';
 import type { Designer } from '../../types/designer';
@@ -18,6 +19,19 @@ interface CouponSelectorModalProps {
 
 const CouponSelectorModal = ({ isOpen, onClose, onSelect, selectedServices, selectedDesigner, currentPrice }: CouponSelectorModalProps) => {
   const { userCoupons, isLoading, error } = useUserCoupons();
+  const { claimCoupon, isClaiming, error: claimError } = useCouponClaim();
+  const [claimCode, setClaimCode] = useState('');
+  const [localMessage, setLocalMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+
+  const handleClaim = async () => {
+    if (!claimCode.trim()) return;
+    setLocalMessage(null);
+    const success = await claimCoupon(claimCode);
+    if (success) {
+      setLocalMessage({ type: 'success', text: '領取成功！' });
+      setClaimCode('');
+    }
+  };
 
   const availableCoupons = useMemo(() => {
     const now = new Date();
@@ -69,6 +83,29 @@ const CouponSelectorModal = ({ isOpen, onClose, onSelect, selectedServices, sele
         {error && <p className="text-red-500 text-center p-4">{error}</p>}
         {!isLoading && !error && (
           <div className="space-y-3">
+            <div className="flex gap-2 mb-4 p-2 bg-gray-50 rounded-lg">
+               <input 
+                 type="text" 
+                 placeholder="輸入優惠碼領取" 
+                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300 text-sm"
+                 value={claimCode}
+                 onChange={e => setClaimCode(e.target.value.toUpperCase())}
+               />
+               <button 
+                 onClick={handleClaim}
+                 disabled={isClaiming || !claimCode.trim()}
+                 className="px-4 py-2 bg-[#9F9586] text-white text-sm rounded-lg disabled:opacity-50 hover:bg-[#8a8175]"
+               >
+                 {isClaiming ? '...' : '領取'}
+               </button>
+            </div>
+            {localMessage && (
+                <p className={`text-center text-sm mb-2 ${localMessage.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                    {localMessage.text}
+                </p>
+            )}
+            {claimError && !localMessage && <p className="text-center text-sm text-red-500 mb-2">{claimError}</p>}
+
             {/* Option to not use a coupon */}
             <div
               onClick={() => { onSelect(null); onClose(); }}
