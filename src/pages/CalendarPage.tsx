@@ -1,5 +1,6 @@
 
-import { useState, useEffect, useMemo, useRef } from 'react'; // Added import
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom'; // Added import
 import { format, addMinutes } from 'date-fns';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -121,27 +122,54 @@ const CalendarPage = () => {
 
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         
-        {/* Header with Designer Filter */}
-        <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-serif font-bold text-gray-900">行事曆</h1>
-            
-            {/* Designer Filter (Admin/Manager Only) */}
-            {(userProfile?.role === 'admin' || userProfile?.role === 'manager') && (
-                <div className="flex items-center gap-2">
-                    <UserCircleIcon className="w-5 h-5 text-gray-400" />
-                    <select
-                        value={selectedDesignerFilter}
-                        onChange={(e) => setSelectedDesignerFilter(e.target.value)}
-                        className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block p-2 outline-none"
-                    >
-                        <option value="all">所有設計師</option>
-                        {allDesigners.map(d => (
-                            <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                    </select>
-                </div>
-            )}
-        </div>
+        {/* Designer Filter Portals (Admin/Manager Only) */}
+        {(userProfile?.role === 'admin' || userProfile?.role === 'manager') && (
+            <>
+                {/* Desktop: Portal to Header Actions */}
+                {document.getElementById('admin-header-actions') && createPortal(
+                    <div className="flex items-center gap-2">
+                        <UserCircleIcon className="w-5 h-5 text-gray-400" />
+                        <select
+                            value={selectedDesignerFilter}
+                            onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                            className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block p-2 outline-none"
+                        >
+                            <option value="all">所有設計師</option>
+                            {allDesigners.map(d => (
+                                <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                        </select>
+                    </div>,
+                    document.getElementById('admin-header-actions')!
+                )}
+
+                {/* Mobile: Portal to Header Title (Center) */}
+                {document.getElementById('admin-mobile-header-center') && createPortal(
+                     <div className="flex items-center justify-center pointer-events-auto bg-white w-full h-full">
+                        <div className="relative flex items-center justify-center">
+                            <select
+                                value={selectedDesignerFilter}
+                                onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                                className="appearance-none bg-transparent border-none text-base font-bold text-gray-900 focus:ring-0 p-0 text-center pr-6 cursor-pointer"
+                                style={{ textAlignLast: 'center' }}
+                            >
+                                <option value="all">行事曆 (全店)</option>
+                                {allDesigners.map(d => (
+                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                ))}
+                            </select>
+                            {/* Custom Chevron for visual indication */}
+                            <div className="absolute right-0 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-gray-500">
+                                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>,
+                    document.getElementById('admin-mobile-header-center')!
+                )}
+            </>
+        )}
 
         {/* Error Alert */}
         {error && (

@@ -21,8 +21,10 @@ const AdminMobileHeader: React.FC<AdminMobileHeaderProps> = ({ pageTitle, onBack
       )}
 
       {/* Page Title for Mobile - Centered */}
-      <div className="flex-1 text-center text-base font-semibold leading-6 text-gray-900 px-8">
-        {pageTitle}
+      {/* Page Title for Mobile - Centered */}
+      <div className="flex-1 text-center text-base font-semibold leading-6 text-gray-900 px-8 relative flex justify-center items-center">
+        <span>{pageTitle}</span>
+        <div id="admin-mobile-header-center" className="absolute inset-0 flex justify-center items-center pointer-events-none *:pointer-events-auto"></div>
       </div>
 
       {/* Right Actions Container */}

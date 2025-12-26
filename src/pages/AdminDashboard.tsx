@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { isWithinInterval, startOfDay, endOfDay, addDays, format, differenceInDays } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
@@ -206,48 +207,28 @@ const AdminDashboard = () => {
     <div className="p-4 space-y-6 pb-20">
 
       {/* 0. View Switcher (Admin/Manager Only) */}
+      {/* 0. View Switcher (Admin/Manager Only) */}
       {isAdminOrManager && (
-        <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-           <div className="flex items-center gap-3">
-              <div className="bg-[#9F9586]/10 p-2 rounded-lg">
-                 {viewMode === 'all' ? <BuildingStorefrontIcon className="w-6 h-6 text-[#9F9586]" /> : <UsersIcon className="w-6 h-6 text-[#9F9586]" />}
-              </div>
-              <div className="flex flex-col">
-                  <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">目前檢視</span>
-                  <div className="relative w-48">
-                      <Listbox value={viewMode} onChange={setViewMode}>
-                          <ListboxButton className="text-left w-full flex items-center gap-2 font-bold text-gray-900 border-none p-0 focus:ring-0 text-lg cursor-pointer hover:opacity-70 transition-opacity">
-                              <span className="truncate">
-                                  {viewMode === 'all' ? '全店總覽' : allDesigners.find(d => d.id === viewMode)?.name || '選擇設計師'}
-                              </span>
-                              <ChevronDownIcon className="w-4 h-4 text-gray-400" />
-                          </ListboxButton>
-                          <ListboxOptions className="absolute left-0 z-50 mt-2 max-h-80 w-60 overflow-auto rounded-xl bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                              <ListboxOption
-                                  value="all"
-                                  className={({ active, selected }) =>
-                                      `relative cursor-default select-none py-3 pl-10 pr-4 ${
-                                      active ? 'bg-[#FAF9F6] text-[#9F9586]' : 'text-gray-900'
-                                      } ${selected ? 'font-bold' : 'font-normal'}`
-                                  }
-                              >
-                                  {({ selected }) => (
-                                      <>
-                                          <span className="block truncate">全店總覽</span>
-                                          {selected && (
-                                              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[#9F9586]">
-                                                  <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                                              </span>
-                                          )}
-                                      </>
-                                  )}
-                              </ListboxOption>
-                              <div className="border-t border-gray-100 my-1 mx-4"></div>
-                              <div className="px-4 py-1 text-xs text-gray-400 font-bold uppercase">設計師</div>
-                              {allDesigners.map((designer) => (
+        <>
+            {/* Desktop: In-Page View Switcher */}
+            <div className="hidden lg:flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+               <div className="flex items-center gap-3">
+                  <div className="bg-[#9F9586]/10 p-2 rounded-lg">
+                     {viewMode === 'all' ? <BuildingStorefrontIcon className="w-6 h-6 text-[#9F9586]" /> : <UsersIcon className="w-6 h-6 text-[#9F9586]" />}
+                  </div>
+                  <div className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">目前檢視</span>
+                      <div className="relative w-48">
+                          <Listbox value={viewMode} onChange={setViewMode}>
+                              <ListboxButton className="text-left w-full flex items-center gap-2 font-bold text-gray-900 border-none p-0 focus:ring-0 text-lg cursor-pointer hover:opacity-70 transition-opacity">
+                                  <span className="truncate">
+                                      {viewMode === 'all' ? '全店總覽' : allDesigners.find(d => d.id === viewMode)?.name || '選擇設計師'}
+                                  </span>
+                                  <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                              </ListboxButton>
+                              <ListboxOptions className="absolute left-0 z-50 mt-2 max-h-80 w-60 overflow-auto rounded-xl bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
                                   <ListboxOption
-                                      key={designer.id}
-                                      value={designer.id}
+                                      value="all"
                                       className={({ active, selected }) =>
                                           `relative cursor-default select-none py-3 pl-10 pr-4 ${
                                           active ? 'bg-[#FAF9F6] text-[#9F9586]' : 'text-gray-900'
@@ -256,7 +237,7 @@ const AdminDashboard = () => {
                                   >
                                       {({ selected }) => (
                                           <>
-                                              <span className="block truncate">{designer.name}</span>
+                                              <span className="block truncate">全店總覽</span>
                                               {selected && (
                                                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[#9F9586]">
                                                       <CheckIcon className="h-5 w-5" aria-hidden="true" />
@@ -265,13 +246,66 @@ const AdminDashboard = () => {
                                           </>
                                       )}
                                   </ListboxOption>
-                              ))}
-                          </ListboxOptions>
-                      </Listbox>
+                                  <div className="border-t border-gray-100 my-1 mx-4"></div>
+                                  <div className="px-4 py-1 text-xs text-gray-400 font-bold uppercase">設計師</div>
+                                  {allDesigners.map((designer) => (
+                                      <ListboxOption
+                                          key={designer.id}
+                                          value={designer.id}
+                                          className={({ active, selected }) =>
+                                              `relative cursor-default select-none py-3 pl-10 pr-4 ${
+                                              active ? 'bg-[#FAF9F6] text-[#9F9586]' : 'text-gray-900'
+                                              } ${selected ? 'font-bold' : 'font-normal'}`
+                                          }
+                                      >
+                                          {({ selected }) => (
+                                              <>
+                                                  <span className="block truncate">{designer.name}</span>
+                                                  {selected && (
+                                                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[#9F9586]">
+                                                          <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                                                      </span>
+                                                  )}
+                                              </>
+                                          )}
+                                      </ListboxOption>
+                                  ))}
+                              </ListboxOptions>
+                          </Listbox>
+                      </div>
                   </div>
-              </div>
-           </div>
-        </div>
+               </div>
+            </div>
+
+            {/* Mobile: Portal to Header Title */}
+            {document.getElementById('admin-mobile-header-center') && createPortal(
+                <div className="flex items-center justify-center bg-white px-2 py-1 rounded w-full h-full">
+                    <Listbox value={viewMode} onChange={setViewMode}>
+                        <div className="relative">
+                            <ListboxButton className="flex items-center gap-1 font-bold text-gray-900 text-base">
+                                <span className="truncate max-w-[150px]">
+                                    {viewMode === 'all' ? '全店總覽' : allDesigners.find(d => d.id === viewMode)?.name || '選擇設計師'}
+                                </span>
+                                <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                            </ListboxButton>
+                            <ListboxOptions className="absolute top-8 left-1/2 -translate-x-1/2 w-48 overflow-auto rounded-xl bg-white py-1 text-base shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-50 max-h-[60vh]">
+                                <ListboxOption value="all" className={({ active, selected }) => `relative cursor-default select-none py-3 pl-4 pr-4 text-center ${active ? 'bg-[#FAF9F6] text-[#9F9586]' : 'text-gray-900'} ${selected ? 'font-bold' : 'font-normal'}`}>
+                                    全店總覽
+                                </ListboxOption>
+                                <div className="border-t border-gray-100 my-1 mx-4"></div>
+                                <div className="px-4 py-1 text-xs text-gray-400 font-bold uppercase text-center">設計師</div>
+                                {allDesigners.map((designer) => (
+                                    <ListboxOption key={designer.id} value={designer.id} className={({ active, selected }) => `relative cursor-default select-none py-3 pl-4 pr-4 text-center ${active ? 'bg-[#FAF9F6] text-[#9F9586]' : 'text-gray-900'} ${selected ? 'font-bold' : 'font-normal'}`}>
+                                        {designer.name}
+                                    </ListboxOption>
+                                ))}
+                            </ListboxOptions>
+                        </div>
+                    </Listbox>
+                </div>,
+                document.getElementById('admin-mobile-header-center')!
+            )}
+        </>
       )}
       
       {/* 1. View Content */}

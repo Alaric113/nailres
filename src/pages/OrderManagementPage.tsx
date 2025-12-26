@@ -214,7 +214,7 @@ const OrderManagementPage = () => {
         {/* 1. Header & Stats (Horizontal Scroll on Mobile) */}
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-serif font-bold text-gray-900 px-1">訂單管理</h1>
+                
                 
                 {/* Designer Filter (Admin/Manager Only) */}
                 {(userProfile?.role === 'admin' || userProfile?.role === 'manager') && (
@@ -222,19 +222,20 @@ const OrderManagementPage = () => {
                         {/* Mobile: Portal to Mobile Header */}
                         {document.getElementById('admin-mobile-header-actions') && createPortal(
                              <div className="flex items-center">
+                                <UserCircleIcon className="w-5 h-5 text-gray-400  pointer-events-none" />
                                 <select
                                     value={selectedDesignerFilter}
                                     onChange={(e) => setSelectedDesignerFilter(e.target.value)}
                                     // Remove background/border to blend with header, or keep minimal
-                                    className="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 p-0 pr-6 dir-rtl"
-                                    style={{ direction: 'rtl' }} // Trick to align text if needed, or just keep standard
+                                    className="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 p-0 pr-2 dir-ltr"
+                                    style={{ direction: 'ltr' }} // Trick to align text if needed, or just keep standard
                                 >
-                                    <option value="all">篩選</option>
+                                    <option value="all">全店</option>
                                     {allDesigners.map(d => (
                                         <option key={d.id} value={d.id}>{d.name}</option>
                                     ))}
                                 </select>
-                                <UserCircleIcon className="w-5 h-5 text-gray-400 -ml-5 pointer-events-none" />
+                                
                             </div>,
                             document.getElementById('admin-mobile-header-actions')!
                         )}
@@ -246,7 +247,7 @@ const OrderManagementPage = () => {
                                 <select
                                     value={selectedDesignerFilter}
                                     onChange={(e) => setSelectedDesignerFilter(e.target.value)}
-                                    className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block p-2 min-w-[150px]"
+                                    className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block min-w-[150px]"
                                 >
                                     <option value="all">所有設計師</option>
                                     {allDesigners.map(d => (
