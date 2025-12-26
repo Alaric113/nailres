@@ -93,7 +93,7 @@ const AdminBottomNav: React.FC<AdminBottomNavProps> = () => {
 
           // Long press logic for Settings
           const isSettings = item.name === '設定';
-          const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+          const handleTouchStart = () => {
              if (!isSettings) return;
              // e.preventDefault(); // Don't prevent default immediately allows click
              const timer = setTimeout(() => {
