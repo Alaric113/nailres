@@ -8,7 +8,7 @@ import TimeSlotSelector from '../components/booking/TimeSlotSelector';
 import BookingForm from '../components/booking/BookingForm';
 import CalendarSelector from '../components/booking/CalendarSelector';
 import CouponSelectorModal from '../components/booking/CouponSelectorModal';
-import type { Coupon, UserCoupon } from '../types/coupon';
+import type { UserCoupon } from '../types/coupon';
 import type { Designer } from '../types/designer';
 import type { BookingStatus } from '../types/booking'; // NEW IMPORT
 import { collection, serverTimestamp, writeBatch, doc, increment } from 'firebase/firestore'; // NEW IMPORT
