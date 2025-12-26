@@ -235,8 +235,9 @@ const Home = () => {
         {!isLoading && homepageImages.lashImages.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-serif font-bold text-text-main">
-                ✨精選作品
+              <h2 className="text-lg font-serif font-bold text-text-main flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                精選作品
               </h2>
               <Link to="/portfolio" className="text-sm text-primary hover:text-primary-dark transition-colors">
                 查看更多

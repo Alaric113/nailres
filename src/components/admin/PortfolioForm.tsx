@@ -4,6 +4,7 @@ import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs } from 'fi
 import type { PortfolioItem } from '../../types/portfolio';
 import ImageUploader from './ImageUploader';
 import { useServices } from '../../hooks/useServices';
+import { useServiceCategories } from '../../hooks/useServiceCategories';
 
 interface PortfolioFormProps {
   item: PortfolioItem | null;
@@ -31,6 +32,7 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({ item, onClose, onSave }) 
 
   const [designers, setDesigners] = useState<Designer[]>([]);
   const { services } = useServices();
+  const { categories: serviceCategories } = useServiceCategories();
   
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,7 +138,7 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({ item, onClose, onSave }) 
     }
   };
 
-  const categories = ['美甲', '美睫', '霧眉'];
+
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-6 p-4 md:p-6 h-full md:h-auto overflow-y-auto">
@@ -180,15 +182,18 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({ item, onClose, onSave }) 
                     id="category"
                     className={`block w-full border rounded-lg shadow-sm p-2.5 focus:ring-[#9F9586] focus:border-[#9F9586] transition-colors ${item?.orderId ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed' : 'border-gray-200'}`}
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => {
+                        setCategory(e.target.value);
+                        setSelectedServiceId('');
+                    }}
                     required
                     disabled={!!item?.orderId}
                 >
                 <option value="">請選擇分類</option>
-                {categories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
+                {serviceCategories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
                 ))}
-                {item?.category && !categories.includes(item.category) && (
+                {item?.category && !serviceCategories.some(c => c.name === item.category) && (
                     <option value={item.category}>{item.category}</option>
                 )}
                 </select>
@@ -203,7 +208,9 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({ item, onClose, onSave }) 
                     onChange={(e) => setSelectedServiceId(e.target.value)}
                 >
                     <option value="">-- 自訂 (使用分類名稱) --</option>
-                    {services.map(s => (
+                    {services
+                        .filter(s => !category || s.category === category)
+                        .map(s => (
                         <option key={s.id} value={s.id}>{s.name || '服務'}</option>
                     ))}
                 </select>
