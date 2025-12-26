@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-
-import SummaryCard from '../components/admin/SummaryCard';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import ImageManagementModal from '../components/admin/ImageManagementModal';
 import { 
@@ -14,7 +12,8 @@ import {
   UserCircleIcon,
   ShieldCheckIcon,
   HomeIcon,
-  ClipboardDocumentCheckIcon
+  ClipboardDocumentCheckIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 // Import Settings Components
@@ -31,155 +30,171 @@ const SettingsPage: React.FC = () => {
   const { userProfile } = useAuthStore();
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
-  // Define cards available to all staff, then filter based on role
-  const allSettingsCards = [
-    { 
-      title: "帳號綁定", 
-      icon: ShieldCheckIcon, 
-      color: "bg-teal-600", 
-      subtext: "綁定 Google 登入 (管理員專用)", 
-      onClick: () => setSearchParams({ view: 'account' }),
-      roles: ['admin', 'manager', 'designer']
+  // Group Definitions
+  const settingGroups = [
+    {
+      title: '店務管理',
+      items: [
+        { 
+          title: "營業時間", 
+          icon: ClockIcon, 
+          color: "bg-purple-50 text-purple-600", 
+          linkTo: "/admin/hours", 
+          subtext: "排班與營業時間",
+          roles: ['admin', 'manager', 'designer']
+        },
+        { 
+          title: "用戶管理", 
+          icon: UserGroupIcon, 
+          color: "bg-indigo-50 text-indigo-600", 
+          linkTo: "/admin/customers", 
+          subtext: "會員資料查詢",
+          roles: ['admin', 'manager'] 
+        },
+        { 
+          title: "設計師管理", 
+          icon: UserCircleIcon, 
+          color: "bg-teal-50 text-teal-600", 
+          linkTo: "/admin/staff", 
+          subtext: "設計師檔案設定",
+          roles: ['admin', 'manager'] 
+        },
+      ]
     },
-    { 
-      title: "通知設定", 
-      icon: BellAlertIcon, 
-      color: "bg-yellow-500", 
-      subtext: "設定 LINE 通知接收人員", 
-      onClick: () => setSearchParams({ view: 'notifications' }),
-      roles: ['admin', 'manager', 'designer']
+    {
+        title: '營運銷售',
+        items: [
+            { 
+              title: "服務項目", 
+              icon: CubeIcon, 
+              color: "bg-blue-50 text-blue-600", 
+              linkTo: "/admin/services", 
+              subtext: "服務與價格設定",
+              roles: ['admin', 'manager', 'designer']
+            },
+           { 
+              title: "會員方案", 
+              icon: TicketIcon, 
+              color: "bg-rose-50 text-rose-600", 
+              subtext: "季卡/年卡方案", 
+              onClick: () => setSearchParams({ view: 'season-pass' }),
+              roles: ['admin', 'manager']
+            },
+            { 
+              title: "優惠活動", 
+              icon: TicketIcon, 
+              color: "bg-green-50 text-green-600", 
+              linkTo: "/admin/promotions", 
+              subtext: "優惠券與促銷",
+              roles: ['admin', 'manager', 'designer']
+            },
+        ]
     },
-    { 
-      title: "首頁圖片", 
-      icon: HomeIcon, 
-      color: "bg-orange-500", 
-      subtext: "設定首頁輪播與封面圖片",
-      onClick: () => setIsImageModalOpen(true),
-      roles: ['admin', 'manager']
+    {
+        title: '內容與網站',
+        items: [
+            { 
+              title: "首頁圖片", 
+              icon: HomeIcon, 
+              color: "bg-orange-50 text-orange-600", 
+              subtext: "輪播與封面",
+              onClick: () => setIsImageModalOpen(true),
+              roles: ['admin', 'manager']
+            },
+            { 
+              title: "作品集", 
+              icon: PhotoIcon, 
+              color: "bg-pink-50 text-pink-600", 
+              linkTo: "/admin/portfolio", 
+              subtext: "作品照片管理",
+              roles: ['admin', 'manager', 'designer']
+            },
+            { 
+              title: "預約設定", 
+              icon: ClipboardDocumentCheckIcon, 
+              color: "bg-purple-50 text-purple-600", 
+              subtext: "預約須知與條款", 
+              onClick: () => setSearchParams({ view: 'booking' }),
+              roles: ['admin', 'manager']
+            },
+        ]
     },
-    { 
-      title: "會員方案", 
-      icon: TicketIcon, 
-      color: "bg-rose-500", 
-      subtext: "設定季卡/年卡方案與價格", 
-      onClick: () => setSearchParams({ view: 'season-pass' }),
-      roles: ['admin', 'manager']
-    },
-    { 
-      title: "營業時間", 
-      icon: ClockIcon, 
-      color: "bg-purple-500", 
-      linkTo: "/admin/hours", 
-      subtext: "管理排班與營業時間",
-      roles: ['admin', 'manager', 'designer']
-    },
-    // ... (other existing cards)
-    { 
-      title: "用戶管理", 
-      icon: UserGroupIcon, 
-      color: "bg-indigo-500", 
-      linkTo: "/admin/customers", 
-      subtext: "查看與管理所有會員資料",
-      roles: ['admin', 'manager'] // Restricted to Admin/Manager
-    },
-    { 
-      title: "設計師管理", 
-      icon: UserCircleIcon, 
-      color: "bg-teal-500", 
-      linkTo: "/admin/staff", 
-      subtext: "管理設計師檔案與公開資訊",
-      roles: ['admin', 'manager'] // Restricted to Admin/Manager
-    },
-    { 
-      title: "服務項目", 
-      icon: CubeIcon, 
-      color: "bg-blue-500", 
-      linkTo: "/admin/services", 
-      subtext: "新增或修改服務項目與價格",
-      roles: ['admin', 'manager', 'designer']
-    },
-    { 
-      title: "作品集", 
-      icon: PhotoIcon, 
-      color: "bg-pink-500", 
-      linkTo: "/admin/portfolio", 
-      subtext: "管理作品集圖片與分類",
-      roles: ['admin', 'manager', 'designer']
-    },
-    { 
-      title: "優惠活動", 
-      icon: TicketIcon, 
-      color: "bg-green-500", 
-      linkTo: "/admin/promotions", 
-      subtext: "設定優惠券與促銷活動",
-      roles: ['admin', 'manager', 'designer']
-    },
-    { 
-      title: "預約設定", 
-      icon: ClipboardDocumentCheckIcon, 
-      color: "bg-purple-600", 
-      subtext: "預約注意事項與條款", 
-      onClick: () => setSearchParams({ view: 'booking' }),
-      roles: ['admin', 'manager']
-    },
+    {
+        title: '系統設定',
+        items: [
+            { 
+              title: "帳號綁定", 
+              icon: ShieldCheckIcon, 
+              color: "bg-gray-50 text-gray-600", 
+              subtext: "Google 登入設定", 
+              onClick: () => setSearchParams({ view: 'account' }),
+              roles: ['admin', 'manager', 'designer']
+            },
+            { 
+              title: "通知設定", 
+              icon: BellAlertIcon, 
+              color: "bg-yellow-50 text-yellow-600", 
+              subtext: "LINE 與推播設定", 
+              onClick: () => setSearchParams({ view: 'notifications' }),
+              roles: ['admin', 'manager', 'designer']
+            },
+        ]
+    }
   ];
 
-  const filteredCards = allSettingsCards.filter(card => 
-    card.roles.includes(userProfile?.role || '')
-  );
-
-
-  if (currentView === 'notifications') {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <NotificationSettings />
-      </div>
-    );
-  }
-
-  if (currentView === 'account') {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <AccountSettings />
-      </div>
-    );
-  }
-
-  if (currentView === 'booking') {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <BookingSettings />
-      </div>
-    );
-  }
-
-  if (currentView === 'season-pass') {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <SeasonPassSettings />
-      </div>
-    );
-  }
+  if (currentView === 'notifications') return <div className="p-4 sm:p-6 lg:p-8"><NotificationSettings /></div>;
+  if (currentView === 'account') return <div className="p-4 sm:p-6 lg:p-8"><AccountSettings /></div>;
+  if (currentView === 'booking') return <div className="p-4 sm:p-6 lg:p-8"><BookingSettings /></div>;
+  if (currentView === 'season-pass') return <div className="p-4 sm:p-6 lg:p-8"><SeasonPassSettings /></div>;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-       {/* Cards Grid */}
-       <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCards.map(card => (
-            <SummaryCard 
-              key={card.title}
-              title={card.title}
-              value=""
-              icon={React.createElement(card.icon, { className: "h-6 w-6" })} // Dynamically render icon
-              color={card.color}
-              onClick={card.onClick}
-              linkTo={card.linkTo}
-              subtext={card.subtext}
-            />
-          ))}
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {settingGroups.map((group) => {
+              const visibleItems = group.items.filter(item => item.roles.includes(userProfile?.role || ''));
+              if (visibleItems.length === 0) return null;
+
+              return (
+                  <div key={group.title} className="bg-white rounded-2xl shadow-sm border border-[#EFECE5] overflow-hidden flex flex-col">
+                      <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+                          <h3 className="text-xs font-bold text-gray-500 tracking-wider uppercase">{group.title}</h3>
+                      </div>
+                      <div className="divide-y divide-gray-100">
+                          {visibleItems.map(item => {
+                              const ItemContent = (
+                                  <>
+                                    <div className={`w-9 h-9 rounded-lg ${item.color} flex items-center justify-center flex-shrink-0 mr-4 transition-transform group-hover:scale-110`}>
+                                        {React.createElement(item.icon, { className: "w-5 h-5" })}
+                                    </div>
+                                    <div className="flex-1 min-w-0 text-left">
+                                        <h4 className="text-sm font-semibold text-gray-900 truncate">{item.title}</h4>
+                                        <p className="text-xs text-gray-500 truncate mt-0.5">{item.subtext}</p>
+                                    </div>
+                                    <ChevronRightIcon className="w-5 h-5 text-gray-300 ml-3 flex-shrink-0 group-hover:text-gray-500 transition-colors" />
+                                  </>
+                              );
+
+                              const containerClass = "flex items-center px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer w-full group";
+
+                              if (item.onClick) {
+                                  return (
+                                      <button key={item.title} onClick={item.onClick} className={containerClass}>
+                                          {ItemContent}
+                                      </button>
+                                  );
+                              }
+                              return (
+                                  <Link key={item.title} to={item.linkTo || '#'} className={containerClass}>
+                                      {ItemContent}
+                                  </Link>
+                              );
+                          })}
+                      </div>
+                  </div>
+              );
+          })}
        </div>
 
-       {/* Image Management Modal */}
        {isImageModalOpen && (
         <ImageManagementModal onClose={() => setIsImageModalOpen(false)} />
        )}
