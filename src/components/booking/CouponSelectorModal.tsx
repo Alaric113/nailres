@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import Modal from '../common/Modal';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { useUserCoupons } from '../../hooks/useUserCoupons';
-import type { Coupon } from '../../types/coupon';
+import type { Coupon, UserCoupon } from '../../types/coupon';
 import type { Service } from '../../types/service';
 import type { Designer } from '../../types/designer';
 import { format } from 'date-fns';
@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 interface CouponSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (coupon: Coupon | null) => void;
+  onSelect: (coupon: UserCoupon | null) => void;
   selectedServices: Service[];
   selectedDesigner: Designer | null;
   currentPrice: number;
