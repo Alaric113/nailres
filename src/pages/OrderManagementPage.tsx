@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
-import { format, isToday } from 'date-fns';
+import { format, isToday, isSameMonth } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { doc, getDoc, writeBatch, collection, getDocs, orderBy, query } from 'firebase/firestore'; // Added imports
 import { db } from '../lib/firebase';
@@ -26,7 +26,7 @@ import { useNavigate } from 'react-router-dom';
 // Stats Card Component
 const StatCard = ({ title, value, icon: Icon, color, bgColor }: { title: string, value: string | number, icon: any, color: string, bgColor: string }) => (
   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition-transform hover:scale-[1.02]">
-    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${bgColor} ${color}`}>
+    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${bgColor} ${color}`}>
       <Icon className="w-6 h-6" />
     </div>
     <div>
@@ -75,15 +75,18 @@ const OrderManagementPage = () => {
 
   // --- Stats Calculation ---
   const stats = useMemo(() => {
-    const todayRevenue = bookings
-      .filter(b => isToday(b.dateTime) && b.status !== 'cancelled')
+    const now = new Date();
+    
+    // Monthly Revenue (This Month)
+    const monthlyRevenue = bookings
+      .filter(b => isSameMonth(b.dateTime, now) && b.status !== 'cancelled')
       .reduce((acc, curr) => acc + curr.amount, 0);
     
     const pendingCount = bookings.filter(b => b.status === 'pending_confirmation' || b.status === 'pending_payment').length;
-    const confirmedCount = bookings.filter(b => b.status === 'confirmed').length;
-    const completedCount = bookings.filter(b => b.status === 'completed').length;
+    // Monthly Completed Count (This Month)
+    const completedCount = bookings.filter(b => b.status === 'completed' && isSameMonth(b.dateTime, now)).length;
 
-    return { todayRevenue, pendingCount, confirmedCount, completedCount };
+    return { monthlyRevenue, pendingCount, completedCount };
   }, [bookings]);
 
   // --- Filter Logic ---
@@ -261,18 +264,16 @@ const OrderManagementPage = () => {
                 )}
             </div>
             
-            <section className=" overflow-x-auto snap-x snap-mandatory gap-3 pb-2 -mx-4 px-4 hide-scrollbar grid grid-cols-2 md:grid-cols-4 sm:gap-4 sm:pb-0 sm:mx-0 sm:px-0">
-                <div className="snap-center shrink-0 w-[85vw] sm:w-auto">
-                    <StatCard title="今日營收" value={`$${stats.todayRevenue.toLocaleString()}`} icon={BanknotesIcon} bgColor="bg-green-50" color="text-green-600" />
+            <section className=" overflow-x-auto snap-x snap-mandatory gap-2 pb-2 -mx-4 px-4 hide-scrollbar grid grid-cols-2 md:grid-cols-4 sm:gap-4 sm:pb-0 sm:mx-0 sm:px-0">
+                <div className="snap-center col-span-2 shrink-0 w-[85vw] sm:w-auto">
+                    <StatCard title="本月營收" value={`$${stats.monthlyRevenue.toLocaleString()}`} icon={BanknotesIcon} bgColor="bg-green-50" color="text-green-600" />
                 </div>
                 <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
                     <StatCard title="待處理" value={stats.pendingCount} icon={ClockIcon} bgColor="bg-orange-50" color="text-orange-600" />
                 </div>
+                
                 <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
-                    <StatCard title="即將到來" value={stats.confirmedCount} icon={CalendarDaysIcon} bgColor="bg-blue-50" color="text-blue-600" />
-                </div>
-                <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
-                    <StatCard title="累積完成" value={stats.completedCount} icon={CheckCircleIcon} bgColor="bg-indigo-50" color="text-indigo-600" />
+                    <StatCard title="本月完成" value={stats.completedCount} icon={CheckCircleIcon} bgColor="bg-indigo-50" color="text-indigo-600" />
                 </div>
             </section>
         </div>
