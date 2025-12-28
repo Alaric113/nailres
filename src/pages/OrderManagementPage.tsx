@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
-import { format, isToday, isSameMonth } from 'date-fns';
+import { format, isSameMonth } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { doc, getDoc, writeBatch, collection, getDocs, orderBy, query } from 'firebase/firestore'; // Added imports
 import { db } from '../lib/firebase';
