@@ -29,4 +29,7 @@ export interface ServiceOptionItem {
   name: string; // e.g., "單色", "造型", "本店卸甲"
   price: number;
   duration?: number; // Extra time in minutes
+  allowQuantity?: boolean; // New: Allow selecting quantity for this specific item
+  maxQuantity?: number;    // New: Max quantity (default 10)
+  quantity?: number; // Selected quantity (for cart/booking state)
 }

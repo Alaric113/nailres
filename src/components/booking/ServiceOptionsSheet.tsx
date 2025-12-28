@@ -28,26 +28,53 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
   // Use dummy options if none exist (for development/demo purposes)
   // In production, `service.options` will come from the DB
   const displayOptions: ServiceOption[] = service.options || [];
-
-  const handleOptionToggle = (option: ServiceOption, item: ServiceOptionItem) => {
+  const handleUpdateSelection = (option: ServiceOption, item: ServiceOptionItem, delta: number) => {
     setSelections(prev => {
       const currentSelected = prev[option.id] || [];
-      const isSelected = currentSelected.some(i => i.id === item.id);
-
-      if (option.multiSelect) {
-        if (isSelected) {
-          return { ...prev, [option.id]: currentSelected.filter(i => i.id !== item.id) };
-        } else {
-          return { ...prev, [option.id]: [...currentSelected, item] };
-        }
+      const existingItemIndex = currentSelected.findIndex(i => i.id === item.id);
+      const existingItem = currentSelected[existingItemIndex];
+      
+      const currentQuantity = existingItem?.quantity || 0; // If not found, 0
+      
+      // Calculate new quantity
+      let newQuantity = 0;
+      if (item.allowQuantity) {
+          newQuantity = currentQuantity + delta;
+          const maxQty = item.maxQuantity || 10;
+          if (newQuantity > maxQty) return prev; // Exceed max, do nothing
       } else {
-        // Single select
-        if (isSelected) {
-           // Optional: allow deselecting even in single select if not required? 
-           // Usually radio buttons don't deselect. Let's start with simple switching.
-           return prev; // No change if clicking same
-        }
-        return { ...prev, [option.id]: [item] };
+          // For non-quantity items (toggle/radio), if it exists and we click it -> toggle off (if multi) or keep (if radio)?
+          // If Multi: toggle off if exists.
+          // If Single: clicking selected usually keeps it selected, clicking other replaces.
+          // Let's assume delta always 1 for non-quantity clicks from UI.
+          if (option.multiSelect) {
+             newQuantity = existingItem ? 0 : 1;
+          } else {
+             // Single select: always set to 1 (replace behavior)
+             newQuantity = 1; 
+          }
+      }
+
+      // Logic construction
+      if (newQuantity <= 0) {
+          // Remove item
+          return { ...prev, [option.id]: currentSelected.filter(i => i.id !== item.id) };
+      }
+
+      const newItem = { ...item, quantity: newQuantity };
+
+      // If Single Select, strictly replace all selections with this new item
+      if (!option.multiSelect) {
+          return { ...prev, [option.id]: [newItem] };
+      }
+
+      // If Multi Select, update or add
+      if (existingItem) {
+           const newSelected = [...currentSelected];
+           newSelected[existingItemIndex] = newItem;
+           return { ...prev, [option.id]: newSelected };
+      } else {
+           return { ...prev, [option.id]: [...currentSelected, newItem] }; 
       }
     });
   };
@@ -55,7 +82,7 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
   const calculateTotal = () => {
     let total = service.price;
     Object.values(selections).flat().forEach(item => {
-      total += item.price;
+      total += item.price * (item.quantity || 1);
     });
     return total;
   };
@@ -63,7 +90,7 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
   const calculateDuration = () => {
       let duration = service.duration;
        Object.values(selections).flat().forEach(item => {
-        duration += (item.duration || 0);
+        duration += (item.duration || 0) * (item.quantity || 1);
       });
       return duration;
   }
@@ -151,18 +178,24 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
                                      {option.name} 
                                      {option.required && <span className="text-red-500 text-sm ml-1">*必選</span>}
                                  </h4>
-                                 {option.multiSelect && <span className="text-xs text-gray-400">可複選</span>}
+                                 <div className="flex items-center gap-2">
+                                     {option.multiSelect && <span className="text-xs text-gray-400">可複選</span>}
+                                 </div>
                              </div>
                              
-                             <div className="grid grid-cols-2 gap-3">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                  {option.items.map(item => {
-                                     const isSelected = selections[option.id]?.some(i => i.id === item.id);
+                                     const selectedItem = selections[option.id]?.find(i => i.id === item.id);
+                                     const isSelected = !!selectedItem;
+                                     const quantity = selectedItem?.quantity || 0;
+
                                      return (
                                          <div 
                                             key={item.id}
-                                            onClick={() => handleOptionToggle(option, item)}
+                                            onClick={() => !item.allowQuantity && handleUpdateSelection(option, item, 1)}
                                             className={`
-                                                flex justify-between items-center p-3 rounded-lg border cursor-pointer transition-all
+                                                flex justify-between items-center p-3 rounded-lg border transition-all select-none
+                                                ${!item.allowQuantity && 'cursor-pointer'}
                                                 ${isSelected 
                                                     ? 'border-primary bg-primary/5 ring-1 ring-primary' 
                                                     : 'border-gray-200 hover:border-gray-300'
@@ -170,18 +203,46 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
                                             `}
                                          >
                                              <div className="flex items-center gap-3">
-                                                 <div className={`
-                                                     w-5 h-5 rounded-full border flex items-center justify-center
-                                                     ${isSelected ? 'border-primary bg-primary' : 'border-gray-300'}
-                                                 `}>
-                                                     {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
-                                                 </div>
+                                                 {!item.allowQuantity && (
+                                                     <div className={`
+                                                         w-5 h-5 rounded-full border flex items-center justify-center shrink-0
+                                                         ${isSelected ? 'border-primary bg-primary' : 'border-gray-300'}
+                                                     `}>
+                                                         {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                                                     </div>
+                                                 )}
                                                  <span className={isSelected ? 'font-medium text-text-main' : 'text-gray-600'}>
                                                      {item.name}
                                                  </span>
                                              </div>
-                                             <div className="text-sm font-medium">
-                                                 {item.price > 0 ? `+ $${item.price}` : '+0'}
+                                             
+                                             <div className="flex items-center gap-3">
+                                                 <div className="text-sm font-medium whitespace-nowrap">
+                                                     {item.price > 0 ? `+ $${item.price}` : '+0'}
+                                                 </div>
+
+                                                 {/* Stepper for Quantity */}
+                                                 {item.allowQuantity && (
+                                                     <div className="flex items-center bg-white rounded-lg border border-gray-200 shadow-sm ml-2" onClick={e => e.stopPropagation()}>
+                                                         <button 
+                                                             className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-50 rounded-l-lg hover:text-primary active:bg-gray-100 disabled:opacity-30"
+                                                             onClick={() => handleUpdateSelection(option, item, -1)}
+                                                             disabled={quantity === 0}
+                                                         >
+                                                             -
+                                                         </button>
+                                                         <div className="w-8 text-center font-medium text-sm border-x border-gray-100">
+                                                             {quantity}
+                                                         </div>
+                                                         <button 
+                                                             className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-50 rounded-r-lg hover:text-primary active:bg-gray-100 disabled:opacity-30"
+                                                             onClick={() => handleUpdateSelection(option, item, 1)}
+                                                             disabled={quantity >= (item.maxQuantity || 10)}
+                                                         >
+                                                             +
+                                                         </button>
+                                                     </div>
+                                                 )}
                                              </div>
                                          </div>
                                      );

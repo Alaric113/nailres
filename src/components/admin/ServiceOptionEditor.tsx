@@ -182,7 +182,7 @@ const ServiceOptionEditor: React.FC<ServiceOptionEditorProps> = ({ options, onCh
                       className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary text-sm"
                     />
                   </div>
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 flex-wrap">
                     <label className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer">
                       <input
                         type="checkbox"
@@ -228,8 +228,9 @@ const ServiceOptionEditor: React.FC<ServiceOptionEditorProps> = ({ options, onCh
 
                   <div className="space-y-2">
                     {option.items.map((item) => (
-                      <div key={item.id} className="flex gap-2 items-center bg-gray-50 p-2 rounded shadow-sm border border-gray-200/50">
-                        <div className="flex-1 min-w-0">
+                      <div key={item.id} className="flex flex-wrap sm:flex-nowrap gap-2 items-center bg-gray-50 p-2 rounded shadow-sm border border-gray-200/50">
+                        {/* Name */}
+                        <div className="flex-1 min-w-[150px]">
                           <input
                             type="text"
                             value={item.name}
@@ -238,6 +239,8 @@ const ServiceOptionEditor: React.FC<ServiceOptionEditorProps> = ({ options, onCh
                             className="block w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:border-primary focus:ring-1 focus:ring-primary"
                           />
                         </div>
+                        
+                        {/* Price */}
                         <div className="w-20 shrink-0">
                           <input
                             type="number"
@@ -247,6 +250,8 @@ const ServiceOptionEditor: React.FC<ServiceOptionEditorProps> = ({ options, onCh
                             className="block w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:border-primary focus:ring-1 focus:ring-primary text-center"
                           />
                         </div>
+                        
+                        {/* Duration */}
                          <div className="w-20 shrink-0 relative">
                           <input
                             type="number"
@@ -257,10 +262,38 @@ const ServiceOptionEditor: React.FC<ServiceOptionEditorProps> = ({ options, onCh
                           />
                           <span className="absolute right-2 top-2 text-xs text-gray-400 pointer-events-none">分</span>
                         </div>
+
+                        {/* Quantity Config */}
+                        <div className="flex items-center gap-2 border-l border-gray-200 pl-2 ml-1">
+                             <label className="flex items-center space-x-1 cursor-pointer" title="啟用數量選擇">
+                                <input 
+                                    type="checkbox" 
+                                    checked={item.allowQuantity || false}
+                                    onChange={(e) => handleItemChange(option.id, item.id, 'allowQuantity', e.target.checked)}
+                                    className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                />
+                                <span className="text-xs text-gray-500">數量</span>
+                             </label>
+                             {item.allowQuantity && (
+                                <div className="w-16">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="100"
+                                        value={item.maxQuantity || 10}
+                                        onChange={(e) => handleItemChange(option.id, item.id, 'maxQuantity', Number(e.target.value))}
+                                        placeholder="Max"
+                                        title="最大數量"
+                                        className="block w-full px-1 py-1 border border-gray-300 rounded text-xs focus:border-primary focus:ring-1 focus:ring-primary text-center"
+                                    />
+                                </div>
+                             )}
+                        </div>
+
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(option.id, item.id)}
-                          className="text-gray-400 hover:text-red-500 p-1.5 shrink-0"
+                          className="text-gray-400 hover:text-red-500 p-1.5 shrink-0 ml-auto sm:ml-0"
                         >
                           <TrashIcon className="w-4 h-4" />
                         </button>

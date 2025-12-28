@@ -34,8 +34,10 @@ export const useBookingStore = create<BookingStore>()(
                 let optionsDuration = 0;
 
                 Object.values(selectedOptions).flat().forEach(item => {
-                    optionsPrice += item.price;
-                    optionsDuration += item.duration || 0;
+                    // Use quantity if available, default to 1
+                    const qty = item.quantity || 1;
+                    optionsPrice += item.price * qty;
+                    optionsDuration += (item.duration || 0) * qty;
                 });
 
                 const newItem: CartItem = {
