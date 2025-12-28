@@ -215,6 +215,7 @@ const BookingPage = () => {
           amount: finalPrice,
           notes: notes,
           status: initialStatus,
+          bookingId: newBookingRef.id,
         }),
       }).catch(err => console.error('Failed to send LINE notification:', err));
 
