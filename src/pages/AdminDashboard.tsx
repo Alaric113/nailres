@@ -420,7 +420,7 @@ const AdminDashboard = () => {
                        value={metrics.personal.pendingConfirmation}
                        unit="筆"
                        linkTo="/admin/orders?status=pending_confirmation"
-                       icon={<BellAlertIcon className="h-6 w-6" />}
+                       icon={<BellAlertIcon className="h-3 w-3" />}
                        color="bg-red-500"
                        urgent={metrics.personal.pendingConfirmation > 0}
                    />
@@ -429,7 +429,7 @@ const AdminDashboard = () => {
                        value={metrics.personal.todayCount}
                        unit="位"
                        linkTo="/admin/calendar"
-                       icon={<CalendarDaysIcon className="h-6 w-6" />}
+                       icon={<CalendarDaysIcon className="h-3 w-3" />}
                        color="bg-blue-500"
                    />
                    <SummaryCard
@@ -437,7 +437,7 @@ const AdminDashboard = () => {
                        value={targetDesignerProfile.bookingDeadline ? format(targetDesignerProfile.bookingDeadline.toDate(), 'MM/dd') : '未設定'}
                        unit=""
                        linkTo="/admin/hours"
-                       icon={<CalendarDaysIcon className="h-6 w-6" />}
+                       icon={<CalendarDaysIcon className="h-3 w-3" />}
                        color="bg-teal-500"
                    />
                    <SummaryCard
@@ -445,7 +445,7 @@ const AdminDashboard = () => {
                        value={metrics.personal.upcomingCount}
                        unit="筆"
                        linkTo="/admin/orders?status=confirmed"
-                       icon={<ClockIcon className="h-6 w-6" />}
+                       icon={<ClockIcon className="h-3 w-3" />}
                        color="bg-indigo-500"
                    />
                    {isAdminOrManager && (
@@ -454,7 +454,7 @@ const AdminDashboard = () => {
                        value={pendingFeedbackCount}
                        unit="項"
                        linkTo="/admin/feedback"
-                       icon={<ChatBubbleLeftEllipsisIcon className="h-6 w-6" />}
+                       icon={<ChatBubbleLeftEllipsisIcon className="h-3 w-3" />}
                        color="bg-pink-500"
                      />
                    )}
