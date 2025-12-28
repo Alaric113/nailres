@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { XMarkIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { 
+  XMarkIcon, 
+  ArrowRightOnRectangleIcon, 
+  Cog6ToothIcon, 
+  ChevronDownIcon, 
+  UserCircleIcon,
+  HomeIcon,
+  CalendarDaysIcon,
+  PhotoIcon,
+  UserGroupIcon,
+  BuildingStorefrontIcon
+} from '@heroicons/react/24/outline';
 import { useAuthStore } from '../../store/authStore';
 
 interface SidebarProps {
@@ -18,73 +29,50 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   {
-    label: '💫 NEW & POPULAR',
+    label: '首頁',
+    link: '/dashboard',
+    isCategory: false,
+    icon: HomeIcon,
+  },
+  {
+    label: '立即預約',
     isCategory: true,
+    icon: CalendarDaysIcon,
     subItems: [
-      { label: '新品上市', link: '#' },
-      { label: '熱門預約款', link: '#' },
-      { label: '約會必勝款', link: '#' },
+      { label: '所有服務', link: '/booking' },
+      { label: '質感美甲 Nails', link: '/booking?category=美甲' },
+      { label: '日式美睫 Eyelash', link: '/booking?category=美睫' },
+      { label: '韓式紋繡 Brows', link: '/booking?category=紋繡' },
     ],
   },
   {
-    label: 'Treering服務項目',
+    label: '作品集 Portfolio',
+    link: '/portfolio',
+    isCategory: false,
+    icon: PhotoIcon,
+  },
+  {
+    label: '會員中心',
     isCategory: true,
+    icon: UserGroupIcon,
     subItems: [
-      { label: '日式美睫Eyelash', link: '/booking?category=美睫' },
-      { label: '韓式霧眉 Misty Brows', link: '/booking?category=霧眉' },
-      { label: '質感美甲 Aesthetic Nails', link: '/booking?category=美甲' },
+      { label: '會員首頁', link: '/member' },
+      { label: '預約紀錄', link: '/member/history' },
+      { label: '我的優惠券', link: '/member/coupons' },
+      { label: '集點卡', link: '/member/rewards' },
     ],
   },
   {
-    label: 'PORTFOLIO 作品集',
-    isCategory: true,
-    subItems: [
-      { label: '所有作品集', link: '/portfolio' },
-      { label: 'Before & After', link: '#' },
-      { label: '風格特輯Style Look', link: '#' },
-      { label: '客人回饋 Real Reviews', link: '#' },
-    ],
-  },
-  {
-    label: 'ABOUT 關於我們',
-    isCategory: true,
-    subItems: [
-      { label: '品牌故事', link: '#' },
-      { label: '設計師介紹', link: '#' },
-      { label: '工作室環境', link: '#' },
-    ],
-  },
-  {
-    label: 'INFO 預約資訊',
-    isCategory: true,
-    subItems: [
-      { label: '預約須知', link: '#' },
-      { label: '價目表', link: '#' },
-      { label: '常見問題 Q&A', link: '#' },
-    ],
-  },
-  {
-    label: '🔔NEWS 活動與公告',
-    isCategory: true,
-    subItems: [
-      { label: '限時優惠', link: '#' },
-      { label: '來店禮活動', link: '#' },
-      { label: '抽獎／節慶企劃', link: '#' },
-    ],
-  },
-  {
-    label: 'CONTACT 聯絡我們',
-    isCategory: true,
-    subItems: [
-      { label: '預約連結（Line / IG ）', link: '#' },
-      { label: '工作室地點與交通', link: '#' },
-    ],
+    label: '店家資訊',
+    link: '/store',
+    isCategory: false,
+    icon: BuildingStorefrontIcon,
   },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { currentUser, userProfile, logout } = useAuthStore();
-  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set([0, 1, 2])); // 預設展開前三個分類
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set([1, 3])); // Default expanded 'Book Now' and 'Member Center'
 
   const toggleCategory = (index: number) => {
     setExpandedCategories(prev => {
@@ -102,6 +90,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     onClose();
     await logout();
   };
+
+  // Safe checks for user data
+  const displayName = userProfile?.profile?.displayName || currentUser?.displayName || '會員';
+  const avatarUrl = userProfile?.profile?.avatarUrl || currentUser?.photoURL;
 
   return (
     <>
@@ -137,12 +129,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             </div>
             
             {/* User greeting */}
-            {currentUser && userProfile && (
+            {currentUser && (
               <div className="flex items-center space-x-3 p-3 bg-secondary-light rounded-xl shadow-subtle border border-secondary-dark">
-                {currentUser.photoURL ? (
+                {avatarUrl ? (
                   <img 
-                    src={currentUser.photoURL} 
-                    alt={currentUser.displayName || '會員'} 
+                    src={avatarUrl} 
+                    alt={displayName} 
                     className='h-10 w-10 rounded-xl object-cover' 
                   />
                 ) : (
@@ -152,7 +144,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-text-main truncate">
-                    {currentUser.displayName || '會員'}
+                    {displayName}
                   </p>
                 </div>
               </div>
@@ -173,6 +165,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                       aria-expanded={expandedCategories.has(index)}
                     >
                       <span className="flex items-center tracking-wide">
+                        {item.icon && (
+                          <item.icon className="h-5 w-5 mr-3 text-text-light group-hover:text-primary transition-colors" />
+                        )}
                         {item.label}
                       </span>
                       <ChevronDownIcon 
