@@ -16,6 +16,13 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
   // State to track selected options: optionId -> array of selected Item objects
   const [selections, setSelections] = useState<Record<string, ServiceOptionItem[]>>({});
 
+  // Reset selections when service changes or modal opens
+  React.useEffect(() => {
+      if (isOpen) {
+          setSelections({});
+      }
+  }, [isOpen, service?.id]);
+
   if (!service) return null;
 
   // Use dummy options if none exist (for development/demo purposes)
