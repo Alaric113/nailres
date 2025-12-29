@@ -1,16 +1,20 @@
+// ... (previous code)
+
 import { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
+import { auth } from '../lib/firebase'; // Added auth
 
 import { db } from '../lib/firebase';
 import { useAllUsers } from "../hooks/useAllUsers";
 import type { UserRole } from '../types/user';
 import UserCard from '../components/admin/UserCard';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, TrashIcon } from '@heroicons/react/24/outline';
+import Modal from '../components/common/Modal';
 
 const DEFAULT_AVATAR = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
 
 const CustomerListPage = () => {
-  const { users, loading, error } = useAllUsers();
+  const { users, loading, error } = useAllUsers(); // Removed setUsers
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -19,15 +23,25 @@ const CustomerListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
 
+  // Delete State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // ... (previous loading/error checks)
+  
   if (loading) {
-    return <div className="p-4 text-center text-text-light">正在載入客戶資料...</div>;
+     return <div className="p-4 text-center text-text-light">正在載入客戶資料...</div>;
+  }
+ 
+  if (error) {
+     return <div className="p-4 text-center text-red-500">載入客戶資料時發生錯誤: {error.message}</div>;
   }
 
-  if (error) {
-    return <div className="p-4 text-center text-red-500">載入客戶資料時發生錯誤: {error.message}</div>;
-  }
+  // ... (filtering logic)
 
   const filteredUsers = users.filter(user => {
+    // ... same logic
     if (roleFilter !== 'all' && user.role !== roleFilter) {
       return false;
     }
@@ -52,6 +66,7 @@ const CustomerListPage = () => {
   };
 
   const handleSaveNote = async (userId: string, newNote: string) => {
+    // ... existing logic
     setIsSaving(true);
     setSaveError(null);
     try {
@@ -66,6 +81,7 @@ const CustomerListPage = () => {
   };  
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
+    // ... existing logic
     setIsUpdatingRole(true);
     setSaveError(null);
 
@@ -79,6 +95,47 @@ const CustomerListPage = () => {
       setIsUpdatingRole(false);
     }
   };
+  
+  // NEW: Delete Handlers
+  const handleDeleteClick = (userId: string) => {
+      setDeletingUserId(userId);
+      setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+      if (!deletingUserId) return;
+      setIsDeleting(true);
+      try {
+          const idToken = await auth.currentUser?.getIdToken();
+          const response = await fetch('/api/delete-user', {
+              method: 'POST',
+              headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${idToken}` 
+              },
+              body: JSON.stringify({ targetUserId: deletingUserId })
+          });
+
+          if (!response.ok) {
+              const errData = await response.json();
+              throw new Error(errData.message || 'Deletion failed');
+          }
+
+          // If success, typically Firestore onSnapshot will update the list automatically.
+          // If not using onSnapshot, we might need to manually reload or update state.
+          // Assuming the hook handles it or we reload:
+          setIsDeleteModalOpen(false);
+          setDeletingUserId(null);
+          alert("使用者已刪除"); // Simple feedback
+
+      } catch (err: any) {
+          console.error("Delete failed:", err);
+          alert(`刪除失敗: ${err.message}`);
+      } finally {
+          setIsDeleting(false);
+      }
+  };
+
 
   const tabs: { key: UserRole | 'all'; label: string }[] = [
     { key: 'all', label: '全部' },
@@ -98,7 +155,8 @@ const CustomerListPage = () => {
   return (
     <div className="min-h-screen bg-secondary-light text-text-main">
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="mb-8 space-y-6">
+        {/* ... Search and Tabs ... */}
+         <div className="mb-8 space-y-6">
           <div className="relative max-w-md">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <MagnifyingGlassIcon className="h-5 w-5 text-text-light" />
@@ -134,6 +192,7 @@ const CustomerListPage = () => {
                   <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">客戶名稱</th>
                   <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">角色</th>
                   <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif">備註</th>
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-text-light uppercase tracking-wider font-serif text-right">操作</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-secondary-light">
@@ -199,6 +258,16 @@ const CustomerListPage = () => {
                         </div>
                       )}
                     </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => handleDeleteClick(user.id)}
+                          className="text-red-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-full"
+                          title="刪除使用者"
+                        >
+                            <TrashIcon className="w-5 h-5" />
+                        </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -215,6 +284,7 @@ const CustomerListPage = () => {
               onRoleChange={handleRoleChange}
               onSaveNote={handleSaveNote}
               onSaveError={setSaveError}
+              onDeleteClick={() => handleDeleteClick(user.id)} // Pass delete handler
             />
           ))}
         </div>
@@ -229,6 +299,43 @@ const CustomerListPage = () => {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="確認刪除使用者"
+      >
+          <div className="space-y-4">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+                  <p className="font-bold flex items-center gap-2">
+                       Warning: 此動作無法復原！
+                  </p>
+                  <ul className="list-disc list-inside mt-2 space-y-1 opacity-90">
+                      <li>使用者將無法再登入。</li>
+                      <li>個人的會員資料與優惠券將被刪除。</li>
+                      <li>歷史訂單紀錄將保留但會變成無效連結。</li>
+                  </ul>
+              </div>
+              <p className="text-gray-600">確定要永久刪除此使用者嗎？</p>
+              
+              <div className="flex gap-3 justify-end mt-6">
+                  <button 
+                      onClick={() => setIsDeleteModalOpen(false)}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                  >
+                      取消
+                  </button>
+                  <button 
+                      onClick={confirmDeleteUser}
+                      disabled={isDeleting}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                      {isDeleting ? '刪除中...' : '確認刪除'}
+                  </button>
+              </div>
+          </div>
+      </Modal>
     </div>
   );
 };
