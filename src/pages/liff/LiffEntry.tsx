@@ -22,7 +22,8 @@ const LiffEntry = () => {
         let timeoutId: NodeJS.Timeout;
         if (status === 'initializing' || status === 'verifying' || status === 'logging_in') {
             timeoutId = setTimeout(() => {
-                setErrorMessage('系統回應逾時，請檢查網路連線或稍後再試');
+                console.warn('[LiffEntry] Timeout reached. Current status:', status);
+                setErrorMessage(`系統回應逾時 (狀態: ${status})，請檢查網路連線或稍後再試`);
                 setStatus('error');
             }, 30000); // 30s timeout
         }
@@ -30,7 +31,7 @@ const LiffEntry = () => {
     }, [status]);
 
     useEffect(() => {
-        console.log('[LiffEntry] Current location:', location.pathname, location.search);
+        console.log('[LiffEntry] Mounted. Location:', location.pathname, location.search);
         const queryParams = new URLSearchParams(location.search);
         
         let redirectPath = queryParams.get('redirect');
@@ -58,40 +59,41 @@ const LiffEntry = () => {
         const state = queryParams.get('state');
 
         const init = async () => {
+             console.log('[LiffEntry] init() started. Code:', code ? 'Yes' : 'No', 'State:', state ? 'Yes' : 'No');
             try {
                 if (currentUser) {
+                    console.log('[LiffEntry] User already logged in. Redirecting...');
                     setStatus('redirecting');
                     setProgressText('登入成功，正在跳轉...');
                     navigate(redirectPath, { replace: true });
                     return;
                 }
 
-                console.log('Initializing LIFF...');
+                console.log('[LiffEntry] Calling initializeLiff()...');
                 setProgressText('正在初始化 LIFF...');
                 const liff = await initializeLiff();
                 
                 if (!liff) {
                     throw new Error('LIFF init returned null');
                 }
+                console.log('[LiffEntry] LIFF Initialized. IsLoggedIn:', liff.isLoggedIn());
 
                 if (!liff.isLoggedIn()) {
                    setStatus('logging_in');
                    setProgressText('準備 LINE 登入...');
-                   // Fall through to manual redirect below
                 }
 
                 // If not logged in AND no code, we need to trigger login
                 if (!liff.isLoggedIn() && !code) {
+                     console.log('[LiffEntry] Triggering OAuth redirct...');
                      const authState = generateState();
                      const nonce = generateNonce();
                      sessionStorage.setItem('line_auth_state', authState);
                      sessionStorage.setItem('line_auth_nonce', nonce);
 
-                     // FORCE Redirect URI to be /liff (must match LINE Console)
                      const fixedRedirectPath = '/liff';
                      const redirectUri = window.location.origin + fixedRedirectPath;
                      
-                     // Embed return path in state
                      const returnPath = redirectPath; 
                      const stateValue = '?' + new URLSearchParams({ 
                          s: authState, 
@@ -109,38 +111,44 @@ const LiffEntry = () => {
                      });
 
                      const loginUrl = `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
+                     console.log('[LiffEntry] Redirecting to:', loginUrl);
                      window.location.href = loginUrl;
                      return;
                 }
                 
                 // If we have code and state, exchange it
                 if (code && state) {
+                     console.log('[LiffEntry] Starting Token Exchange...');
                      setStatus('verifying');
                      setProgressText('正在驗證身分...');
                      
-                     // We need to pass the EXACT SAME redirectUri used in step 1
                      const fixedRedirectPath = '/liff';
                      const redirectUri = window.location.origin + fixedRedirectPath;
                      
+                     console.log('[LiffEntry] sending fetch to /api/line-oauth-auth');
                      const response = await fetch('/api/line-oauth-auth', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ code, redirectUri }),
                       });
             
+                      console.log('[LiffEntry] Fetch complete. Status:', response.status);
+
                       if (!response.ok) {
                           const errText = await response.text();
+                          console.error('[LiffEntry] Fetch error body:', errText);
                           throw new Error(`Exchange Failed: ${errText}`);
                       }
                       
                       setProgressText('取得使用者資料...');
                       const { firebaseCustomToken } = await response.json();
+                      console.log('[LiffEntry] Got custom token. Signing in...');
                       await signInWithCustomToken(auth, firebaseCustomToken);
-                      // navigate will happen on next effect run or re-render via currentUser change
+                      console.log('[LiffEntry] Sign in complete.');
                 }
 
             } catch (err: any) {
-                console.error(err);
+                console.error('[LiffEntry] Caught Error:', err);
                 setErrorMessage(err.message || 'Error occurred');
                 setStatus('error');
             }
