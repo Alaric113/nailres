@@ -36,12 +36,6 @@ const BookingPage = () => {
   const initialCategory = query.get('category');
   const isLiff = isLiffBrowser();
 
-// ... existing code ...
-
-      {/* Floating Action Button for Next Step (Steps 2-4 only on mobile) */}
-      {/* Step 1 button is handled by MobileCartBar inside ServiceSelector */}
-      {currentStep > 1 && (
-          <div className={`fixed ${isLiff ? 'bottom-0' : 'bottom-[80px]'} md:bottom-10 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 md:hidden z-40`}>
 
   const [currentStep, setCurrentStep] = useState(1);
   

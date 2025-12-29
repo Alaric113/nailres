@@ -46,5 +46,9 @@ export const liffLogin = (redirectUri?: string) => {
 };
 
 export const isLiffBrowser = () => {
-  return liff.isInClient();
+  // Check for mock flag in URL (for local development)
+  const searchParams = new URLSearchParams(window.location.search);
+  const isMock = searchParams.get('liff_mock') === 'true';
+
+  return liff.isInClient() || isMock;
 };
