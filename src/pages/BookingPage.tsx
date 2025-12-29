@@ -101,7 +101,25 @@ const BookingPage = () => {
     const final = Math.max(0, basePrice - discount);
 
     return { totalDuration: duration, originalPrice: basePrice, finalPrice: final, discountAmount: discount };
+    return { totalDuration: duration, originalPrice: basePrice, finalPrice: final, discountAmount: discount };
   }, [cart, selectedCoupon]);
+
+  const allowedDesignerIds = useMemo(() => {
+    const restrictionSets: string[][] = [];
+    cart.forEach(item => {
+      if (item.service.supportedDesigners && item.service.supportedDesigners.length > 0) {
+        restrictionSets.push(item.service.supportedDesigners);
+      }
+    });
+
+    if (restrictionSets.length === 0) return undefined;
+
+    let result = restrictionSets[0];
+    for (let i = 1; i < restrictionSets.length; i++) {
+        result = result.filter(id => restrictionSets[i].includes(id));
+    }
+    return result;
+  }, [cart]);
 
 
   // Renamed from handleBookingSubmit to processBooking for internal use
@@ -323,6 +341,7 @@ const BookingPage = () => {
             <DesignerSelector 
               onDesignerSelect={handleDesignerSelect} 
               selectedDesigner={selectedDesigner}
+              allowedDesignerIds={allowedDesignerIds}
             />
           </div>
         )}

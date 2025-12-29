@@ -10,6 +10,7 @@ import ImageUploader from '../components/admin/ImageUploader'; // 引入圖片�
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ServiceMobileAccordionCard from '../components/admin/ServiceMobileAccordionCard'; // Import the new component
 import ServiceOptionEditor from '../components/admin/ServiceOptionEditor'; // Import Option Editor
+import ServiceDesignerSelector from '../components/admin/ServiceDesignerSelector'; // Import Designer Selector
 import ServiceReorderModal from '../components/admin/ServiceReorderModal'; // Import Reorder Modal
 import { PencilSquareIcon, EyeIcon, EyeSlashIcon, TrashIcon, ArrowsUpDownIcon } from '@heroicons/react/24/outline';
 import { useToast } from '../context/ToastContext';
@@ -25,7 +26,8 @@ const ServiceManagement = () => {
     imageUrl: string;
     description: string; // Add description here
     options: ServiceOption[];
-  }>({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [] });
+    supportedDesigners: string[];
+  }>({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [], supportedDesigners: [] });
   
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,7 +39,7 @@ const ServiceManagement = () => {
   const [isToggling, setIsToggling] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<'basic' | 'image' | 'options'>('basic'); // Tab state
+  const [activeTab, setActiveTab] = useState<'basic' | 'image' | 'options' | 'designers'>('basic'); // Tab state
   // Fetch existing services
   const { services, isLoading: servicesLoading, error: servicesError } = useServices();
   
@@ -56,6 +58,7 @@ const ServiceManagement = () => {
         imageUrl: editingService.imageUrl || '',
         description: editingService.description || '',
         options: editingService.options || [],
+        supportedDesigners: editingService.supportedDesigners || [],
       });
     } else {
       resetForm();
@@ -88,6 +91,7 @@ const ServiceManagement = () => {
           imageUrl: formData.imageUrl,
           description: formData.description, // Added description
           options: formData.options, // Save options
+          supportedDesigners: formData.supportedDesigners,
         });
         setSuccess(`服務項目 "${formData.name}" 已成功更新！`);
         setEditingService(null);
@@ -106,6 +110,7 @@ const ServiceManagement = () => {
           description: formData.description, // Added description
           createdAt: serverTimestamp(),
           options: formData.options, // Save options
+          supportedDesigners: formData.supportedDesigners,
           order: 9999, // Put new services at end by default
         });
         setSuccess(`服務項目 "${formData.name}" 已成功新增！`);
@@ -140,7 +145,7 @@ const ServiceManagement = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [] });
+    setFormData({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [], supportedDesigners: [] });
     setFormError(null);
   };
 
@@ -215,7 +220,7 @@ const ServiceManagement = () => {
         <Modal
           isOpen={isServiceModalOpen}
           onClose={handleCancelEdit} // 使用 handleCancelEdit 統一關閉邏輯
-          title={editingService ? '編輯服務項目' : '新增服務項目'}
+          title={editingService ? '編輯服務項目 - ' + editingService.name : '新增服務項目'}
           maxWidth="max-w-2xl"
         >
           <form onSubmit={handleSubmit} className="flex flex-col h-full">
@@ -253,6 +258,17 @@ const ServiceManagement = () => {
                 }`}
               >
                 附加選項
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('designers')}
+                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'designers'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                設計師
               </button>
             </div>
 
@@ -344,6 +360,14 @@ const ServiceManagement = () => {
                 <ServiceOptionEditor
                   options={formData.options}
                   onChange={(options) => setFormData(prev => ({ ...prev, options }))}
+                />
+              </div>
+
+              {/* Designers Tab */}
+              <div className={activeTab === 'designers' ? 'py-2' : 'hidden'}>
+                <ServiceDesignerSelector
+                  selectedDesignerIds={formData.supportedDesigners}
+                  onChange={(ids) => setFormData(prev => ({ ...prev, supportedDesigners: ids }))}
                 />
               </div>
 

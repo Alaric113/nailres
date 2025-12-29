@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useServices } from '../../hooks/useServices';
 import { useServiceCategories } from '../../hooks/useServiceCategories';
 import type { Service } from '../../types/service';
@@ -7,96 +8,42 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import CartSidebar from './CartSidebar';
 import MobileCartBar from './MobileCartBar';
 import ServiceOptionsSheet from './ServiceOptionsSheet';
-// Removed ChevronDownIcon import as it's no longer used
 
 interface ServiceSelectorProps {
   initialCategory?: string | null;
   onNext: () => void;
 }
 
-const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, initialCategory }) => {
+const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
+  const [searchParams] = useSearchParams();
   const { services, isLoading, error } = useServices();
   const { categories } = useServiceCategories();
   const { userProfile } = useAuthStore();
   
-  const [activeCategory, setActiveCategory] = useState<string>('');
+  const [activeCategory, setActiveCategory] = useState<string>('全部');
   const [selectedService, setSelectedService] = useState<Service | null>(null); // For Options Sheet
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  // Scroll Refs
-  const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Initialize active category
+  // Initialize active category from URL or Default
   useEffect(() => {
-    if (categories.length > 0 && !activeCategory) {
-      setActiveCategory(categories[0].name);
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setActiveCategory(categoryParam);
+    } else {
+        // Only reset to '全部' if no param is explicitly cleared? 
+        // Logic: If on page load we have no param, we show '全部'.
+        // If we have param, show that.
+        // We set default state to '全部' already.
+        // But if we navigate properly we want to update it.
+        setActiveCategory('全部');
     }
-  }, [categories, activeCategory]);
+  }, [searchParams]);
 
-  // Handle initial category scroll
-  useEffect(() => {
-    if (initialCategory && categories.length > 0 && !isLoading) {
-      // Small timeout to ensure refs are bound
-      setTimeout(() => {
-        scrollToCategory(initialCategory);
-      }, 300);
-    }
-  }, [initialCategory, categories, isLoading]);
-
-  // Handle manual scroll to category
-  const scrollToCategory = (categoryName: string) => {
-    setActiveCategory(categoryName);
-    const element = categoryRefs.current[categoryName];
-    const container = containerRef.current;
-    
-    if (element && container) {
-      // Get element position relative to container
-      const elementTop = element.offsetTop;
-      // We don't need a huge offset since the header is OUTSIDE the scroll container.
-      // But maybe a small padding for aesthetics.
-      const offset = 80; 
-      
-      container.scrollTo({
-        top: elementTop - offset,
-        behavior: 'smooth'
-      });
-    }
+  const handleCategoryChange = (category: string) => {
+      setActiveCategory(category);
+      // Optional: Update URL? maybe not needed for user flow within SPA, but good for shareable links
+      // setSearchParams({ category }); // Use with caution if preserving other params
   };
-
-  // Scroll Spy using IntersectionObserver
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || isLoading || categories.length === 0) return;
-
-    const observerOptions = {
-      root: container,
-      rootMargin: '-20% 0px -60% 0px', // Active region in the middle-top
-      threshold: 0
-    };
-
-    const observerCallback: IntersectionObserverCallback = (entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          // Find which category this element belongs to
-          const categoryName = Object.keys(categoryRefs.current).find(key => 
-            categoryRefs.current[key] === entry.target
-          );
-          if (categoryName) {
-            setActiveCategory(categoryName);
-          }
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(observerCallback, observerOptions);
-
-    Object.values(categoryRefs.current).forEach(el => {
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
-  }, [categories, isLoading]);
 
   if (isLoading) {
     return <div className="flex justify-center p-4"><LoadingSpinner /></div>;
@@ -134,6 +81,12 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, initialCatego
     if (indexB === -1) return -1;
     return indexA - indexB;
   });
+
+  const displayCategories = ['全部', ...sortedCategories];
+  
+  const categoriesToShow = activeCategory === '全部' 
+      ? sortedCategories 
+      : sortedCategories.filter(c => c === activeCategory);
   
   const handleServiceClick = (service: Service) => {
       setSelectedService(service);
@@ -148,10 +101,10 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, initialCatego
             {/* Category Tabs - Static in Flex Column */}
             <div className="bg-[#FAF9F6] z-30 shadow-sm border-b border-gray-200 overflow-x-auto no-scrollbar flex-none">
                 <div className="flex px-4 items-center h-14 space-x-6 whitespace-nowrap">
-                    {sortedCategories.map(category => (
+                    {displayCategories.map(category => (
                         <button
                             key={category}
-                            onClick={() => scrollToCategory(category)}
+                            onClick={() => handleCategoryChange(category)}
                             className={`
                                 h-full relative px-1 font-medium text-sm transition-colors
                                 ${activeCategory === category 
@@ -170,13 +123,12 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, initialCatego
             </div>
 
             {/* Scrollable Service List */}
-            <div className="flex-1 overflow-y-auto pb-24" ref={containerRef}>
+            <div className="flex-1 overflow-y-auto pb-24">
                 <div className="max-w-3xl mx-auto p-4 space-y-8">
-                    {sortedCategories.map(category => (
+                    {categoriesToShow.map(category => (
                         <div 
                             key={category} 
-                            ref={(el) => { categoryRefs.current[category] = el; }}
-                            className="scroll-mt-24 pb-8 border-b border-gray-100 last:border-0"
+                            className="pb-8 border-b border-gray-100 last:border-0"
                         >
                             <div className="flex items-center gap-4 mb-6 px-2">
                                 <h3 className="text-2xl font-sans font-bold text-primary-dark tracking-wide">

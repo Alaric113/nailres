@@ -9,9 +9,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface DesignerSelectorProps {
   onDesignerSelect: (designer: Designer) => void;
   selectedDesigner: Designer | null;
+  allowedDesignerIds?: string[]; // Optional: if provided, only show these designers
 }
 
-const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, selectedDesigner }) => {
+const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, selectedDesigner, allowedDesignerIds }) => {
   const [designers, setDesigners] = useState<Designer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,8 +25,13 @@ const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, s
         // Only show active designers
         const q = query(designersRef, where('isActive', '==', true));
         const snap = await getDocs(q);
-        const activeDesigners = snap.docs.map(d => ({ id: d.id, ...d.data() } as Designer))
+        let activeDesigners = snap.docs.map(d => ({ id: d.id, ...d.data() } as Designer))
                                         .sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
+
+        if (allowedDesignerIds) {
+           activeDesigners = activeDesigners.filter(d => allowedDesignerIds.includes(d.id));
+        }
+
         setDesigners(activeDesigners);
       } catch (err) {
         console.error("Error fetching designers:", err);
@@ -35,7 +41,7 @@ const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, s
       }
     };
     fetchDesigners();
-  }, []);
+  }, [allowedDesignerIds]);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <p className="text-red-500 text-center p-4">{error}</p>;

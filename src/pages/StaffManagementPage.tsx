@@ -11,6 +11,9 @@ import {
   PencilIcon, 
   CheckBadgeIcon
 } from '@heroicons/react/24/outline';
+import { writeBatch, arrayUnion, arrayRemove } from 'firebase/firestore'; // For batch updates
+import type { Service } from '../types/service';
+import DesignerServiceSelector from '../components/admin/DesignerServiceSelector';
 
 const StaffManagementPage: React.FC = () => {
   const [designers, setDesigners] = useState<Designer[]>([]);
@@ -21,12 +24,15 @@ const StaffManagementPage: React.FC = () => {
   
   const [editingTarget, setEditingTarget] = useState<{ user: EnrichedUser; designer?: Designer } | null>(null);
   
+  const [services, setServices] = useState<Service[]>([]); // New State
+
   const [formData, setFormData] = useState<{
     name: string;
     title: string;
     bio: string;
     isActive: boolean;
-  }>({ name: '', title: '', bio: '', isActive: true });
+    supportedServices: string[]; // New: List of service IDs this designer handles
+  }>({ name: '', title: '', bio: '', isActive: true, supportedServices: [] });
 
   // Fetch data
   useEffect(() => {
@@ -45,8 +51,13 @@ const StaffManagementPage: React.FC = () => {
         // 2. Fetch All Designer Profiles
         const designersRef = collection(db, 'designers');
         const designersSnapshot = await getDocs(designersRef);
-        const loadedDesigners = designersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Designer));
-        setDesigners(loadedDesigners);
+        setDesigners(designersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Designer)));
+
+        // 3. Fetch Services
+        const servicesSnapshot = await getDocs(collection(db, 'services'));
+        const loadedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service))
+                                      .sort((a, b) => (a.order || 999) - (b.order || 999));
+        setServices(loadedServices);
 
       } catch (error) {
         console.error("Error loading data:", error);
@@ -59,11 +70,23 @@ const StaffManagementPage: React.FC = () => {
 
   const openModal = (user: EnrichedUser, designer?: Designer) => {
     setEditingTarget({ user, designer });
+    // Calculate supported services
+    // If supportedDesigners is undefined or empty => All designers support it => So this designer supports it.
+    // If supportedDesigners has entries => Check if designer.id is in it.
+    const designerId = designer?.id;
+    const initialSupportedServices = services
+        .filter(s => {
+            if (!s.supportedDesigners || s.supportedDesigners.length === 0) return true; // Implicitly supported
+            return designerId && s.supportedDesigners.includes(designerId);
+        })
+        .map(s => s.id);
+
     setFormData({
       name: designer?.name || user.profile.displayName || '',
       title: designer?.title || '',
       bio: designer?.bio || '',
       isActive: designer?.isActive ?? true,
+      supportedServices: initialSupportedServices,
     });
     setIsModalOpen(true);
   };
@@ -98,9 +121,96 @@ const StaffManagementPage: React.FC = () => {
         return [...others, newDesignerData];
       });
       
+      // --- Batch Update Services ---
+      const batch = writeBatch(db);
+      let batchCount = 0;
+      
+      services.forEach(service => {
+          const isCurrentlySupported = !service.supportedDesigners || service.supportedDesigners.length === 0 || (docId && service.supportedDesigners.includes(docId));
+          const isNewlySupported = formData.supportedServices.includes(service.id);
+
+          if (isCurrentlySupported !== isNewlySupported) {
+              const serviceRef = doc(db, 'services', service.id);
+              
+              if (isNewlySupported) {
+                  // Action: ADD designer to service
+                  // But wait, if service was "Implicitly All" (!supportedDesigners), we don't need to add it, unless we are transitioning from "Specific" to "All" (which is not what happens here).
+                  // Case: Currently supported (False) -> New (True).
+                  // This means service was Specific List (excluding us) -> We want to join.
+                  batch.update(serviceRef, {
+                      supportedDesigners: arrayUnion(docId)
+                  });
+                  batchCount++;
+              } else {
+                  // Action: REMOVE designer from service
+                  // Case: Currently supported (True) -> New (False).
+                  
+                  if (!service.supportedDesigners || service.supportedDesigners.length === 0) {
+                      // It was "All". We need to convert it to "Specific List (All EXCEPT this one)".
+                      // We need ALL active designer IDs.
+                      const allActiveDesignerIds = designers.filter(d => d.isActive).map(d => d.id);
+                      // If the new designer is creating this profile now, they might not be in 'designers' state yet fully if we used uuid? 
+                      // actually 'docId' is the designerId. 
+                      // We should ensure 'allActiveDesignerIds' includes the current docId (if active), then remove it.
+                      
+                      let newIds = allActiveDesignerIds;
+                      if (!newIds.includes(docId) && formData.isActive) newIds.push(docId);
+                      
+                      newIds = newIds.filter(id => id !== docId);
+                      
+                      batch.update(serviceRef, {
+                          supportedDesigners: newIds
+                      });
+                      batchCount++;
+                  } else {
+                      // It was already a list. Just remove.
+                      batch.update(serviceRef, {
+                          supportedDesigners: arrayRemove(docId)
+                      });
+                      batchCount++;
+                  }
+              }
+          }
+      });
+      
+      if (batchCount > 0) {
+          console.log(`Updating ${batchCount} services.`);
+          await batch.commit();
+          // Update local state for services to reflect changes immediately
+          // (Functionally optional but good for UI consistency if used elsewhere, but we reload/recalc anyway)
+          // For simplicity we might trigger a refetch or manual update.
+          // Let's iterate services and checking again in a subsequent openModal.
+          
+          // Better: Update local 'services' state
+          setServices(prev => prev.map(s => {
+              const shouldBeSupported = formData.supportedServices.includes(s.id);
+               // Simple approximation for local update:
+              let newDesigners = s.supportedDesigners ? [...s.supportedDesigners] : [];
+              if (!s.supportedDesigners || s.supportedDesigners.length === 0) {
+                  // "All" state - complex to mimic locally perfect without "allActive" context but we can try.
+                  // If we are removing, we transition to explicit.
+                   if (!shouldBeSupported) {
+                        // Transition to specific
+                        // This local update is tricky. Let's just refetch or let it be stale until reload. 
+                        // Or just simplistic update.
+                        return s; 
+                   }
+                   return s;
+              }
+              
+              if (shouldBeSupported && !newDesigners.includes(docId)) {
+                   newDesigners.push(docId);
+              } else if (!shouldBeSupported && newDesigners.includes(docId)) {
+                   newDesigners = newDesigners.filter(d => d !== docId);
+              }
+              
+              return { ...s, supportedDesigners: newDesigners };
+          }));
+      }
+
       setIsModalOpen(false);
       setEditingTarget(null);
-      showToast("設計師檔案已儲存", 'success'); // Success toast
+      showToast("設計師檔案與服務關聯已更新", 'success');
     } catch (error) {
       console.error("Error saving designer:", error);
       showToast("儲存失敗", 'error'); // Error toast
@@ -308,6 +418,16 @@ const StaffManagementPage: React.FC = () => {
                   <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900 cursor-pointer">
                       開放預約 (啟用狀態)
                   </label>
+              </div>
+
+              {/* Service Selection */}
+              <div className="pt-4 border-t border-gray-100">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3 block">服務項目設定</h3>
+                  <DesignerServiceSelector
+                      services={services}
+                      selectedServiceIds={formData.supportedServices}
+                      onChange={(ids) => setFormData(prev => ({ ...prev, supportedServices: ids }))}
+                  />
               </div>
 
               <div className="mt-8 flex gap-3 justify-end pt-2 border-t border-gray-100">

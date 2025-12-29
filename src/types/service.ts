@@ -13,6 +13,7 @@ export interface Service {
   createdAt: Timestamp;
   description?: string; // Markdown or text description
   options?: ServiceOption[];
+  supportedDesigners?: string[]; // IDs of designers who can perform this service
   order?: number; // Added order field
 }
 
