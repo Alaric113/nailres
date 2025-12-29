@@ -3,6 +3,8 @@ import { useBookingStore } from '../../store/bookingStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrashIcon } from '@heroicons/react/24/outline';
 
+import { isLiffBrowser } from '../../lib/liff';
+
 interface MobileCartBarProps {
   onNext: () => void;
 }
@@ -10,13 +12,14 @@ interface MobileCartBarProps {
 const MobileCartBar: React.FC<MobileCartBarProps> = ({ onNext }) => {
   const { cart, getCartTotal, removeFromCart } = useBookingStore();
   const [isExpanded, setIsExpanded] = useState(false);
+  const isLiff = isLiffBrowser();
 
   // Always render, but change state if empty
   const isEmpty = cart.length === 0;
 
   return (
     <>
-      <div className="fixed bottom-[84px] left-0 right-0 p-4 pb-0 z-[2000] pointer-events-none">
+      <div className={`fixed ${isLiff ? 'bottom-0 pb-4' : 'bottom-[84px] pb-0'} left-0 right-0 p-4 z-[2000] pointer-events-none transition-all`}>
          <motion.div 
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
