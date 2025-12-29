@@ -4,8 +4,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import axios from 'axios'; // For making HTTP requests to LINE API
 
 const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
-const LINE_CHANNEL_ID = process.env.VITE_LIFF_ID; // Assuming LIFF_ID is stored in VITE_LIFF_ID or similar and passed to env
-
+const LINE_CHANNEL_ID = process.env.VITE_LINE_CHANNEL_ID; // Channel ID is required for verify API
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
   let serviceAccount: any = null;
@@ -58,7 +57,7 @@ const handler: Handler = async (event: HandlerEvent) => {
   }
   if (!LINE_CHANNEL_ID) {
     console.error('LINE_CHANNEL_ID is not set in environment variables.');
-    return { statusCode: 500, body: JSON.stringify({ message: 'Server configuration error: LINE_CHANNEL_ID missing.' }) };
+    return { statusCode: 500, body: JSON.stringify({ message: 'Server configuration error: LINE_CHANNEL_ID (VITE_LINE_CHANNEL_ID) missing.' }) };
   }
 
   try {
