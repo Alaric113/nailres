@@ -28,11 +28,20 @@ import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDesignerBookingInfo } from '../hooks/useDesignerBookingInfo';
+import { isLiffBrowser } from '../lib/liff'; // NEW IMPORT
 
 const BookingPage = () => {
   const location = useLocation();
   const query = new URLSearchParams(location.search);
   const initialCategory = query.get('category');
+  const isLiff = isLiffBrowser();
+
+// ... existing code ...
+
+      {/* Floating Action Button for Next Step (Steps 2-4 only on mobile) */}
+      {/* Step 1 button is handled by MobileCartBar inside ServiceSelector */}
+      {currentStep > 1 && (
+          <div className={`fixed ${isLiff ? 'bottom-0' : 'bottom-[80px]'} md:bottom-10 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 md:hidden z-40`}>
 
   const [currentStep, setCurrentStep] = useState(1);
   
@@ -476,7 +485,7 @@ const BookingPage = () => {
       {/* Floating Action Button for Next Step (Steps 2-4 only on mobile) */}
       {/* Step 1 button is handled by MobileCartBar inside ServiceSelector */}
       {currentStep > 1 && (
-          <div className="fixed bottom-[80px] md:bottom-10 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 md:hidden z-40">
+          <div className={`fixed ${isLiff ? 'bottom-0' : 'bottom-[80px]'} md:bottom-10 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 md:hidden z-40`}>
             {currentStep === 2 && (
               <div className="flex gap-3">
                 <button
