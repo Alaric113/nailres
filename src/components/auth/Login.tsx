@@ -6,7 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import { signInWithCustomToken, signInWithPopup, signOut, deleteUser } from 'firebase/auth';
 import { auth, db, googleProvider } from '../../lib/firebase'; // Added db, googleProvider
 import { doc, onSnapshot, deleteDoc, getDoc } from 'firebase/firestore'; // Added constants
-import { isLiffBrowser, liffLogin } from '../../lib/liff';
+import { isLiffBrowser } from '../../lib/liff';
 import { generateNonce, generateState } from '../../utils/lineAuth';
 import { motion } from 'framer-motion';
 
