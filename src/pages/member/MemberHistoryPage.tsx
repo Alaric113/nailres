@@ -1,32 +1,74 @@
 
-
+import { useState } from 'react';
 import { useBookings } from '../../hooks/useBookings';
 import BookingCard from '../../components/dashboard/BookingCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { ArchiveBoxIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { ArchiveBoxIcon, ChevronLeftIcon, CalendarDaysIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import { isBefore } from 'date-fns';
+
+type Tab = 'upcoming' | 'history';
 
 const MemberHistoryPage = () => {
-  const { bookings, isLoading, error } = useBookings();
+  const { bookings, isLoading, error, cancelBooking } = useBookings(); // Added cancelBooking
   const navigate = useNavigate();
-  
-  // Filter for Past History (Completed, Cancelled, or Past Dates)
+  const [activeTab, setActiveTab] = useState<Tab>('upcoming');
   const now = new Date();
-  const historyBookings = bookings.filter(b => 
-    new Date(b.dateTime) < now || ['cancelled', 'completed'].includes(b.status)
-  );
+
+  // Filter Bookings
+  const upcomingBookings = bookings.filter(b => {
+    const isPast = isBefore(b.dateTime, now);
+    const isCompleted = ['completed', 'cancelled'].includes(b.status);
+    return !isPast && !isCompleted;
+  });
+
+  const historyBookings = bookings.filter(b => {
+    const isPast = isBefore(b.dateTime, now);
+    const isCompleted = ['completed', 'cancelled'].includes(b.status);
+    return isPast || isCompleted;
+  });
+
+  const displayedBookings = activeTab === 'upcoming' ? upcomingBookings : historyBookings;
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#FAF9F6] pb-24">
       {/* Header */}
-      <div className="bg-white px-4 py-3 shadow-sm sticky top-16 z-10 flex items-center gap-2">
-        <button 
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-        >
-          <ChevronLeftIcon className="w-5 h-5 text-gray-600" />
-        </button>
-        <h1 className="text-lg font-bold text-gray-900">歷史預約紀錄</h1>
+      <div className="bg-white px-4 py-3 shadow-sm sticky top-16 z-30">
+        <div className="flex items-center gap-2 mb-4">
+          <button 
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <ChevronLeftIcon className="w-5 h-5 text-gray-600" />
+          </button>
+          <h1 className="text-lg font-bold text-gray-900">我的預約</h1>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-100">
+            <button
+                onClick={() => setActiveTab('upcoming')}
+                className={`flex-1 pb-3 text-sm font-bold transition-colors relative ${
+                    activeTab === 'upcoming' ? 'text-[#9F9586]' : 'text-gray-400'
+                }`}
+            >
+                未完成預約
+                {activeTab === 'upcoming' && (
+                    <MotionDiv layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#9F9586]" />
+                )}
+            </button>
+            <button
+                onClick={() => setActiveTab('history')}
+                className={`flex-1 pb-3 text-sm font-bold transition-colors relative ${
+                    activeTab === 'history' ? 'text-[#9F9586]' : 'text-gray-400'
+                }`}
+            >
+                歷史預約
+                {activeTab === 'history' && (
+                    <MotionDiv layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#9F9586]" />
+                )}
+            </button>
+        </div>
       </div>
 
       <div className="px-4 py-6 space-y-4">
@@ -34,25 +76,33 @@ const MemberHistoryPage = () => {
           <div className="py-10 flex justify-center"><LoadingSpinner /></div>
         ) : error ? (
           <div className="text-red-500 text-center py-10">{error}</div>
-        ) : historyBookings.length > 0 ? (
-          historyBookings.map(booking => (
+        ) : displayedBookings.length > 0 ? (
+          displayedBookings.map(booking => (
             <BookingCard 
               key={booking.id} 
               booking={booking} 
-              isPast={true}
+              isPast={activeTab === 'history'}
+              onCancel={activeTab === 'upcoming' ? cancelBooking : undefined} // Enable cancel for upcoming
             />
           ))
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400 bg-white rounded-2xl border border-dashed border-[#EFECE5]">
             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-              <ArchiveBoxIcon className="w-8 h-8 text-gray-300" />
+              {activeTab === 'upcoming' ? (
+                  <CalendarDaysIcon className="w-8 h-8 text-gray-300" />
+              ) : (
+                  <ArchiveBoxIcon className="w-8 h-8 text-gray-300" />
+              )}
             </div>
-            <p>尚無歷史預約紀錄</p>
+            <p>{activeTab === 'upcoming' ? '尚無即將到來的預約' : '尚無歷史預約紀錄'}</p>
           </div>
         )}
       </div>
     </div>
   );
 };
+
+// Simple Motion div replacement
+const MotionDiv = ({ className }: { className: string, layoutId?: string }) => <div className={className} />;
 
 export default MemberHistoryPage;

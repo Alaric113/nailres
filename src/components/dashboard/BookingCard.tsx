@@ -43,9 +43,12 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, isPast }) 
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-sm text-gray-600 mb-2">
+          <div className="flex items-center justify-between gap-1.5 text-sm text-gray-600 mb-2">
+            <div className="flex items-center gap-2">
                <SparklesIcon className="w-4 h-4 text-[#9F9586]" />
                <span>{booking.designerName || '不指定設計師'}</span>
+            </div>
+            <span className="text-xs text-gray-400 bg-[#EFECE5] px-2 py-1 rounded-full">剩餘更改次數 {!booking.rescheduleCount || booking.rescheduleCount < 1? '1次': '0次'}</span>
           </div>
           
           <div className="flex items-center justify-between mt-4">
@@ -53,13 +56,27 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, isPast }) 
                預約編號: #{booking.id.slice(-6).toUpperCase()}
              </span>
              
-             {isCancellable && onCancel && (
-               <button
-                 onClick={() => onCancel(booking.id)}
-                 className="text-sm text-red-500 hover:text-red-700 font-medium px-3 py-1 rounded-md hover:bg-red-50 transition-colors"
-               >
-                 取消
-               </button>
+             {isCancellable && (
+                <div className="flex gap-2">
+                   {/* Reschedule Button: Only if limit not reached */}
+                   {(!booking.rescheduleCount || booking.rescheduleCount < 1) && (
+                       <a
+                         href={`/member/reschedule/${booking.id}`}
+                         className="text-sm text-[#9F9586] hover:text-primary-dark font-medium px-3 py-1 rounded-md hover:bg-[#FAF9F6] transition-colors border border-[#9F9586]"
+                       >
+                         更改日期
+                       </a>
+                   )}
+
+                   {onCancel && (
+                    <button
+                        onClick={() => onCancel(booking.id)}
+                        className="text-sm hidden text-red-500 hover:text-red-700 font-medium px-3 py-1 rounded-md hover:bg-red-50 transition-colors border border-red-200"
+                    >
+                        取消
+                    </button>
+                   )}
+                </div>
              )}
              
              {booking.status === 'completed' && (

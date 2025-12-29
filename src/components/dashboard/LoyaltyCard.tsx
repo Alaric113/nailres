@@ -10,7 +10,8 @@ const LoyaltyCard = () => {
   const defaultAvatar = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
 
   // Determine membership tier (simple logic for now)
-  const tierName = '一般會員'; // could be dynamic based on points later
+  const role = userProfile?.role;
+  const tierName = role === 'platinum' ? '白金會員' : role === 'admin' ? '管理員' : role === 'manager' ? '管理設計師' : role === 'designer' ? '設計師' : '一般會員'; // could be dynamic based on points later
 
   return (
     <div className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl">

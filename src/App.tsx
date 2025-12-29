@@ -14,6 +14,7 @@ import BookingPage from './pages/BookingPage';
 import StoreInfoPage from './pages/StoreInfoPage';
 import UserMemberPage from './pages/UserMemberPage';
 import MemberHistoryPage from './pages/member/MemberHistoryPage';
+import ReschedulePage from './pages/member/ReschedulePage';
 import MemberRewardsPage from './pages/member/MemberRewardsPage';
 import MemberPassPage from './pages/member/MemberPassPage';
 import MemberCouponsPage from './pages/member/MemberCouponsPage';
@@ -95,6 +96,7 @@ const routes = [
                 children: [
                   { index: true, element: <UserMemberPage /> },
                   { path: 'history', element: <MemberHistoryPage /> },
+                  { path: 'reschedule/:bookingId', element: <ReschedulePage /> },
                   { path: 'rewards', element: <MemberRewardsPage /> },
                   { path: 'pass', element: <MemberPassPage /> },
                   { path: 'coupons', element: <MemberCouponsPage /> },

@@ -20,7 +20,7 @@ const UserMemberPage = () => {
 
   const menuItems = [
     { 
-      title: '歷史預約', 
+      title: '我的預約', 
       subtitle: '查看過往服務紀錄',
       icon: ArchiveBoxIcon, 
       path: '/member/history',
