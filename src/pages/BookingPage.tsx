@@ -313,17 +313,12 @@ const BookingPage = () => {
   */
 
   return (
-    <div className={`min-h-[calc(100vh-64px)] bg-[#FAF9F6] ${isLiff ? 'pb-0' : 'pb-20'}`}>
+    <div className={`${isLiff ? 'min-h-[100dvh]' : 'min-h-[calc(100vh-64px)]'} bg-[#FAF9F6] ${isLiff ? 'pb-0' : 'pb-20'}`}>
       
-      {/* Progress Bar */}
-      {/* Progress Bar - Hidden as per request
-      <div className="mb-8">
-        <BookingProgressBar currentStep={currentStep} totalSteps={4} onStepClick={handleStepClick} />
-      </div>
-      */}
+      {/* Progress Bar - Hidden as per request */}
 
       {/* Main Content Area */}
-      <main className={`container mx-auto ${currentStep === 1 ? 'max-w-7xl h-[calc(100vh-140px)]' : 'max-w-lg'}`}>
+      <main className={`container mx-auto ${currentStep === 1 ? (isLiff ? 'max-w-7xl h-[100dvh]' : 'max-w-7xl h-[calc(100vh-140px)]') : 'max-w-lg'}`}>
         
         {/* Step 1: Services (New Uber Eats Style) */}
         {currentStep === 1 && (

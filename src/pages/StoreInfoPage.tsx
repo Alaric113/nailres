@@ -6,6 +6,8 @@ import { BuildingStorefrontIcon, PaperAirplaneIcon } from '@heroicons/react/24/s
 import { renderToString } from 'react-dom/server';
 import { useAuthStore } from '../store/authStore';
 
+import { isLiffBrowser } from '../lib/liff';
+
 // Component to fix map rendering issues (grey tiles) by triggering a resize check
 const MapFix = () => {
   const map = useMap();
@@ -23,10 +25,13 @@ const StoreInfoPage: React.FC = () => {
   const { currentUser } = useAuthStore();
   const position: [number, number] = [25.08800, 121.47539]; // Coordinates from previous iframe
   const [showAppSelection, setShowAppSelection] = useState(false);
+  const isLiff = isLiffBrowser();
 
-  const heightClass = !currentUser 
-    ? 'h-[calc(100dvh-112px)]'
-    : 'h-[calc(100dvh-144px)] md:h-[calc(100dvh-64px)]';
+  const heightClass = isLiff 
+    ? 'h-[100dvh]' 
+    : (!currentUser 
+        ? 'h-[calc(100dvh-112px)]'
+        : 'h-[calc(100dvh-144px)] md:h-[calc(100dvh-64px)]');
 
   const handleNavigate = () => {
     // Simple iOS detection

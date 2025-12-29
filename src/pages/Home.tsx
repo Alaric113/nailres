@@ -324,7 +324,7 @@ const Home = () => {
               <div className="text-xs text-text-light">年經驗</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-primary mb-1">1000+</div>
+              <div className="text-2xl font-bold text-primary mb-1">370+</div>
               <div className="text-xs text-text-light">滿意客戶</div>
             </div>
             <div>
