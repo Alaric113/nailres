@@ -36,7 +36,7 @@ const DesignerServiceSelector: React.FC<DesignerServiceSelectorProps> = ({
     }
   };
 
-  const handleSelectGroup = (category: string, currentCategoryServiceIds: string[]) => {
+  const handleSelectGroup = (_: string, currentCategoryServiceIds: string[]) => {
       // If all in group are selected -> Deselect all
       // If some or none -> Select all
       const allSelected = currentCategoryServiceIds.every(id => selectedServiceIds.includes(id));
@@ -62,7 +62,7 @@ const DesignerServiceSelector: React.FC<DesignerServiceSelectorProps> = ({
        {Object.entries(groupedServices).map(([category, categoryServices]) => {
            const categoryServiceIds = categoryServices.map(s => s.id);
            const isAllSelected = categoryServiceIds.every(id => selectedServiceIds.includes(id));
-           const isSomeSelected = categoryServiceIds.some(id => selectedServiceIds.includes(id));
+           // Removed unused isSomeSelected variable
 
            return (
                <div key={category} className="border rounded-lg overflow-hidden">
