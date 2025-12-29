@@ -116,6 +116,8 @@ const handler: Handler = async (event: HandlerEvent) => {
           .where('isEnabled', '==', true)
           .get();
 
+
+
         if (!couponsSnapshot.empty) {
           const batch = db.batch();
           let count = 0;
