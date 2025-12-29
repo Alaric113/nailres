@@ -20,15 +20,16 @@ export const useNotification = () => {
 
     const saveTokenToFirestore = async (token: string) => {
         if (!currentUser) return;
+
+        // Prevent infinite loop: Don't update if token is already saved
+        if ((userProfile as any)?.fcmToken === token) {
+            return;
+        }
+
         try {
             const userRef = doc(db, 'users', currentUser.uid);
-            // Use arrayUnion to support multiple devices per user if needed
-            // Or just set a single field 'fcmToken' if 1-to-1 mapping is preferred.
-            // For simplicity and common use case: overwrite or add to array.
-            // Let's use a simple field for now, or an array 'fcmTokens'.
             await updateDoc(userRef, {
-                fcmToken: token, // Single device focus for now, or last active device
-                // fcmTokens: arrayUnion(token) // scalable approach
+                fcmToken: token,
             });
             console.log('FCM Token saved to Firestore');
         } catch (error) {
@@ -60,7 +61,7 @@ export const useNotification = () => {
                 });
                 if (token) {
                     setFcmToken(token);
-                    console.log('FCM Token:', token);
+                    // console.log('FCM Token:', token); // Reduce noise
                     await saveTokenToFirestore(token);
                 } else {
                     console.log('No registration token available.');
@@ -73,19 +74,18 @@ export const useNotification = () => {
 
     // Automatically check/request permission for staff roles
     useEffect(() => {
-        if (!isSupported || !messaging) return; // Add check for messaging
+        if (!isSupported || !messaging) return;
 
         if (currentUser && userProfile) {
             const isStaff = ['admin', 'manager', 'designer'].includes(userProfile.role);
             if (isStaff) {
-                // If permission is already 'default' (not asked yet), we can ask.
-                // Or if 'granted', we ensure we have the token.
                 if (Notification.permission === 'default' || Notification.permission === 'granted') {
                     requestPermission();
                 }
             }
         }
-    }, [currentUser, userProfile, isSupported]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentUser?.uid, userProfile?.role, isSupported]);
 
     useEffect(() => {
         if (!messaging) return; // Add guard

@@ -48,7 +48,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, isPast }) 
                <SparklesIcon className="w-4 h-4 text-[#9F9586]" />
                <span>{booking.designerName || '不指定設計師'}</span>
             </div>
-            <span className="text-xs text-gray-400 bg-[#EFECE5] px-2 py-1 rounded-full">剩餘更改次數 {!booking.rescheduleCount || booking.rescheduleCount < 1? '1次': '0次'}</span>
+            <span className={`text-xs ${booking.status === 'completed' ? 'hidden' : ''} text-gray-400 bg-[#EFECE5] px-2 py-1 rounded-full`}>剩餘更改次數 {!booking.rescheduleCount || booking.rescheduleCount < 1? '1次': '0次'}</span>
           </div>
           
           <div className="flex items-center justify-between mt-4">

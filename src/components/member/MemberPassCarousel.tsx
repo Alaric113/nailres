@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { SeasonPass } from '../../types/seasonPass';
 
 // Swiper imports
@@ -62,6 +63,19 @@ const MemberPassCarousel = ({ passes }: MemberPassCarouselProps) => {
 };
 
 const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
+    const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+
+    const handleBuy = () => {
+        if (!pass.variants || pass.variants.length === 0) return;
+        
+        const variant = pass.variants[selectedVariantIndex];
+        const text = `你好，我想購買會員方案：${pass.name} ${variant ? `- ${variant.name} ($${variant.price})` : ''}`;
+        // Using the LINE ID found in StoreInfoPage: @985jirte
+        // https://line.me/R/oaMessage/{LINE_ID}/?text={message}
+        const url = `https://line.me/R/oaMessage/@985jirte/?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+    };
+
     return (
         <div 
             className="relative bg-white rounded-3xl shadow-xl overflow-hidden border border-[#EFECE5] w-full flex flex-col h-[calc(100dvh-180px)] max-h-[650px] transition-all duration-500"
@@ -94,17 +108,29 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
                     <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                         {pass.variants && pass.variants.length > 0 ? (
                             pass.variants.map((variant, idx) => (
-                                <div key={idx} className="flex-1 min-w-[80px] flex flex-col justify-center items-center bg-gray-50 p-3 rounded-xl border border-gray-100 text-center shrink-0">
-                                    <span className="font-bold text-gray-800 text-sm mb-1 w-full break-words">{variant.name}</span>
+                                <button
+                                    key={idx}
+                                    onClick={() => setSelectedVariantIndex(idx)}
+                                    className={`flex-1 min-w-[100px] flex flex-col justify-center items-center p-3 rounded-xl border text-center shrink-0 transition-all duration-200 ${
+                                        selectedVariantIndex === idx 
+                                        ? 'bg-[#9F9586] border-[#9F9586] text-white shadow-md ring-2 ring-[#9F9586]/20' 
+                                        : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    <span className={`font-bold text-sm mb-1 w-full break-words ${selectedVariantIndex === idx ? 'text-white' : 'text-gray-800'}`}>
+                                        {variant.name}
+                                    </span>
                                     <div className="flex flex-col items-center">
                                         {variant.originalPrice !== undefined && variant.originalPrice > 0 && (
-                                            <span className="text-xs text-gray-400 line-through">
+                                            <span className={`text-xs line-through mb-0.5 ${selectedVariantIndex === idx ? 'text-white/70' : 'text-gray-400'}`}>
                                                 ${variant.originalPrice}
                                             </span>
                                         )}
-                                        <span className="font-bold text-[#9F9586] text-lg">${variant.price}</span>
+                                        <span className={`font-bold text-lg ${selectedVariantIndex === idx ? 'text-white' : 'text-[#9F9586]'}`}>
+                                            ${variant.price}
+                                        </span>
                                     </div>
-                                </div>
+                                </button>
                             ))
                         ) : (
                             <div className="text-sm text-gray-500 py-2 w-full text-center">暫無價格資訊</div>
@@ -117,29 +143,50 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
                     <div className="pb-2">
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">包含內容</p>
                         <ul className="flex flex-wrap gap-2">
-                            {pass.contentItems.map((item, idx) => (
-                                <li key={idx} className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-50 text-sm text-gray-700 border border-gray-200 shadow-sm">
-                                    {item}
-                                </li>
-                            ))}
+                            {pass.contentItems.map((item, idx) => {
+                                const isObject = typeof item === 'object' && item !== null;
+                                const contentText = isObject 
+                                    ? `${(item as any).name}`
+                                    : item as string;
+                                const quantity = isObject && (item as any).quantity > 1 ? `x${(item as any).quantity}` : '';
+
+                                return (
+                                    <li key={idx} className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-50 text-sm text-gray-700 border border-gray-200 shadow-sm">
+                                        {contentText} 
+                                        {quantity && <span className="ml-1 text-[#9F9586] font-bold">{quantity}</span>}
+                                    </li>
+                                );
+                            })}
                         </ul>
                     </div>
                     
                     {pass.note && (
                         <div className="pt-3 border-t border-gray-100">
                              <span className="font-bold block text-xs text-gray-400 mb-1">備註</span>
-                            <p className="text-xs text-gray-500 leading-relaxed">
+                            <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">
                                 {pass.note}
                             </p>
                         </div>
                     )}
                 </div>
 
-                {/* Action Button - Sticky at Bottom of Card Content if needed, but here just static at bottom block */}
+                {/* Action Button - Sticky at Bottom of Card Content */}
                 <div className="mt-4 pt-2 shrink-0">
-                    <button className="w-full py-3 bg-[#1a1a1a] text-white rounded-xl text-sm font-bold shadow-lg hover:bg-black transition-colors active:scale-[0.98]">
-                       立即購買
+                    <button 
+                        onClick={handleBuy}
+                        disabled={!pass.variants || pass.variants.length === 0}
+                        className="w-full py-3 bg-[#1a1a1a] text-white rounded-xl text-sm font-bold shadow-lg hover:bg-black transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                    >
+                       <span>購買此方案</span>
+                       {pass.variants && pass.variants[selectedVariantIndex] && (
+                           <span className="bg-white/20 px-2 py-0.5 rounded text-xs">
+                               ${pass.variants[selectedVariantIndex].price}
+                           </span>
+                       )}
                     </button>
+                    <p className="text-[10px] text-gray-400 text-center mt-2">
+                        點擊後將開啟 LINE 由專人為您服務
+                    </p>
                 </div>
             </div>
         </div>

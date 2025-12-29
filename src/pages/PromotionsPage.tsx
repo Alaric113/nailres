@@ -4,7 +4,7 @@ import CouponForm from '../components/admin/CouponForm';
 import LoyaltySettings from '../components/admin/LoyaltySettings';
 import CouponDistribution from '../components/admin/CouponDistribution';
 import CouponCard from '../components/admin/CouponCard';
-import RedemptionSettings from '../components/admin/RedemptionSettings'; // New import
+import RedemptionSettings from '../components/admin/RedemptionSettings'; 
 import { useCoupons } from '../hooks/useCoupons';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import type { Coupon } from '../types/coupon';
@@ -41,6 +41,7 @@ const PromotionsPage = () => {
             <button onClick={() => setActiveTab('coupons')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'coupons' ? 'border-primary text-primary font-bold' : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'}`}>
               優惠券管理
             </button>
+
             <button onClick={() => setActiveTab('distribution')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'distribution' ? 'border-primary text-primary font-bold' : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'}`}>
               優惠券發送
             </button>

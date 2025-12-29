@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useSeasonPasses } from '../../../hooks/useSeasonPasses';
-import Modal from '../../common/Modal';
-import PlanForm from '../PlanForm';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import { useSeasonPasses } from '../../hooks/useSeasonPasses';
+import Modal from '../common/Modal';
+import PlanForm from './PlanForm';
+import LoadingSpinner from '../common/LoadingSpinner';
 import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
-import type { SeasonPass } from '../../../types/seasonPass';
+import type { SeasonPass } from '../../types/seasonPass';
 
-const SeasonPassSettings = () => {
+const PlanManagement = () => {
     const { passes, loading, error, addPass, updatePass, deletePass } = useSeasonPasses();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPlan, setEditingPlan] = useState<SeasonPass | null>(null);
@@ -119,4 +119,4 @@ const SeasonPassSettings = () => {
     );
 };
 
-export default SeasonPassSettings;
+export default PlanManagement;
