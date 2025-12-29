@@ -13,8 +13,21 @@ const LiffEntry = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { currentUser } = useAuthStore();
-    const [status, setStatus] = useState<'initializing' | 'logging_in' | 'redirecting' | 'error'>('initializing');
+    const [status, setStatus] = useState<'initializing' | 'logging_in' | 'verifying' | 'redirecting' | 'error'>('initializing');
     const [errorMessage, setErrorMessage] = useState('');
+    const [progressText, setProgressText] = useState('正在為您登入...');
+
+    // Timeout watchdog
+    useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+        if (status === 'initializing' || status === 'verifying' || status === 'logging_in') {
+            timeoutId = setTimeout(() => {
+                setErrorMessage('系統回應逾時，請檢查網路連線或稍後再試');
+                setStatus('error');
+            }, 30000); // 30s timeout
+        }
+        return () => clearTimeout(timeoutId);
+    }, [status]);
 
     useEffect(() => {
         console.log('[LiffEntry] Current location:', location.pathname, location.search);
@@ -22,18 +35,14 @@ const LiffEntry = () => {
         
         let redirectPath = queryParams.get('redirect');
         
-        // Fallback: Check if liff.state contains the path (LINE sometimes moves params here)
+        // Fallback: Check if liff.state contains the path
         if (!redirectPath) {
             const liffState = queryParams.get('liff.state');
             if (liffState) {
-                // liff.state is often URL encoded
                 const decodedState = decodeURIComponent(liffState);
-                
-                // Case 1: State is a direct path (e.g. /member)
                 if (decodedState.startsWith('/')) {
                     redirectPath = decodedState;
                 } 
-                // Case 2: State is a query string (e.g. ?redirect=/member)
                 else if (decodedState.startsWith('?')) {
                      const stateParams = new URLSearchParams(decodedState);
                      redirectPath = stateParams.get('redirect');
@@ -52,11 +61,13 @@ const LiffEntry = () => {
             try {
                 if (currentUser) {
                     setStatus('redirecting');
+                    setProgressText('登入成功，正在跳轉...');
                     navigate(redirectPath, { replace: true });
                     return;
                 }
 
                 console.log('Initializing LIFF...');
+                setProgressText('正在初始化 LIFF...');
                 const liff = await initializeLiff();
                 
                 if (!liff) {
@@ -65,15 +76,8 @@ const LiffEntry = () => {
 
                 if (!liff.isLoggedIn()) {
                    setStatus('logging_in');
-                   // If we are here, we are likely simply visiting the page.
-                   // The login flow below (manual) is better for control, but liff.login() is standard.
-                   // However, liff.login() might not support the custom state/redirectUri we need unless we pass it.
-                   // Let's use our manual flow for consistency if 'code' is missing.
-                   // actually liff.isLoggedIn() is false, so we need to login.
-                   // If we use liff.login(), it will redirect.
-                   // Let's rely on the block below to handle the redirect generation for strict control.
-                   // So we do NOTHING here, and let the `if (!code)` block below handle the redirect.
-                   // effectively bypassing liff.login() from SDK and using our manual authorize URL.
+                   setProgressText('準備 LINE 登入...');
+                   // Fall through to manual redirect below
                 }
 
                 // If not logged in AND no code, we need to trigger login
@@ -111,6 +115,9 @@ const LiffEntry = () => {
                 
                 // If we have code and state, exchange it
                 if (code && state) {
+                     setStatus('verifying');
+                     setProgressText('正在驗證身分...');
+                     
                      // We need to pass the EXACT SAME redirectUri used in step 1
                      const fixedRedirectPath = '/liff';
                      const redirectUri = window.location.origin + fixedRedirectPath;
@@ -125,8 +132,11 @@ const LiffEntry = () => {
                           const errText = await response.text();
                           throw new Error(`Exchange Failed: ${errText}`);
                       }
+                      
+                      setProgressText('取得使用者資料...');
                       const { firebaseCustomToken } = await response.json();
                       await signInWithCustomToken(auth, firebaseCustomToken);
+                      // navigate will happen on next effect run or re-render via currentUser change
                 }
 
             } catch (err: any) {
@@ -136,20 +146,12 @@ const LiffEntry = () => {
             }
         };
 
-        const timeoutId = setTimeout(() => {
-            if (status === 'initializing') {
-                setErrorMessage('系統回應逾時');
-                setStatus('error');
-            }
-        }, 10000);
-
         // Defer init slightly to ensure rendering happens
         setTimeout(() => {
              if (!currentUser) init();
              else navigate(redirectPath, { replace: true });
         }, 100);
 
-        return () => clearTimeout(timeoutId);
     }, [currentUser, navigate, location]);
 
     if (status === 'error') {
@@ -169,7 +171,7 @@ const LiffEntry = () => {
 
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-[#FAF9F6]">
-            <LoadingSpinner size="lg" text="正在為您登入..." />
+            <LoadingSpinner size="lg" text={progressText} />
         </div>
     );
 };
