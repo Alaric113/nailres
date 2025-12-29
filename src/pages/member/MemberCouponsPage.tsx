@@ -68,7 +68,7 @@ const MemberCouponsPage = () => {
                   />
                   <button 
                     disabled={isClaiming || !claimCode.trim()}
-                    className="px-4 py-2 bg-[#9F9586] text-white text-sm font-bold rounded-lg disabled:opacity-50"
+                    className="px-4 py-2 bg-[#9F9586] text-white text-sm font-bold text-nowrap rounded-lg disabled:opacity-50"
                   >
                       {isClaiming ? '...' : '領取'}
                   </button>
