@@ -1,13 +1,14 @@
 export interface SeasonPassVariant {
     name: string; // e.g., '120本'
     price: number;
-    originalPrice?: number;
+    originalPrice?: number; // New: For displaying sale (e.g., $5200 -> $4680)
 }
 
 export interface PlanContentItem {
     id: string;
     name: string;
     type: 'service' | 'product';
+    category?: 'ticket' | 'benefit'; // New: Grouping (Ticket=Usage, Benefit=Passive)
     quantity: number;
     serviceId?: string; // Optional link to actual service
 }

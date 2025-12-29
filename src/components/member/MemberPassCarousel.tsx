@@ -138,56 +138,69 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
                     </div>
                 </div>
 
-                {/* Features List - Scrollable if too long */}
-                <div className="space-y-3 flex-1">
-                    <div className="pb-2">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">包含內容</p>
-                        <ul className="flex flex-wrap gap-2">
-                            {pass.contentItems.map((item, idx) => {
-                                const isObject = typeof item === 'object' && item !== null;
-                                const contentText = isObject 
-                                    ? `${(item as any).name}`
-                                    : item as string;
-                                const quantity = isObject && (item as any).quantity > 1 ? `x${(item as any).quantity}` : '';
-
-                                return (
-                                    <li key={idx} className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-50 text-sm text-gray-700 border border-gray-200 shadow-sm">
-                                        {contentText} 
-                                        {quantity && <span className="ml-1 text-[#9F9586] font-bold">{quantity}</span>}
+                {/* Features List Grouped */}
+                <div className="space-y-4 flex-1">
+                    {/* Tickets Group */}
+                    {pass.contentItems.some(i => !i.category || i.category === 'ticket') && (
+                        <div>
+                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">服務項目 (Tickets)</p>
+                             <ul className="flex flex-col gap-2">
+                                {pass.contentItems.filter(i => !i.category || i.category === 'ticket').map((item, idx) => (
+                                    <li key={idx} className="flex justify-between items-center px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 shadow-sm text-sm text-gray-700">
+                                         <span className="font-medium">{item.name}</span>
+                                         <span className="text-[#9F9586] font-bold bg-white px-2 py-0.5 rounded border border-gray-100 shadow-sm text-xs">x{item.quantity}</span>
                                     </li>
-                                );
-                            })}
-                        </ul>
-                    </div>
-                    
-                    {pass.note && (
-                        <div className="pt-3 border-t border-gray-100">
-                             <span className="font-bold block text-xs text-gray-400 mb-1">備註</span>
-                            <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">
-                                {pass.note}
-                            </p>
+                                ))}
+                             </ul>
+                        </div>
+                    )}
+
+                    {/* Benefits Group */}
+                    {pass.contentItems.some(i => i.category === 'benefit') && (
+                        <div>
+                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">專屬權益 (Benefits)</p>
+                             <ul className="grid grid-cols-2 gap-2">
+                                {pass.contentItems.filter(i => i.category === 'benefit').map((item, idx) => (
+                                    <li key={idx} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-indigo-50/50 border border-indigo-100 text-xs text-indigo-900">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-indigo-400 flex-shrink-0">
+                                          <path fillRule="evenodd" d="M16.403 12.652a3 3 0 000-5.304 3 3 0 00-3.75-3.751 3 3 0 00-5.305 0 3 3 0 00-3.751 3.75 3 3 0 000 5.305 3 3 0 003.75 3.751 3 3 0 005.305 0 3 3 0 003.751-3.751zM11 10a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                                        </svg>
+                                        <span className="font-medium truncate">{item.name}</span>
+                                        {item.quantity > 1 && <span className="text-indigo-600 font-bold ml-auto">x{item.quantity}</span>}
+                                    </li>
+                                ))}
+                             </ul>
                         </div>
                     )}
                 </div>
 
-                {/* Action Button - Sticky at Bottom of Card Content */}
-                <div className="mt-4 pt-2 shrink-0">
-                    <button 
-                        onClick={handleBuy}
-                        disabled={!pass.variants || pass.variants.length === 0}
-                        className="w-full py-3 bg-[#1a1a1a] text-white rounded-xl text-sm font-bold shadow-lg hover:bg-black transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-                    >
-                       <span>購買此方案</span>
-                       {pass.variants && pass.variants[selectedVariantIndex] && (
-                           <span className="bg-white/20 px-2 py-0.5 rounded text-xs">
-                               ${pass.variants[selectedVariantIndex].price}
-                           </span>
-                       )}
-                    </button>
-                    <p className="text-[10px] text-gray-400 text-center mt-2">
-                        點擊後將開啟 LINE 由專人為您服務
-                    </p>
-                </div>
+                {pass.note && (
+                    <div className="pt-3 border-t border-gray-100">
+                         <span className="font-bold block text-xs text-gray-400 mb-1">備註</span>
+                        <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">
+                            {pass.note}
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            {/* Action Button - Sticky at Bottom of Card Content */}
+            <div className="mt-4 pt-2 shrink-0">
+                <button 
+                    onClick={handleBuy}
+                    disabled={!pass.variants || pass.variants.length === 0}
+                    className="w-full py-3 bg-[#1a1a1a] text-white rounded-xl text-sm font-bold shadow-lg hover:bg-black transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                >
+                   <span>購買此方案</span>
+                   {pass.variants && pass.variants[selectedVariantIndex] && (
+                       <span className="bg-white/20 px-2 py-0.5 rounded text-xs">
+                           ${pass.variants[selectedVariantIndex].price}
+                       </span>
+                   )}
+                </button>
+                <p className="text-[10px] text-gray-400 text-center mt-2">
+                    點擊後將開啟 LINE 由專人為您服務
+                </p>
             </div>
         </div>
     );

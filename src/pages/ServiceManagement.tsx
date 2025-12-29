@@ -27,7 +27,8 @@ const ServiceManagement = () => {
     description: string; // Add description here
     options: ServiceOption[];
     supportedDesigners: string[];
-  }>({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [], supportedDesigners: [] });
+    isPlanOnly: boolean; // Add isPlanOnly to state
+  }>({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [], supportedDesigners: [], isPlanOnly: false });
   
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,6 +60,7 @@ const ServiceManagement = () => {
         description: editingService.description || '',
         options: editingService.options || [],
         supportedDesigners: editingService.supportedDesigners || [],
+        isPlanOnly: editingService.isPlanOnly || false,
       });
     } else {
       resetForm();
@@ -92,6 +94,7 @@ const ServiceManagement = () => {
           description: formData.description, // Added description
           options: formData.options, // Save options
           supportedDesigners: formData.supportedDesigners,
+          isPlanOnly: formData.isPlanOnly,
         });
         setSuccess(`服務項目 "${formData.name}" 已成功更新！`);
         setEditingService(null);
@@ -111,6 +114,7 @@ const ServiceManagement = () => {
           createdAt: serverTimestamp(),
           options: formData.options, // Save options
           supportedDesigners: formData.supportedDesigners,
+          isPlanOnly: formData.isPlanOnly,
           order: 9999, // Put new services at end by default
         });
         setSuccess(`服務項目 "${formData.name}" 已成功新增！`);
@@ -145,7 +149,7 @@ const ServiceManagement = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [], supportedDesigners: [] });
+    setFormData({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [], supportedDesigners: [], isPlanOnly: false });
     setFormError(null);
   };
 
@@ -326,6 +330,23 @@ const ServiceManagement = () => {
                       {categoriesError && <option disabled>錯誤: {categoriesError}</option>}
                     </select>
                   </div>
+                </div>
+
+                {/* Plan Only Toggle */}
+                <div className="flex items-center gap-2 mt-4 bg-yellow-50 p-3 rounded-lg border border-yellow-100">
+                    <input 
+                        type="checkbox"
+                        id="isPlanOnly"
+                        checked={formData.isPlanOnly}
+                        onChange={(e) => setFormData(prev => ({ ...prev, isPlanOnly: e.target.checked }))}
+                        className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                    />
+                    <div>
+                        <label htmlFor="isPlanOnly" className="block text-sm font-bold text-yellow-800">
+                            僅限方案使用 (Hidden Service)
+                        </label>
+                        <p className="text-xs text-yellow-700">勾選後，此服務將不會顯示在一般預約頁面中，僅能透過購買方案/後台添加。</p>
+                    </div>
                 </div>
                 
                 <div>

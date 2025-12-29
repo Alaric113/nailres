@@ -61,7 +61,7 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
   };
 
   const groupedServices = services
-    .filter(s => s.available)
+    .filter(s => s.available && !s.isPlanOnly)
     .reduce((acc, service) => {
       const category = service.category || '其他';
       if (!acc[category]) {

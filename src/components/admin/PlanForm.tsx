@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import type { SeasonPass, SeasonPassVariant, PlanContentItem } from '../../types/seasonPass';
 import { useServices } from '../../hooks/useServices';
-import { PlusIcon, TrashIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, PhotoIcon, BoltIcon } from '@heroicons/react/24/outline';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; 
+import { db } from '../../lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
 
 interface PlanFormProps {
@@ -23,6 +25,13 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
     const [color, setColor] = useState(plan?.color || '#9F9586');
     const [isActive, setIsActive] = useState(plan?.isActive ?? true);
     const [imageUrl, setImageUrl] = useState(plan?.imageUrl || '');
+
+    // Quick Add Service State
+    const [showQuickAdd, setShowQuickAdd] = useState(false);
+    const [quickServiceName, setQuickServiceName] = useState('');
+    const [quickServiceDuration, setQuickServiceDuration] = useState(60);
+    const [quickServiceLoading, setQuickServiceLoading] = useState(false);
+    const [pendingQuickAddIndex, setPendingQuickAddIndex] = useState<number | null>(null); // Index of content item to auto-fill
     
     // Dynamic Lists
     const [variants, setVariants] = useState<SeasonPassVariant[]>(plan?.variants || [{ name: '一般', price: 0 }]);
@@ -45,7 +54,7 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
 
     // Handlers for Content Items
     const addContentItem = () => {
-        setContentItems([...contentItems, { id: uuidv4(), name: '', type: 'service', quantity: 1 }]);
+        setContentItems([...contentItems, { id: uuidv4(), name: '', type: 'service', category: 'ticket', quantity: 1 }]);
     };
 
     const updateContentItem = (index: number, field: keyof PlanContentItem, value: any) => {
@@ -85,6 +94,45 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
         }
     };
 
+    const handleQuickAddService = async () => {
+        if (!quickServiceName) return;
+        setQuickServiceLoading(true);
+        try {
+            const newServiceData = {
+                name: quickServiceName,
+                duration: quickServiceDuration,
+                description: '快速建立的方案專屬服務',
+                price: 0, // Default to 0 for plan services (usually just for redemption)
+                category: '其他',
+                isPlanOnly: true, // Key: Hidden from public booking
+                createdAt: serverTimestamp(),
+                order: 999
+            };
+            
+            const docRef = await addDoc(collection(db, 'services'), newServiceData);
+            
+            // If we were trying to add to a specific index, auto-select it
+            if (pendingQuickAddIndex !== null) {
+                updateContentItem(pendingQuickAddIndex, 'serviceId', docRef.id);
+                // Also update the name to mirror the service name immediately (optimistic update)
+                const newItems = [...contentItems];
+                newItems[pendingQuickAddIndex].name = quickServiceName;
+                setContentItems(newItems);
+            }
+
+            // Reset
+            setQuickServiceName('');
+            setQuickServiceDuration(60);
+            setShowQuickAdd(false);
+            setPendingQuickAddIndex(null);
+        } catch (error) {
+            console.error("Quick add failed", error);
+            alert("快速新增失敗");
+        } finally {
+            setQuickServiceLoading(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -113,6 +161,7 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
     };
 
     return (
+        <>
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Basic Info */}
@@ -125,30 +174,33 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                            placeholder="e.g., 初卡"
+                            placeholder="例如 初卡"
                         />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">有效期限</label>
-                        <input 
-                            type="text" 
+                        <div className="flex items-center gap-2">
+                            <input 
+                            type="number" 
                             required
                             value={duration}
                             onChange={(e) => setDuration(e.target.value)}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                            placeholder="e.g., 3個月"
+                            placeholder="例如 3"
                         />
+                        <span className="text-sm text-gray-500 text-nowrap">個月</span>
+                        </div>
                     </div>
-                    <div>
+                    <div >
                         <label className="block text-sm font-medium text-gray-700">備註/說明</label>
                         <textarea 
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
                             rows={3}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                            className="mt-1 block w-full border rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                         />
                     </div>
-                    <div>
+                    <div className="hidden">
                         <label className="block text-sm font-medium text-gray-700">代表顏色</label>
                         <input 
                             type="color" 
@@ -211,6 +263,13 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                                         onChange={(e) => updateVariant(idx, 'price', Number(e.target.value))}
                                         className="w-24 rounded border-gray-300 text-sm py-1"
                                     />
+                                    <input 
+                                        type="number" 
+                                        placeholder="原價 (選填)"
+                                        value={v.originalPrice || ''}
+                                        onChange={(e) => updateVariant(idx, 'originalPrice', Number(e.target.value))}
+                                        className="w-24 rounded border-gray-300 text-sm py-1"
+                                    />
                                     <button type="button" onClick={() => removeVariant(idx)} className="text-red-400 hover:text-red-600">
                                         <TrashIcon className="w-4 h-4" />
                                     </button>
@@ -239,6 +298,14 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                                             <option value="service">服務 (Service)</option>
                                             <option value="product">產品 (Product)</option>
                                         </select>
+                                        <select 
+                                            value={item.category || 'ticket'}
+                                            onChange={(e) => updateContentItem(idx, 'category', e.target.value)}
+                                            className="text-xs border-none bg-indigo-50 text-indigo-700 font-bold rounded px-2 py-0.5 focus:ring-0 ml-2"
+                                        >
+                                            <option value="ticket">票券 (Tickets)</option>
+                                            <option value="benefit">權益 (Benefits)</option>
+                                        </select>
                                         <button type="button" onClick={() => removeContentItem(idx)} className="text-red-400 hover:text-red-600">
                                             <TrashIcon className="w-4 h-4" />
                                         </button>
@@ -260,6 +327,18 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                                                     ))}
                                                 </select>
                                             ) : null}
+                                             {item.type === 'service' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setShowQuickAdd(true);
+                                                        setPendingQuickAddIndex(idx);
+                                                    }}
+                                                    className="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 mt-1 ml-1"
+                                                >
+                                                    <BoltIcon className="w-3 h-3" /> 快速建立隱藏服務
+                                                </button>
+                                             )}
                                              <input 
                                                 type="text" 
                                                 placeholder="項目名稱"
@@ -303,6 +382,57 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                 </button>
             </div>
         </form>
+        
+        {/* Quick Add Service Modal */}
+        {showQuickAdd && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="bg-white rounded-lg p-6 w-80 shadow-xl border border-gray-200">
+                    <h3 className="text-lg font-bold text-gray-800 mb-4">快速新增隱藏服務</h3>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">服務名稱</label>
+                            <input 
+                                type="text"
+                                className="w-full rounded border-gray-300 text-sm"
+                                placeholder="例如: 會員免費卸甲"
+                                value={quickServiceName}
+                                onChange={(e) => setQuickServiceName(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">服務時長 (分鐘)</label>
+                            <input 
+                                type="number"
+                                className="w-full rounded border-gray-300 text-sm"
+                                value={quickServiceDuration}
+                                onChange={(e) => setQuickServiceDuration(Number(e.target.value))}
+                            />
+                        </div>
+                        <p className="text-xs text-orange-500 bg-orange-50 p-2 rounded">
+                            此服務將自動設為「僅限方案使用」，不會顯示在公開預約頁面。
+                        </p>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-6">
+                        <button 
+                             type="button"
+                             onClick={() => setShowQuickAdd(false)}
+                             className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700"
+                        >
+                            取消
+                        </button>
+                        <button 
+                             type="button"
+                             onClick={handleQuickAddService}
+                             disabled={!quickServiceName || quickServiceLoading}
+                             className="px-3 py-1.5 text-xs bg-primary text-white rounded hover:bg-primary-dark disabled:opacity-50"
+                        >
+                            {quickServiceLoading ? '建立中...' : '建立並選用'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 };
 

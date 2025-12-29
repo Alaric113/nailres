@@ -15,6 +15,7 @@ export interface Service {
   options?: ServiceOption[];
   supportedDesigners?: string[]; // IDs of designers who can perform this service
   order?: number; // Added order field
+  isPlanOnly?: boolean; // If true, hidden from public booking menu
 }
 
 export interface ServiceOption {
