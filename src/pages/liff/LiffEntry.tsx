@@ -83,6 +83,53 @@ const LiffEntry = () => {
                    setProgressText('準備 LINE 登入...');
                 }
 
+                // --- NEW: Handle Implicit LIFF Login (In-App Browser) ---
+                if (liff.isLoggedIn() && !code) {
+                     console.log('[LiffEntry] LIFF is logged in. Getting ID Token...');
+                     setStatus('verifying');
+                     setProgressText('正在驗證 LIFF 身分...');
+
+                     const idToken = liff.getIDToken();
+                     if (!idToken) {
+                         throw new Error('LIFF ID Token is missing');
+                     }
+
+                     let profile = null;
+                     try {
+                         // Attempt to get profile (optional but good for syncing name/avatar)
+                         profile = await liff.getProfile();
+                     } catch (e) {
+                         console.warn('[LiffEntry] Failed to get profile', e);
+                     }
+
+                     console.log('[LiffEntry] Sending ID Token to backend...');
+                     // Note: using line-liff-auth endpoint
+                     const response = await fetch('/api/line-liff-auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            idToken,
+                            displayName: profile?.displayName,
+                            pictureUrl: profile?.pictureUrl,
+                            lineUserId: profile?.userId
+                        }),
+                      });
+
+                      if (!response.ok) {
+                          const errText = await response.text();
+                          console.error('[LiffEntry] Verify error:', errText);
+                          throw new Error(`LIFF Verify Failed: ${errText}`);
+                      }
+
+                      const { firebaseCustomToken } = await response.json();
+                      console.log('[LiffEntry] Got custom token. Signing in...');
+                      await signInWithCustomToken(auth, firebaseCustomToken);
+                      console.log('[LiffEntry] Sign in complete.');
+                      // The main useEffect will handle the redirect once currentUser is set
+                      return;
+                }
+                // --------------------------------------------------------
+
                 // If not logged in AND no code, we need to trigger login
                 if (!liff.isLoggedIn() && !code) {
                      console.log('[LiffEntry] Triggering OAuth redirct...');
