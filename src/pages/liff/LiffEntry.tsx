@@ -28,8 +28,15 @@ const LiffEntry = () => {
             if (liffState) {
                 // liff.state is often URL encoded
                 const decodedState = decodeURIComponent(liffState);
+                
+                // Case 1: State is a direct path (e.g. /member)
                 if (decodedState.startsWith('/')) {
                     redirectPath = decodedState;
+                } 
+                // Case 2: State is a query string (e.g. ?redirect=/member)
+                else if (decodedState.startsWith('?')) {
+                     const stateParams = new URLSearchParams(decodedState);
+                     redirectPath = stateParams.get('redirect');
                 }
             }
         }
