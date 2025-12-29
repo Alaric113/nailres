@@ -94,7 +94,7 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
                     <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                         {pass.variants && pass.variants.length > 0 ? (
                             pass.variants.map((variant, idx) => (
-                                <div key={idx} className="flex-1 min-w-[120px] flex flex-col justify-center items-center bg-gray-50 p-3 rounded-xl border border-gray-100 text-center shrink-0">
+                                <div key={idx} className="flex-1 min-w-[80px] flex flex-col justify-center items-center bg-gray-50 p-3 rounded-xl border border-gray-100 text-center shrink-0">
                                     <span className="font-bold text-gray-800 text-sm mb-1 w-full break-words">{variant.name}</span>
                                     <div className="flex flex-col items-center">
                                         {variant.originalPrice !== undefined && variant.originalPrice > 0 && (

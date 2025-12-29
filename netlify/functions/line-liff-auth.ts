@@ -106,7 +106,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         profile: profileData,
         createdAt: timestamp,
         updatedAt: timestamp,
-        role: 'customer', // Default Role
+        role: 'user', // Default Role
       });
 
       // B. Distribute "New User" Coupons
