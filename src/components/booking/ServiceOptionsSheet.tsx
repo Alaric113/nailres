@@ -4,6 +4,8 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import type { Service, ServiceOption, ServiceOptionItem } from '../../types/service';
 import { useBookingStore } from '../../store/bookingStore';
 
+import { isLiffBrowser } from '../../lib/liff';
+
 interface ServiceOptionsSheetProps {
   isOpen: boolean;
   onClose: () => void;
@@ -15,6 +17,12 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
   
   // State to track selected options: optionId -> array of selected Item objects
   const [selections, setSelections] = useState<Record<string, ServiceOptionItem[]>>({});
+  const isLiff = isLiffBrowser();
+
+// ... existing code ...
+
+             {/* Footer Action */}
+             <div className={`p-4 ${isLiff ? 'pb-4' : 'pb-24'} md:pb-4 border-t border-gray-100 bg-white md:bg-gray-50 shrink-0 relative z-10`}>
 
   // Reset selections when service changes or modal opens
   React.useEffect(() => {
@@ -255,7 +263,7 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
              </div>
 
              {/* Footer Action */}
-             <div className="p-4 pb-24 md:pb-4 border-t border-gray-100 bg-white md:bg-gray-50 shrink-0 relative z-10">
+             <div className={`p-4 ${isLiff ? 'pb-4' : 'pb-24'} md:pb-4 border-t border-gray-100 bg-white md:bg-gray-50 shrink-0 relative z-10`}>
                  <button 
                     onClick={handleAddToCart}
                     className="w-full bg-[#2C2825] text-white font-bold text-lg py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all flex justify-between px-6 items-center"
