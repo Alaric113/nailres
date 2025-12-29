@@ -87,19 +87,88 @@ const handler: Handler = async (event: HandlerEvent) => {
     const firebaseCustomToken = await auth.createCustomToken(verifiedLineUserId);
 
     // 3. Update or create user profile in Firestore
+    // 3. Check if user exists to determine if we need to distribute coupons or set default role
     const userRef = db.collection('users').doc(verifiedLineUserId);
-    await userRef.set({
-      lineUserId: verifiedLineUserId,
-      profile: {
-        displayName: displayName || lineProfile.name,
-        avatarUrl: pictureUrl || lineProfile.picture,
-        // Add other LINE profile fields if necessary
-      },
-      // Keep existing fields or set defaults
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      // role: 'customer' // Set default role if not existing
-    }, { merge: true }); // Use merge to avoid overwriting existing user data
+    const userDoc = await userRef.get();
+
+    const timestamp = admin.firestore.FieldValue.serverTimestamp();
+    const profileData = {
+      displayName: displayName || lineProfile.name,
+      avatarUrl: pictureUrl || lineProfile.picture,
+    };
+
+    if (!userDoc.exists) {
+      // --- NEW USER FLOW ---
+      console.log(`Creating new user: ${verifiedLineUserId}`);
+
+      // A. Create User Document
+      await userRef.set({
+        lineUserId: verifiedLineUserId,
+        profile: profileData,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        role: 'customer', // Default Role
+      });
+
+      // B. Distribute "New User" Coupons
+      try {
+        const couponsSnapshot = await db.collection('coupons')
+          .where('targetType', '==', 'new')
+          .where('isEnabled', '==', true)
+          .get();
+
+        if (!couponsSnapshot.empty) {
+          const batch = db.batch();
+          let count = 0;
+
+          couponsSnapshot.forEach(doc => {
+            const couponData = doc.data();
+            const newUserCouponRef = db.collection('user_coupons').doc();
+
+            // Logic to determine expiry
+            // If master coupon has validUntil, use it.
+            // (Optional) If we supported "Valid for X days after receipt", we'd calc it here.
+            const validUntil = couponData.validUntil || null;
+
+            batch.set(newUserCouponRef, {
+              userId: verifiedLineUserId,
+              couponId: doc.id,
+              title: couponData.title,
+              description: couponData.description || '',
+              details: couponData.details || '',
+              type: couponData.type || 'fixed',
+              value: couponData.value || 0,
+              minSpend: couponData.minSpend || 0,
+              status: 'active',
+              isUsed: false,
+              usageCount: 0,
+              createdAt: timestamp,
+              receivedAt: timestamp,
+              validUntil: validUntil,
+              // Copy scope rules if present
+              scopeType: couponData.scopeType || 'all',
+              scopeIds: couponData.scopeIds || [],
+            });
+            count++;
+          });
+
+          if (count > 0) await batch.commit();
+          console.log(`Distributed ${count} new user coupons to ${verifiedLineUserId}`);
+        }
+      } catch (err) {
+        console.error("Failed to distribute new user coupons:", err);
+        // Non-fatal, continue login
+      }
+
+    } else {
+      // --- EXISTING USER FLOW ---
+      // Just update profile logic
+      await userRef.set({
+        profile: profileData,
+        updatedAt: timestamp,
+        // Do NOT overwrite role or createdAt
+      }, { merge: true });
+    }
 
     return {
       statusCode: 200,

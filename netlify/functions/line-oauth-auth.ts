@@ -129,17 +129,78 @@ const handler: Handler = async (event: HandlerEvent) => {
 
     // 4. Update or create user profile in Firestore
     const userRef = db.collection('users').doc(lineUserId);
-    await userRef.set({
-      lineUserId: lineUserId,
-      profile: {
-        displayName: displayName,
-        avatarUrl: pictureUrl,
-        // Other profile fields can be added from decodedIdToken if needed
-      },
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      // role: 'customer' // Set default role if not existing
-    }, { merge: true }); // Use merge to avoid overwriting existing user data
+    const userDoc = await userRef.get();
+
+    const timestamp = admin.firestore.FieldValue.serverTimestamp();
+    const profileData = {
+      displayName: displayName,
+      avatarUrl: pictureUrl,
+    };
+
+    if (!userDoc.exists) {
+      // --- NEW USER FLOW ---
+      console.log(`Creating new user (OAuth): ${lineUserId}`);
+
+      // A. Create User Document
+      await userRef.set({
+        lineUserId: lineUserId,
+        profile: profileData,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        role: 'customer', // Default Role
+      });
+
+      // B. Distribute "New User" Coupons
+      try {
+        const couponsSnapshot = await db.collection('coupons')
+          .where('targetType', '==', 'new')
+          .where('isEnabled', '==', true)
+          .get();
+
+        if (!couponsSnapshot.empty) {
+          const batch = db.batch();
+          let count = 0;
+
+          couponsSnapshot.forEach(doc => {
+            const couponData = doc.data();
+            const newUserCouponRef = db.collection('user_coupons').doc();
+
+            const validUntil = couponData.validUntil || null;
+
+            batch.set(newUserCouponRef, {
+              userId: lineUserId,
+              couponId: doc.id,
+              title: couponData.title,
+              description: couponData.description || '',
+              details: couponData.details || '',
+              type: couponData.type || 'fixed',
+              value: couponData.value || 0,
+              minSpend: couponData.minSpend || 0,
+              status: 'active',
+              isUsed: false,
+              usageCount: 0,
+              createdAt: timestamp,
+              receivedAt: timestamp,
+              validUntil: validUntil,
+              scopeType: couponData.scopeType || 'all',
+              scopeIds: couponData.scopeIds || [],
+            });
+            count++;
+          });
+
+          if (count > 0) await batch.commit();
+          console.log(`Distributed ${count} new user coupons to ${lineUserId}`);
+        }
+      } catch (err) {
+        console.error("Failed to distribute new user coupons (OAuth):", err);
+      }
+    } else {
+      // --- EXISTING USER FLOW ---
+      await userRef.set({
+        profile: profileData,
+        updatedAt: timestamp,
+      }, { merge: true });
+    }
 
     return {
       statusCode: 200,
