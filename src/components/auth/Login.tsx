@@ -121,7 +121,8 @@ export const Login = () => {
     setFailedAuth(false);
     try {
       if (isLiffBrowser()) {
-        liffLogin();
+        const redirectPath = encodeURIComponent(location.pathname + location.search);
+        navigate(`/liff?redirect=${redirectPath}`);
       } else {
         if (!LINE_CHANNEL_ID) throw new Error('LINE Channel ID not configured.');
         

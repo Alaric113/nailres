@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { initializeLiff, liffLogin } from '../../lib/liff';
+import { initializeLiff } from '../../lib/liff';
 import { signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -65,25 +65,32 @@ const LiffEntry = () => {
 
                 if (!liff.isLoggedIn()) {
                    setStatus('logging_in');
-                   liffLogin(window.location.href);
-                   return;
+                   // If we are here, we are likely simply visiting the page.
+                   // The login flow below (manual) is better for control, but liff.login() is standard.
+                   // However, liff.login() might not support the custom state/redirectUri we need unless we pass it.
+                   // Let's use our manual flow for consistency if 'code' is missing.
+                   // actually liff.isLoggedIn() is false, so we need to login.
+                   // If we use liff.login(), it will redirect.
+                   // Let's rely on the block below to handle the redirect generation for strict control.
+                   // So we do NOTHING here, and let the `if (!code)` block below handle the redirect.
+                   // effectively bypassing liff.login() from SDK and using our manual authorize URL.
                 }
 
-                if (!code) {
-                     const state = generateState();
+                // If not logged in AND no code, we need to trigger login
+                if (!liff.isLoggedIn() && !code) {
+                     const authState = generateState();
                      const nonce = generateNonce();
-                     sessionStorage.setItem('line_auth_state', state);
+                     sessionStorage.setItem('line_auth_state', authState);
                      sessionStorage.setItem('line_auth_nonce', nonce);
 
-                     // FORCE Redirect URI to be /booking (must match LINE Console)
-                     const fixedRedirectPath = '/booking';
+                     // FORCE Redirect URI to be /liff (must match LINE Console)
+                     const fixedRedirectPath = '/liff';
                      const redirectUri = window.location.origin + fixedRedirectPath;
                      
                      // Embed return path in state
-                     // Format: ?s=RANDOM_STATE&redirect=/current/path
-                     const returnPath = window.location.pathname + location.search;
+                     const returnPath = redirectPath; 
                      const stateValue = '?' + new URLSearchParams({ 
-                         s: state, 
+                         s: authState, 
                          redirect: returnPath 
                      }).toString();
 
@@ -94,7 +101,7 @@ const LiffEntry = () => {
                         state: stateValue,
                         scope: 'profile openid email',
                         nonce: nonce,
-                        bot_prompt: 'normal', // Force consent screen to debug? Or 'normal'
+                        bot_prompt: 'normal', 
                      });
 
                      const loginUrl = `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
@@ -102,9 +109,10 @@ const LiffEntry = () => {
                      return;
                 }
                 
+                // If we have code and state, exchange it
                 if (code && state) {
                      // We need to pass the EXACT SAME redirectUri used in step 1
-                     const fixedRedirectPath = '/booking';
+                     const fixedRedirectPath = '/liff';
                      const redirectUri = window.location.origin + fixedRedirectPath;
                      
                      const response = await fetch('/api/line-oauth-auth', {
