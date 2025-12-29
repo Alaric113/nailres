@@ -19,10 +19,7 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
   const [selections, setSelections] = useState<Record<string, ServiceOptionItem[]>>({});
   const isLiff = isLiffBrowser();
 
-// ... existing code ...
 
-             {/* Footer Action */}
-             <div className={`p-4 ${isLiff ? 'pb-4' : 'pb-24'} md:pb-4 border-t border-gray-100 bg-white md:bg-gray-50 shrink-0 relative z-10`}>
 
   // Reset selections when service changes or modal opens
   React.useEffect(() => {
