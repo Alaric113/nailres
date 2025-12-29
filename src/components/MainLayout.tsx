@@ -38,7 +38,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, showAnnouncementBanne
       <main className={`${topPadding} ${bottomPaddingClass} md:pb-0`}>
         {children}
       </main>
-      <BottomNav />
+      {!isLiff && <BottomNav />}
     </>
   );
 };
