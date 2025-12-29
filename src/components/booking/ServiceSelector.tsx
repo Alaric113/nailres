@@ -141,7 +141,7 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, initialCatego
   };
 
     return (
-      <div className="flex bg-[#FAF9F6] h-full overflow-hidden relative">
+      <div className="flex bg-[#FAF9F6] h-full overflow-hidden relative ">
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 relative">
             

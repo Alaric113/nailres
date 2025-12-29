@@ -295,7 +295,7 @@ const BookingPage = () => {
   */
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#FAF9F6] pb-20 "> 
+    <div className={`min-h-[calc(100vh-64px)] bg-[#FAF9F6] ${isLiff ? 'pb-0' : 'pb-20'}`}>
       
       {/* Progress Bar */}
       {/* Progress Bar - Hidden as per request

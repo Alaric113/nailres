@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'; // Added import
 import usePortfolioItems from '../hooks/usePortfolioItems';
 import { useServiceCategories } from '../hooks/useServiceCategories'; // Dynamic categories
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { isLiffBrowser } from '../lib/liff';
 
 const PortfolioGalleryPage = () => {
   const { portfolioItems, loading, error } = usePortfolioItems();
   const { categories: serviceCategories, isLoading: categoriesLoading } = useServiceCategories();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const navigate = useNavigate(); // Hook for navigation
+  const isLiff = isLiffBrowser();
 
   // Use dynamic categories from Firestore
   // Sort order is already handled by useServiceCategories hook
@@ -55,7 +57,7 @@ const PortfolioGalleryPage = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Category Filter */}
-        <div className="flex flex-wrap justify-center gap-3 mb-12 sticky top-16 pt-2 z-20 bg-white/50 backdrop-blur-sm">
+        <div className={`flex flex-wrap justify-center gap-3 mb-12 sticky ${isLiff ? 'top-0' : 'top-16'} py-2 z-20 bg-white/50 backdrop-blur-sm`}>
           {categories.map(cat => (
             <button
               key={cat}
@@ -76,42 +78,67 @@ const PortfolioGalleryPage = () => {
             <p className="text-lg">目前沒有符合條件的作品。</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredItems.map(item => (
-              <div key={item.id} className="group bg-white rounded-2xl shadow-sm border border-[#EFECE5] overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <div className="relative overflow-hidden aspect-[4/3]">
+              <div key={item.id} className="group flex flex-row bg-white rounded-2xl shadow-sm border border-[#EFECE5] overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
+                <div className="relative overflow-hidden w-1/2 min-w-[50%] max-w-[50%] shrink-0">
                    {item.imageUrls && item.imageUrls.length > 0 && (
                     <img 
                       src={item.imageUrls[0]} 
                       alt={item.title} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                       loading="lazy"
                     />
                   )}
-                  {/* Overlay on hover */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                  {/* Fallback or spacer if no image, or to set aspect ratio? 
+                      If we want the image to dictate height, we can't use absolute.
+                      If we want content to dictate height, we use absolute on image.
+                      Let's try: Image container has aspect ratio? Or just fills height of content?
+                      The problem: If title is short, card is short. Image gets cropped?
+                      Or if image is tall?
+
+                      User said "inconsistent width".
+                      
+                      Let's switch to:
+                      Image container: w-1/2 shrink-0
+                      Image: w-full h-full object-cover (absolute positioning)
+                      
+                      AND we need to ensure the card has a minimum height so the image isn't 0px.
+                  */}
+                   <div className="pb-[100%]"></div> {/* Aspect Ratio Spacer 1:1 (Square) */ }
+                   {item.imageUrls && item.imageUrls.length > 0 && (
+                    <img 
+                        src={item.imageUrls[0]} 
+                        alt={item.title} 
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                        loading="lazy"
+                    />
+                   )}
+                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                 </div>
                 
-                <div className="p-5 flex flex-col gap-3">
+                <div className="p-5 flex flex-col gap-3 w-1/2 flex-grow">
                   <div>
                     <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-bold px-2 py-1 bg-[#EFECE5] text-[#8A8175] rounded-md">
+                      <span className="text-xs font-bold px-2 py-1 bg-[#EFECE5] text-[#8A8175] rounded-md line-clamp-1">
                         {item.category}
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-[#2C2825] truncate font-serif">{item.title}</h3>
-                    <p className="text-sm text-[#8A8175] line-clamp-2 mt-1">{item.description}</p>
+                    <h3 className="text-lg font-bold text-[#2C2825] font-serif line-clamp-2">{item.title}</h3>
                   </div>
                   
-                  <button 
-                    onClick={() => handleBookStyle(item.category)}
-                    className="w-full mt-2 py-2.5 px-4 bg-[#2C2825] text-white text-xs sm:text-sm font-bold rounded-xl opacity-90 hover:opacity-100 hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    <span>立即預約此款</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                      <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
-                    </svg>
-                  </button>
+                  <div className="mt-auto">
+                    <p className="text-sm text-[#8A8175] line-clamp-2 mb-3">{item.description}</p>
+                    <button 
+                        onClick={() => handleBookStyle(item.category)}
+                        className="w-full py-2.5 px-4 bg-[#2C2825] text-white text-xs sm:text-sm font-bold rounded-xl opacity-90 hover:opacity-100 hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                        <span>立即預約此款</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                        <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+                        </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
