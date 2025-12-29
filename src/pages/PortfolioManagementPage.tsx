@@ -10,13 +10,19 @@ import { ref, deleteObject } from 'firebase/storage'; // Import Storage delete f
 import { useToast } from '../context/ToastContext'; // NEW IMPORT
 
 
+import { useServiceCategories } from '../hooks/useServiceCategories'; // New import
+
 const PortfolioManagementPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const { showToast } = useToast();
-
-  const categories = ['All', '美甲', '美睫', '霧眉'];
+  
+  // Fetch dynamic categories
+  const { categories: fetchedCategories } = useServiceCategories();
+  
+  // Create tabs: 'All' + category names
+  const categories = ['All', ...fetchedCategories.map(c => c.name)];
 
   const handleEditItem = (item: PortfolioItem) => {
     setEditingItem(item);
@@ -50,7 +56,7 @@ const PortfolioManagementPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 overflow-x-hidden w-full max-w-[100vw]">
       
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="max-w-6xl mx-auto">
@@ -65,12 +71,12 @@ const PortfolioManagementPage = () => {
             </div>
 
             {/* Category Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide select-none">
                 {categories.map(cat => (
                     <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
+                        className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${
                             selectedCategory === cat
                             ? 'bg-gray-900 text-white shadow-md'
                             : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
