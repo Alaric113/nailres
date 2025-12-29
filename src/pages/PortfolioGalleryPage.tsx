@@ -78,7 +78,7 @@ const PortfolioGalleryPage = () => {
             <p className="text-lg">目前沒有符合條件的作品。</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {filteredItems.map(item => (
               <div key={item.id} className="group flex flex-row bg-white rounded-2xl shadow-sm border border-[#EFECE5] overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
                 <div className="relative overflow-hidden w-1/2 min-w-[50%] max-w-[50%] shrink-0">

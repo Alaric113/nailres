@@ -29,9 +29,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, showAnnouncementBanne
 
   const topPadding = paddingTopClass;
 
-  // Bottom padding only needed if user is logged in (BottomNav is visible)
-  // On desktop (md:), pb-0 is always applied
-  const bottomPaddingClass = currentUser ? 'pb-[80px]' : '';
+  // Bottom padding only needed if user is logged in (BottomNav is visible) AND not in LIFF
+  const bottomPaddingClass = (currentUser && !isLiff) ? 'pb-[80px]' : '';
 
   return (
     <>

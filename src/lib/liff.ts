@@ -50,5 +50,8 @@ export const isLiffBrowser = () => {
   const searchParams = new URLSearchParams(window.location.search);
   const isMock = searchParams.get('liff_mock') === 'true';
 
-  return liff.isInClient() || isMock;
+  // Check User Agent for LINE or LIFF
+  const isLineUA = /Line|LIFF/i.test(navigator.userAgent);
+
+  return liff.isInClient() || isMock || isLineUA;
 };

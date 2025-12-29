@@ -75,16 +75,26 @@ const LiffEntry = () => {
                      sessionStorage.setItem('line_auth_state', state);
                      sessionStorage.setItem('line_auth_nonce', nonce);
 
-                     const redirectUri = window.location.origin + window.location.pathname + location.search;
+                     // FORCE Redirect URI to be /booking (must match LINE Console)
+                     const fixedRedirectPath = '/booking';
+                     const redirectUri = window.location.origin + fixedRedirectPath;
                      
+                     // Embed return path in state
+                     // Format: ?s=RANDOM_STATE&redirect=/current/path
+                     const returnPath = window.location.pathname + location.search;
+                     const stateValue = '?' + new URLSearchParams({ 
+                         s: state, 
+                         redirect: returnPath 
+                     }).toString();
+
                      const params = new URLSearchParams({
                         response_type: 'code',
                         client_id: LINE_CHANNEL_ID || '',
                         redirect_uri: redirectUri,
-                        state: state,
+                        state: stateValue,
                         scope: 'profile openid email',
                         nonce: nonce,
-                        bot_prompt: 'normal',
+                        bot_prompt: 'normal', // Force consent screen to debug? Or 'normal'
                      });
 
                      const loginUrl = `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
@@ -93,15 +103,9 @@ const LiffEntry = () => {
                 }
                 
                 if (code && state) {
-                     const cleanParams = new URLSearchParams(location.search);
-                     cleanParams.delete('code');
-                     cleanParams.delete('state');
-                     cleanParams.delete('liffClientId');
-                     cleanParams.delete('liffRedirectUri');
-
-                     const baseSearch = cleanParams.toString();
-                     const searchPart = baseSearch ? `?${baseSearch}` : '';
-                     const redirectUri = window.location.origin + window.location.pathname + searchPart;
+                     // We need to pass the EXACT SAME redirectUri used in step 1
+                     const fixedRedirectPath = '/booking';
+                     const redirectUri = window.location.origin + fixedRedirectPath;
                      
                      const response = await fetch('/api/line-oauth-auth', {
                         method: 'POST',
