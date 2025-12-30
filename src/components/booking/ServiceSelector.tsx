@@ -78,6 +78,9 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passMode = fa
     }, {} as Record<string, Service[]>);
 
 
+  // Get Plan Only Services for the special category
+  const planOnlyServices = services.filter(s => s.available && s.isPlanOnly);
+
   // 確保分類順序
   const sortedCategories = Object.keys(groupedServices).sort((a, b) => {
     const indexA = categories.findIndex(c => c.name === a);
@@ -89,12 +92,14 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passMode = fa
   });
 
   const displayCategories = hasActivePass 
-    ? ['全部','季卡專屬',  ...sortedCategories]
+    ? ['全部', '季卡專屬', ...sortedCategories]
     : ['全部', ...sortedCategories];
   
   const categoriesToShow = activeCategory === '全部' 
-      ? sortedCategories 
-      : sortedCategories.filter(c => c === activeCategory);
+      ? (hasActivePass ? ['季卡專屬', ...sortedCategories] : sortedCategories) 
+      : activeCategory === '季卡專屬'
+        ? ['季卡專屬']
+        : sortedCategories.filter(c => c === activeCategory);
   
   const handleServiceClick = (service: Service) => {
       setSelectedService(service);
@@ -133,7 +138,15 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passMode = fa
             {/* Scrollable Service List */}
             <div className="flex-1 overflow-y-auto pb-24">
                 <div className="max-w-3xl mx-auto p-4 space-y-8">
-                    {categoriesToShow.map(category => (
+                    {categoriesToShow.map(category => {
+                        // Determine which services to show for this category
+                        const categoryServices = category === '季卡專屬' 
+                            ? planOnlyServices 
+                            : groupedServices[category] || [];
+
+                        if (categoryServices.length === 0) return null;
+
+                        return (
                         <div 
                             key={category} 
                             className="pb-8 border-b border-gray-100 last:border-0"
@@ -145,7 +158,7 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passMode = fa
                                 <div className="h-px bg-primary/20 flex-1"></div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {groupedServices[category].map(service => {
+                                {categoryServices.map((service: Service) => {
                                     const { price, isPlatinum, originalPrice } = getPriceForUser(service);
                                     return (
                                         <div 
@@ -195,7 +208,8 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passMode = fa
                                 })}
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </div>
