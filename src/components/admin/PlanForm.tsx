@@ -25,6 +25,9 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
     const [color, setColor] = useState(plan?.color || '#9F9586');
     const [isActive, setIsActive] = useState(plan?.isActive ?? true);
     const [imageUrl, setImageUrl] = useState(plan?.imageUrl || '');
+    
+    // Tab State
+    const [activeTab, setActiveTab] = useState<'basic' | 'variants' | 'content'>('basic');
 
     // Quick Add Service State
     const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -54,7 +57,13 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
 
     // Handlers for Content Items
     const addContentItem = () => {
-        setContentItems([...contentItems, { id: uuidv4(), name: '', type: 'service', category: 'ticket', quantity: 1 }]);
+        setContentItems([...contentItems, { 
+            id: uuidv4(), 
+            name: '', 
+            category: '服務', 
+            benefitType: 'standalone',
+            quantity: 1 
+        }]);
     };
 
     const updateContentItem = (index: number, field: keyof PlanContentItem, value: any) => {
@@ -160,12 +169,53 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
         }
     };
 
+
     return (
         <>
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Basic Info */}
-                <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Tabs Header */}
+                <div className="border-b border-gray-200">
+                    <nav className="-mb-px flex space-x-8">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('basic')}
+                            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                activeTab === 'basic'
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            基本資訊
+                        </button>
+                        <button
+                             type="button"
+                             onClick={() => setActiveTab('variants')}
+                             className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                 activeTab === 'variants'
+                                     ? 'border-primary text-primary'
+                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                             }`}
+                        >
+                             價格方案
+                        </button>
+                        <button
+                             type="button"
+                             onClick={() => setActiveTab('content')}
+                             className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                 activeTab === 'content'
+                                     ? 'border-primary text-primary'
+                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                             }`}
+                        >
+                             包含內容
+                        </button>
+                    </nav>
+                </div>
+
+                <div className="min-h-[400px]">
+                    {/* Basic Info Tab */}
+                    {activeTab === 'basic' && (
+                        <div className="space-y-6 max-w-2xl">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">方案名稱</label>
                         <input 
@@ -235,11 +285,11 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                         </div>
                     </div>
                 </div>
+                    )}
 
-                {/* Right Column: Dynamic Lists */}
-                <div className="space-y-6">
-                    {/* Variants */}
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    {/* Variants Tab */}
+                    {activeTab === 'variants' && (
+                         <div className="space-y-6 max-w-3xl">
                         <div className="flex justify-between items-center mb-3">
                             <h3 className="text-sm font-bold text-gray-700">價格方案 (Variants)</h3>
                             <button type="button" onClick={addVariant} className="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1">
@@ -248,29 +298,31 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                         </div>
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                             {variants.map((v, idx) => (
-                                <div key={idx} className="flex items-center gap-2">
+                                <div key={idx} className="flex flex-col md:flex-row items-start md:items-center gap-2 pb-4 md:pb-0 border-b md:border-none border-gray-100 last:border-0">
                                     <input 
                                         type="text" 
                                         placeholder="名稱 (e.g. 120本)"
                                         value={v.name}
                                         onChange={(e) => updateVariant(idx, 'name', e.target.value)}
-                                        className="flex-1 min-w-[80px] rounded border-gray-300 text-sm py-1"
+                                        className="w-full md:flex-1 md:min-w-[80px] rounded border-gray-300 text-sm py-1"
                                     />
-                                    <input 
-                                        type="number" 
-                                        placeholder="價格"
-                                        value={v.price}
-                                        onChange={(e) => updateVariant(idx, 'price', Number(e.target.value))}
-                                        className="w-24 rounded border-gray-300 text-sm py-1"
-                                    />
-                                    <input 
-                                        type="number" 
-                                        placeholder="原價 (選填)"
-                                        value={v.originalPrice || ''}
-                                        onChange={(e) => updateVariant(idx, 'originalPrice', Number(e.target.value))}
-                                        className="w-24 rounded border-gray-300 text-sm py-1"
-                                    />
-                                    <button type="button" onClick={() => removeVariant(idx)} className="text-red-400 hover:text-red-600">
+                                    <div className="flex w-full md:w-auto gap-2">
+                                        <input 
+                                            type="number" 
+                                            placeholder="價格"
+                                            value={v.price}
+                                            onChange={(e) => updateVariant(idx, 'price', Number(e.target.value))}
+                                            className="w-full md:w-24 rounded border-gray-300 text-sm py-1"
+                                        />
+                                        <input 
+                                            type="number" 
+                                            placeholder="原價 (選填)"
+                                            value={v.originalPrice || ''}
+                                            onChange={(e) => updateVariant(idx, 'originalPrice', Number(e.target.value))}
+                                            className="w-full md:w-24 rounded border-gray-300 text-sm py-1"
+                                        />
+                                    </div>
+                                    <button type="button" onClick={() => removeVariant(idx)} className="text-red-400 hover:text-red-600 self-end md:self-center p-1">
                                         <TrashIcon className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -278,92 +330,159 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                         </div>
                     </div>
 
-                    {/* Content Items */}
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                         <div className="flex justify-between items-center mb-3">
-                            <h3 className="text-sm font-bold text-gray-700">包含內容 (Content)</h3>
-                            <button type="button" onClick={addContentItem} className="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1">
-                                <PlusIcon className="w-3 h-3" /> 新增項目
-                            </button>
-                        </div>
-                        <div className="space-y-3 max-h-60 overflow-y-auto">
-                            {contentItems.map((item, idx) => (
-                                <div key={item.id} className="bg-white p-2 rounded border border-gray-200 text-sm space-y-2">
-                                    <div className="flex justify-between">
-                                        <select 
-                                            value={item.type}
-                                            onChange={(e) => updateContentItem(idx, 'type', e.target.value)}
-                                            className="text-xs border-none bg-transparent font-medium text-gray-500 focus:ring-0 p-0"
-                                        >
-                                            <option value="service">服務 (Service)</option>
-                                            <option value="product">產品 (Product)</option>
-                                        </select>
-                                        <select 
-                                            value={item.category || 'ticket'}
-                                            onChange={(e) => updateContentItem(idx, 'category', e.target.value)}
-                                            className="text-xs border-none bg-indigo-50 text-indigo-700 font-bold rounded px-2 py-0.5 focus:ring-0 ml-2"
-                                        >
-                                            <option value="ticket">票券 (Tickets)</option>
-                                            <option value="benefit">權益 (Benefits)</option>
-                                        </select>
-                                        <button type="button" onClick={() => removeContentItem(idx)} className="text-red-400 hover:text-red-600">
-                                            <TrashIcon className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <div className="flex-1">
-                                            {item.type === 'service' ? (
-                                                <select
-                                                    value={item.serviceId || ''}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        updateContentItem(idx, 'serviceId', val || undefined);
-                                                    }}
-                                                    className="w-full rounded border-gray-300 text-sm py-1"
-                                                >
-                                                    <option value="">選擇服務 (或手動輸入名稱)</option>
-                                                    {services.map(s => (
-                                                        <option key={s.id} value={s.id}>{s.name}</option>
-                                                    ))}
-                                                </select>
-                                            ) : null}
-                                             {item.type === 'service' && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setShowQuickAdd(true);
-                                                        setPendingQuickAddIndex(idx);
-                                                    }}
-                                                    className="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 mt-1 ml-1"
-                                                >
-                                                    <BoltIcon className="w-3 h-3" /> 快速建立隱藏服務
-                                                </button>
-                                             )}
-                                             <input 
-                                                type="text" 
-                                                placeholder="項目名稱"
-                                                value={item.name}
-                                                onChange={(e) => updateContentItem(idx, 'name', e.target.value)}
-                                                className="w-full rounded border-gray-300 text-sm py-1 mt-1"
-                                            />
-                                        </div>
-                                        <div className="w-20">
-                                            <input 
-                                                type="number" 
-                                                placeholder="數量"
-                                                value={item.quantity}
-                                                min={1}
-                                                onChange={(e) => updateContentItem(idx, 'quantity', Number(e.target.value))}
-                                                className="w-full rounded border-gray-300 text-sm py-1"
-                                            />
-                                        </div>
-                                    </div>
+
+                    )}
+
+                    {/* Content Items Tab */}
+                    {activeTab === 'content' && (
+                        <div className="space-y-6 max-w-3xl">
+                            <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-sm font-bold text-gray-700">包含內容</h3>
+                                    <button type="button" onClick={addContentItem} className="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1">
+                                        <PlusIcon className="w-3 h-3" /> 新增項目
+                                    </button>
                                 </div>
-                            ))}
+                                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                                    {contentItems.map((item, idx) => (
+                                        <div key={item.id} className="bg-white p-3 rounded-lg border border-gray-200 text-sm space-y-3">
+                                            {/* Row 1: Category + BenefitType + Delete */}
+                                            <div className="flex flex-wrap gap-2 items-center">
+                                                <select 
+                                                    value={item.category}
+                                                    onChange={(e) => updateContentItem(idx, 'category', e.target.value as '服務' | '權益')}
+                                                    className="text-xs border-none bg-indigo-50 text-indigo-700 font-bold rounded px-2 py-1 focus:ring-0"
+                                                >
+                                                    <option value="服務">🎫 服務</option>
+                                                    <option value="權益">⭐ 權益</option>
+                                                </select>
+                                                <select 
+                                                    value={item.benefitType || 'standalone'}
+                                                    onChange={(e) => updateContentItem(idx, 'benefitType', e.target.value)}
+                                                    className="text-xs border-none bg-amber-50 text-amber-700 font-bold rounded px-2 py-1 focus:ring-0"
+                                                >
+                                                    <option value="standalone">獨立使用</option>
+                                                    <option value="upgrade">附加升級</option>
+                                                    <option value="discount">折扣券</option>
+                                                </select>
+                                                <button type="button" onClick={() => removeContentItem(idx)} className="text-red-400 hover:text-red-600 ml-auto">
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+
+                                            {/* Row 2: Content based on benefitType */}
+                                            <div className="space-y-2">
+                                                {/* 獨立使用: Select service */}
+                                                {item.benefitType === 'standalone' && (
+                                                    <div className="flex flex-col gap-2">
+                                                        <select
+                                                            value={item.serviceId || ''}
+                                                            onChange={(e) => updateContentItem(idx, 'serviceId', e.target.value || undefined)}
+                                                            className="w-full rounded border-gray-300 text-sm py-1.5"
+                                                        >
+                                                            <option value="">選擇服務...</option>
+                                                            {services.map(s => (
+                                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                                            ))}
+                                                        </select>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setShowQuickAdd(true);
+                                                                setPendingQuickAddIndex(idx);
+                                                            }}
+                                                            className="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 self-start"
+                                                        >
+                                                            <BoltIcon className="w-3 h-3" /> 快速建立隱藏服務
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {/* 附加升級: Select service + add-on option */}
+                                                {item.benefitType === 'upgrade' && (
+                                                    <div className="flex flex-col md:flex-row gap-2">
+                                                        <select
+                                                            value={item.appliesTo || ''}
+                                                            onChange={(e) => {
+                                                                updateContentItem(idx, 'appliesTo', e.target.value || undefined);
+                                                                updateContentItem(idx, 'upgradeOptionId', undefined);
+                                                            }}
+                                                            className="flex-1 rounded border-gray-300 text-sm py-1.5"
+                                                        >
+                                                            <option value="">選擇服務...</option>
+                                                            {services.filter(s => s.options && s.options.length > 0).map(s => (
+                                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                                            ))}
+                                                        </select>
+                                                        {item.appliesTo && (() => {
+                                                            const selectedService = services.find(s => s.id === item.appliesTo);
+                                                            const allOptions = selectedService?.options?.flatMap(opt => 
+                                                                opt.items.map(optItem => ({ ...optItem, optionGroupName: opt.name }))
+                                                            ) || [];
+                                                            return (
+                                                                <select
+                                                                    value={item.upgradeOptionId || ''}
+                                                                    onChange={(e) => updateContentItem(idx, 'upgradeOptionId', e.target.value || undefined)}
+                                                                    className="flex-1 rounded border-gray-300 text-sm py-1.5"
+                                                                >
+                                                                    <option value="">選擇附加項目...</option>
+                                                                    {allOptions.map(opt => (
+                                                                        <option key={opt.id} value={opt.id}>
+                                                                            {opt.optionGroupName}: {opt.name} (+${opt.price})
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                )}
+
+                                                {/* 折扣券: Link to coupon (placeholder) */}
+                                                {item.benefitType === 'discount' && (
+                                                    <div className="text-xs text-gray-400 italic py-2">
+                                                        優惠券連結功能開發中...
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Row 3: Name + Quantity (for 服務 category) */}
+                                            <div className="flex flex-col md:flex-row gap-2">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="顯示名稱 (例: 3次完整睫毛嫁接)"
+                                                    value={item.name}
+                                                    onChange={(e) => updateContentItem(idx, 'name', e.target.value)}
+                                                    className="flex-1 rounded border-gray-300 text-sm py-1.5"
+                                                />
+                                                {item.category === '服務' && item.benefitType === 'standalone' && (
+                                                    <>
+                                                        <input 
+                                                            type="number" 
+                                                            placeholder="次數"
+                                                            value={item.quantity || 1}
+                                                            min={1}
+                                                            onChange={(e) => updateContentItem(idx, 'quantity', Number(e.target.value))}
+                                                            className="w-full md:w-20 rounded border-gray-300 text-sm py-1.5"
+                                                        />
+                                                        <input 
+                                                            type="number" 
+                                                            placeholder="每月限"
+                                                            value={item.monthlyLimit || ''}
+                                                            min={0}
+                                                            onChange={(e) => updateContentItem(idx, 'monthlyLimit', e.target.value ? Number(e.target.value) : undefined)}
+                                                            className="w-full md:w-20 rounded border-gray-300 text-sm py-1.5"
+                                                            title="每月使用限制 (0=無限制)"
+                                                        />
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
-            </div>
 
             <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
                 <button

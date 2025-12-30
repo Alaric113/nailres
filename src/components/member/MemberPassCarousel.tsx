@@ -140,15 +140,17 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
 
                 {/* Features List Grouped */}
                 <div className="space-y-4 flex-1">
-                    {/* Tickets Group */}
-                    {pass.contentItems.some(i => !i.category || i.category === 'ticket') && (
+                    {/* Services Group */}
+                    {pass.contentItems.some(i => i.category === '服務') && (
                         <div>
-                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">服務項目 (Tickets)</p>
+                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">服務項目</p>
                              <ul className="flex flex-col gap-2">
-                                {pass.contentItems.filter(i => !i.category || i.category === 'ticket').map((item, idx) => (
+                                {pass.contentItems.filter(i => i.category === '服務').map((item, idx) => (
                                     <li key={idx} className="flex justify-between items-center px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 shadow-sm text-sm text-gray-700">
                                          <span className="font-medium">{item.name}</span>
-                                         <span className="text-[#9F9586] font-bold bg-white px-2 py-0.5 rounded border border-gray-100 shadow-sm text-xs">x{item.quantity}</span>
+                                         {item.quantity && item.quantity > 0 && (
+                                             <span className="text-[#9F9586] font-bold bg-white px-2 py-0.5 rounded border border-gray-100 shadow-sm text-xs">x{item.quantity}</span>
+                                         )}
                                     </li>
                                 ))}
                              </ul>
@@ -156,17 +158,16 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
                     )}
 
                     {/* Benefits Group */}
-                    {pass.contentItems.some(i => i.category === 'benefit') && (
+                    {pass.contentItems.some(i => i.category === '權益') && (
                         <div>
-                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">專屬權益 (Benefits)</p>
+                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">專屬權益</p>
                              <ul className="grid grid-cols-2 gap-2">
-                                {pass.contentItems.filter(i => i.category === 'benefit').map((item, idx) => (
+                                {pass.contentItems.filter(i => i.category === '權益').map((item, idx) => (
                                     <li key={idx} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-indigo-50/50 border border-indigo-100 text-xs text-indigo-900">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-indigo-400 flex-shrink-0">
                                           <path fillRule="evenodd" d="M16.403 12.652a3 3 0 000-5.304 3 3 0 00-3.75-3.751 3 3 0 00-5.305 0 3 3 0 00-3.751 3.75 3 3 0 000 5.305 3 3 0 003.75 3.751 3 3 0 005.305 0 3 3 0 003.751-3.751zM11 10a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
                                         </svg>
                                         <span className="font-medium truncate">{item.name}</span>
-                                        {item.quantity > 1 && <span className="text-indigo-600 font-bold ml-auto">x{item.quantity}</span>}
                                     </li>
                                 ))}
                              </ul>

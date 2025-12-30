@@ -1,20 +1,23 @@
-// ... (previous code)
+// Customer List Page
 
 import { useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { auth } from '../lib/firebase'; // Added auth
+import { useNavigate } from 'react-router-dom';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { auth } from '../lib/firebase';
 
 import { db } from '../lib/firebase';
 import { useAllUsers } from "../hooks/useAllUsers";
-import type { UserRole } from '../types/user';
+import type { UserRole, ActivePass } from '../types/user';
 import UserCard from '../components/admin/UserCard';
-import { MagnifyingGlassIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, TrashIcon, TicketIcon, EyeIcon } from '@heroicons/react/24/outline';
 import Modal from '../components/common/Modal';
+import PassActivationModal from '../components/admin/PassActivationModal';
 
 const DEFAULT_AVATAR = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
 
 const CustomerListPage = () => {
-  const { users, loading, error } = useAllUsers(); // Removed setUsers
+  const navigate = useNavigate();
+  const { users, loading, error } = useAllUsers();
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -27,6 +30,11 @@ const CustomerListPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Pass Activation State
+  const [isPassModalOpen, setIsPassModalOpen] = useState(false);
+  const [passTargetUserId, setPassTargetUserId] = useState<string | null>(null);
+  const [passTargetUserName, setPassTargetUserName] = useState('');
 
   // ... (previous loading/error checks)
   
@@ -136,6 +144,22 @@ const CustomerListPage = () => {
       }
   };
 
+  // Pass Activation Handlers
+  const handleOpenPassModal = (userId: string, userName: string) => {
+    setPassTargetUserId(userId);
+    setPassTargetUserName(userName || 'Unknown');
+    setIsPassModalOpen(true);
+  };
+
+  const handleActivatePass = async (pass: ActivePass) => {
+    if (!passTargetUserId) return;
+    const userDocRef = doc(db, 'users', passTargetUserId);
+    await updateDoc(userDocRef, {
+      activePasses: arrayUnion(pass)
+    });
+    setIsPassModalOpen(false);
+    setPassTargetUserId(null);
+  };
 
   const tabs: { key: UserRole | 'all'; label: string }[] = [
     { key: 'all', label: '全部' },
@@ -260,13 +284,29 @@ const CustomerListPage = () => {
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleDeleteClick(user.id)}
-                          className="text-red-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-full"
-                          title="刪除使用者"
-                        >
-                            <TrashIcon className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => navigate(`/admin/customers/${user.id}`)}
+                            className="text-primary hover:text-primary-dark transition-colors p-2 hover:bg-primary/10 rounded-full"
+                            title="查看詳情"
+                          >
+                              <EyeIcon className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenPassModal(user.id, user.profile.displayName || '')}
+                            className="text-amber-500 hover:text-amber-700 transition-colors p-2 hover:bg-amber-50 rounded-full"
+                            title="開通季卡"
+                          >
+                              <TicketIcon className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(user.id)}
+                            className="text-red-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-full"
+                            title="刪除使用者"
+                          >
+                              <TrashIcon className="w-5 h-5" />
+                          </button>
+                        </div>
                     </td>
                   </tr>
                 ))}
@@ -282,9 +322,9 @@ const CustomerListPage = () => {
               user={user}
               isUpdatingRole={isUpdatingRole}
               onRoleChange={handleRoleChange}
-              onSaveNote={handleSaveNote}
-              onSaveError={setSaveError}
-              onDeleteClick={() => handleDeleteClick(user.id)} // Pass delete handler
+              onDeleteClick={() => handleDeleteClick(user.id)}
+              onViewDetail={() => navigate(`/admin/customers/${user.id}`)}
+              onOpenPassModal={() => handleOpenPassModal(user.id, user.profile.displayName || '')}
             />
           ))}
         </div>
@@ -336,6 +376,14 @@ const CustomerListPage = () => {
               </div>
           </div>
       </Modal>
+
+      {/* Pass Activation Modal */}
+      <PassActivationModal
+        isOpen={isPassModalOpen}
+        onClose={() => setIsPassModalOpen(false)}
+        onActivate={handleActivatePass}
+        userName={passTargetUserName}
+      />
     </div>
   );
 };

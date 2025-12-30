@@ -35,4 +35,11 @@ export interface BookingDocument {
   couponName?: string | null;
   customerFeedback?: CustomerFeedback; // Optional feedback
   rescheduleCount?: number; // Track number of times rescheduled
+
+  // === Season Pass Usage ===
+  passUsage?: {
+    passId: string;              // Reference to user's ActivePass
+    contentItemsUsed: string[];  // Content item IDs consumed
+    upgradesApplied: string[];   // Upgrade benefit IDs applied
+  };
 }

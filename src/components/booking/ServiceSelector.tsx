@@ -12,9 +12,10 @@ import ServiceOptionsSheet from './ServiceOptionsSheet';
 interface ServiceSelectorProps {
   initialCategory?: string | null;
   onNext: () => void;
+  passMode?: boolean; // When true, show only isPlanOnly services
 }
 
-const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
+const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passMode = false }) => {
   const [searchParams] = useSearchParams();
   const { services, isLoading, error } = useServices();
   const { categories } = useServiceCategories();
@@ -61,7 +62,11 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext }) => {
   };
 
   const groupedServices = services
-    .filter(s => s.available && !s.isPlanOnly)
+    .filter(s => {
+      if (!s.available) return false;
+      // In pass mode, show isPlanOnly services; otherwise exclude them
+      return passMode ? s.isPlanOnly : !s.isPlanOnly;
+    })
     .reduce((acc, service) => {
       const category = service.category || '其他';
       if (!acc[category]) {

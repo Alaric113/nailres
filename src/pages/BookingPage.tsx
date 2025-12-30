@@ -28,7 +28,10 @@ import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDesignerBookingInfo } from '../hooks/useDesignerBookingInfo';
-import { isLiffBrowser } from '../lib/liff'; // NEW IMPORT
+import { isLiffBrowser } from '../lib/liff';
+import { useActivePass } from '../hooks/useActivePass';
+import PassBookingBanner from '../components/booking/PassBookingBanner';
+import type { ActivePass } from '../types/user';
 
 const BookingPage = () => {
   const location = useLocation();
@@ -56,6 +59,17 @@ const BookingPage = () => {
   const { cart, clearCart } = useBookingStore(); // Use Booking Store
   const navigate = useNavigate();
   const { showToast } = useToast();
+
+  // Season Pass State
+  const { activePasses, hasActivePass, getValidPasses } = useActivePass();
+  const [selectedPass, setSelectedPass] = useState<ActivePass | null>(null);
+  const isPassBookingMode = selectedPass !== null;
+
+  const handleUsePass = (pass: ActivePass) => {
+    setSelectedPass(pass);
+    // TODO: Filter services to show only pass-available ones
+    showToast('已切換至季卡預約模式', 'info');
+  };
 
   // Get booking info for selected designer
   const { 
@@ -185,12 +199,12 @@ const BookingPage = () => {
       });
 
       // 1. Create new booking document
-      batch.set(newBookingRef, {
+      const bookingData: any = {
         userId: currentUser.uid,
         designerId: selectedDesigner.id,
         serviceIds,
         serviceNames,
-        items: bookingItems, // Save detailed items
+        items: bookingItems,
         dateTime: selectedTime,
         status: initialStatus,
         amount: finalPrice,
@@ -199,7 +213,19 @@ const BookingPage = () => {
         couponName: selectedCoupon ? selectedCoupon.title : null,
         createdAt: serverTimestamp(),
         notes: notes,
-      });
+      };
+
+      // If using a pass, record pass usage
+      if (selectedPass) {
+        bookingData.passUsage = {
+          passId: selectedPass.passId,
+          passName: selectedPass.passName,
+          variantName: selectedPass.variantName || null,
+          contentItemsUsed: serviceIds, // Services booked using this pass
+        };
+      }
+
+      batch.set(newBookingRef, bookingData);
 
       // 2. If a coupon was used, update its usage count and mark as used
       if (selectedCoupon) {
@@ -220,6 +246,29 @@ const BookingPage = () => {
             redeemedAt: serverTimestamp(),
             usedAt: serverTimestamp() 
         });
+      }
+
+      // 3. If a pass was used, update remaining usages
+      if (selectedPass && userProfile) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        // We need to update the specific pass within activePasses array
+        // Since Firestore doesn’t support updating array elements directly by index,
+        // we'll update the entire activePasses array after modifying it locally
+        const updatedPasses = (userProfile.activePasses || []).map(pass => {
+          if (pass.passId === selectedPass.passId && 
+              pass.purchaseDate.toMillis() === selectedPass.purchaseDate.toMillis()) {
+            // Deduct usages for each service booked
+            const updatedUsages = { ...pass.remainingUsages };
+            serviceIds.forEach(sId => {
+              if (updatedUsages[sId] && updatedUsages[sId] > 0) {
+                updatedUsages[sId] -= 1;
+              }
+            });
+            return { ...pass, remainingUsages: updatedUsages };
+          }
+          return pass;
+        });
+        batch.update(userRef, { activePasses: updatedPasses });
       }
 
       await batch.commit();
@@ -323,9 +372,36 @@ const BookingPage = () => {
         {/* Step 1: Services (New Uber Eats Style) */}
         {currentStep === 1 && (
           <div className="h-full">
+            {/* Pass Booking Banner */}
+            {hasActivePass && !isPassBookingMode && (
+              <div className="p-4 pt-0">
+                <PassBookingBanner 
+                  activePasses={getValidPasses()}
+                  onUsePass={handleUsePass}
+                />
+              </div>
+            )}
+            
+            {/* Pass Mode Indicator */}
+            {isPassBookingMode && selectedPass && (
+              <div className="mx-4 mb-4 p-3 bg-amber-100 border border-amber-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-amber-800">🎫 季卡模式: {selectedPass.passName}</p>
+                  <p className="text-xs text-amber-700">選擇方案包含的服務進行預約</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedPass(null)}
+                  className="text-xs text-amber-700 underline"
+                >
+                  取消
+                </button>
+              </div>
+            )}
+            
             <ServiceSelector 
               initialCategory={initialCategory}
               onNext={() => setCurrentStep(2)}
+              passMode={isPassBookingMode}
             />
           </div>
         )}

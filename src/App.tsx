@@ -21,6 +21,7 @@ import MemberCouponsPage from './pages/member/MemberCouponsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ServiceManagement from './pages/ServiceManagement';
 import CustomerListPage from './pages/CustomerListPage';
+import CustomerDetailPage from './pages/CustomerDetailPage';
 import HoursSettingsPage from './pages/HoursSettingsPage';
 import OrderManagementPage from './pages/OrderManagementPage';
 import OrderEditPage from './pages/OrderEditPage';
@@ -130,6 +131,7 @@ const routes = [
               { index: true, element: <AdminDashboard />, handle: { title: '總覽' } },
               { path: 'services', element: <ServiceManagement />, handle: { title: '服務管理' } },
               { path: 'customers', element: <CustomerListPage />, handle: { title: '客戶管理' } },
+              { path: 'customers/:userId', element: <CustomerDetailPage />, handle: { title: '客戶詳情' } },
               { path: 'hours', element: <HoursSettingsPage />, handle: { title: '營業時間設定' } },
               { path: 'orders', element: <OrderManagementPage />, handle: { title: '訂單管理' } },
               { path: 'orders/:orderId/edit', element: <OrderEditPage /> },
