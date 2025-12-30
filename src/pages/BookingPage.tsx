@@ -372,31 +372,9 @@ const BookingPage = () => {
         {/* Step 1: Services (New Uber Eats Style) */}
         {currentStep === 1 && (
           <div className="h-full">
-            {/* Pass Booking Banner */}
-            {hasActivePass && !isPassBookingMode && (
-              <div className="p-4 pt-0">
-                <PassBookingBanner 
-                  activePasses={getValidPasses()}
-                  onUsePass={handleUsePass}
-                />
-              </div>
-            )}
+           
             
-            {/* Pass Mode Indicator */}
-            {isPassBookingMode && selectedPass && (
-              <div className="mx-4 mb-4 p-3 bg-amber-100 border border-amber-200 rounded-xl flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-amber-800">🎫 季卡模式: {selectedPass.passName}</p>
-                  <p className="text-xs text-amber-700">選擇方案包含的服務進行預約</p>
-                </div>
-                <button 
-                  onClick={() => setSelectedPass(null)}
-                  className="text-xs text-amber-700 underline"
-                >
-                  取消
-                </button>
-              </div>
-            )}
+            
             
             <ServiceSelector 
               initialCategory={initialCategory}
