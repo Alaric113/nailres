@@ -111,7 +111,7 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
                                 <button
                                     key={idx}
                                     onClick={() => setSelectedVariantIndex(idx)}
-                                    className={`flex-1 min-w-[100px] flex flex-col justify-center items-center p-3 rounded-xl border text-center shrink-0 transition-all duration-200 ${
+                                    className={`flex-1 min-w-[80px] flex flex-col justify-center items-center p-1 rounded-xl border text-center shrink-0 transition-all duration-200 ${
                                         selectedVariantIndex === idx 
                                         ? 'bg-[#9F9586] border-[#9F9586] text-white shadow-md ring-2 ring-[#9F9586]/20' 
                                         : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100'
@@ -186,7 +186,7 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
             </div>
 
             {/* Action Button - Sticky at Bottom of Card Content */}
-            <div className="mt-4 pt-2 shrink-0">
+            <div className="mt-4 pt-2 mx-3 mb-2 shrink-0">
                 <button 
                     onClick={handleBuy}
                     disabled={!pass.variants || pass.variants.length === 0}
@@ -194,14 +194,11 @@ const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
                 >
                    <span>購買此方案</span>
                    {pass.variants && pass.variants[selectedVariantIndex] && (
-                       <span className="bg-white/20 px-2 py-0.5 rounded text-xs">
+                       <span className="bg-white/20 px-2 py-0.5  rounded text-xs">
                            ${pass.variants[selectedVariantIndex].price}
                        </span>
                    )}
                 </button>
-                <p className="text-[10px] text-gray-400 text-center mt-2">
-                    點擊後將開啟 LINE 由專人為您服務
-                </p>
             </div>
         </div>
     );
