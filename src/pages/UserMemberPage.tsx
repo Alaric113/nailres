@@ -1,16 +1,28 @@
-import MemberDashboardSlider from '../components/dashboard/MemberDashboardSlider';
-import { useAuthStore } from '../store/authStore';
+import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRightOnRectangleIcon, 
   WrenchScrewdriverIcon,
   ArchiveBoxIcon, 
   TicketIcon,
 } from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+import StackedCardDeck from '../components/dashboard/StackedCardDeck';
+import LoyaltyCard from '../components/dashboard/LoyaltyCard';
+import SeasonPassCard from '../components/dashboard/SeasonPassCard';
+import { useEffect } from 'react';
 
 const UserMemberPage = () => {
   const { logout, userProfile } = useAuthStore();
   const navigate = useNavigate();
+  const activePasses = userProfile?.activePasses || [];
+
+  // Lock body scroll for app-like experience
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -41,10 +53,18 @@ const UserMemberPage = () => {
     },
   ];
 
+  // Prepare card list
+  const cards = [
+      <LoyaltyCard key="loyalty" />,
+      ...activePasses.map(pass => (
+          <SeasonPassCard key={pass.passId} pass={pass} />
+      ))
+  ];
+
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#FAF9F6] pb-24">
+    <div className="h-full bg-[#FAF9F6] flex flex-col">
       {/* 1. Top Header Area with Actions */}
-      <div className="px-6 pt-6 pb-4 flex justify-between items-center">
+      <div className="px-6 pt-6 pb-4 flex justify-between items-center shrink-0">
         <h1 className="text-2xl font-serif font-bold text-gray-900">會員中心</h1>
         <div className="flex gap-3">
             {['admin', 'manager', 'designer'].includes(userProfile?.role || '') && (
@@ -66,14 +86,16 @@ const UserMemberPage = () => {
         </div>
       </div>
 
-      <div className="px-4 sm:px-6 lg:px-8 space-y-6">
+      <div className="flex-1 flex flex-col px-4 sm:px-6 lg:px-8 space-y-6 overflow-hidden">
         {/* 2. Loyalty Card Section */}
-        <section>
-          <MemberDashboardSlider />
+        <section className="relative z-10 shrink-0"> {/* Ensure z-index context for cards */}
+          <StackedCardDeck>
+              {cards}
+          </StackedCardDeck>
         </section>
 
         {/* 3. Function Menu */}
-        <section className="space-y-3">
+        <section className="space-y-3 shrink-0">
           <h2 className="text-lg font-bold text-gray-900 px-1">會員功能</h2>
           <div className="grid grid-cols-3 gap-3">
             {menuItems.map((item) => (
