@@ -1,4 +1,4 @@
-import LoyaltyCard from '../components/dashboard/LoyaltyCard';
+import MemberDashboardSlider from '../components/dashboard/MemberDashboardSlider';
 import { useAuthStore } from '../store/authStore';
 import { 
   ArrowRightOnRectangleIcon, 
@@ -69,7 +69,7 @@ const UserMemberPage = () => {
       <div className="px-4 sm:px-6 lg:px-8 space-y-6">
         {/* 2. Loyalty Card Section */}
         <section>
-          <LoyaltyCard />
+          <MemberDashboardSlider />
         </section>
 
         {/* 3. Function Menu */}

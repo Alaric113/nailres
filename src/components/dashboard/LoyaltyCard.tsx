@@ -14,7 +14,7 @@ const LoyaltyCard = () => {
   const tierName = role === 'platinum' ? '白金會員' : role === 'admin' ? '管理員' : role === 'manager' ? '管理設計師' : role === 'designer' ? '設計師' : '一般會員'; // could be dynamic based on points later
 
   return (
-    <div className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl">
+    <div className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-white opacity-10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-0 left-0 -ml-12 -mb-12 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
