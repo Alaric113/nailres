@@ -107,41 +107,22 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         // 3. Calculate Slots
         const slots: string[] = []; // Return ISO strings
-        const today = new Date();
 
-        // Use Taiwan/Local time for "now" comparison if possible, but server usually UTC.
-        // Ideally we should handle timezone carefully. For now assuming server time is acceptable or we rely on client to filter past slots if needed.
-        // Actually, let's trust the input 'date' is YYYY-MM-DD.
-        // We need 'now' to prevent booking past slots if date is today.
-        // Since Netlify functions run in UTC usually, we should be careful.
-        // Let's assume input date is effectively "local date string".
-
-        // Simpler approach: Just return all slots for that day that are valid by logic, 
-        // frontend can filter out "past" slots relative to user's browser time if needed, 
-        // OR we try to estimate "now". 
-        // Logic in hook used `new Date()` (client time).
-        // Here `new Date()` is server time.
-        // Let's perform the "Is Past" check on client side for better accuracy? 
-        // OR we accept we might return past slots and client filters them.
-        // UseDesignerAvailableSlots.ts logic: "Ensure slots are not in the past relative to the current time if it's today"
-
-        // I will replicate the logic but be aware of timezone diffs. 
-        // To be safe, I'll calculate all valid slots based on conflict/business hours,
-        // And let the Client do the final "is this time in the past?" check because Client knows its own timezone best.
-        // Wait, if I return past slots, the hook might show them?
-        // The original hook had `if (isAfter(currentDateTime, currentSlotStart))` logic.
-        // I will keep the collision logic here. The "past check" might be better on client, but the current hook REPLACES `availableSlots` with the result.
-        // I will comment out the strict "past check" on server side to avoid TZ issues, and let client filter if needed, 
-        // OR I just return them and client logic handles display.
-        // Actually, the hook sets state `setAvailableSlots(slots)`.
-        // I will implement "past check" locally in the hook after receiving data, or just return everything and update hook to filter.
-        // Let's update hook to filter past slots.
+        // Parse date as TW time (UTC+8) logic
+        // We assume input `date` is YYYY-MM-DD.
+        // We assume `slot.start` is HH:mm.
+        // We construct "YYYY-MM-DDTHH:mm:00+08:00" to ensure consistent absolute time regardless of server TZ.
 
         const timeSlots = businessData.timeSlots || [];
 
         timeSlots.forEach((slot: any) => {
-            let currentSlotStart = parseISO(`${date}T${slot.start}:00`);
-            const slotEnd = parseISO(`${date}T${slot.end}:00`);
+            // Force +08:00 timezone
+            let currentSlotStart = parseISO(`${date}T${slot.start}:00+08:00`);
+            // slot.end might be smaller than start if overnight? Assuming same day for now as per simple logic
+            // But usually slot.end is just time string.
+            // If slot.end < slot.start (e.g. 02:00 next day), we'd need to handle date rollover.
+            // Basic assumption: Business hours within single day.
+            const slotEnd = parseISO(`${date}T${slot.end}:00+08:00`);
 
             while (true) {
                 const potentialSlotEnd = addMinutes(currentSlotStart, serviceDuration);
