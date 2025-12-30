@@ -9,7 +9,6 @@ import {
     serverTimestamp,
     updateDoc,
     doc,
-    getDocs
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
@@ -88,12 +87,12 @@ export const useSeasonPassOrder = () => {
 
 // Hook to fetch orders for current user
 export const useUserOrders = () => {
-    const { userProfile } = useAuthStore();
+    const { currentUser } = useAuthStore();
     const [orders, setOrders] = useState<SeasonPassOrder[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!userProfile) {
+        if (!currentUser) {
             setOrders([]);
             setLoading(false);
             return;
@@ -101,7 +100,7 @@ export const useUserOrders = () => {
 
         const q = query(
             collection(db, 'orders'),
-            where('userId', '==', userProfile.id),
+            where('userId', '==', currentUser.uid),
             orderBy('createdAt', 'desc')
         );
 
@@ -115,7 +114,7 @@ export const useUserOrders = () => {
         });
 
         return () => unsubscribe();
-    }, [userProfile?.id]);
+    }, [currentUser?.uid]);
 
     return { orders, loading };
 };

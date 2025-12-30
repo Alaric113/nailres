@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuthStore } from '../../store/authStore';
+
 import { useAllOrders, useSeasonPassOrder } from '../../hooks/useSeasonPassOrder';
 import { useSeasonPasses } from '../../hooks/useSeasonPasses';
 import { MagnifyingGlassIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
@@ -9,7 +9,7 @@ import OrderTypeTabs from '../../components/admin/OrderTypeTabs';
 
 const PassOrderManagementPage = () => {
   const { orders, loading: loadingOrders } = useAllOrders();
-  const { updateOrderStatus, loading: updating } = useSeasonPassOrder();
+  const { updateOrderStatus} = useSeasonPassOrder();
   const { activatePass } = useSeasonPasses(); // Need to ensure expose this from hook
   
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
