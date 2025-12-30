@@ -30,7 +30,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useDesignerBookingInfo } from '../hooks/useDesignerBookingInfo';
 import { isLiffBrowser } from '../lib/liff';
 import { useActivePass } from '../hooks/useActivePass';
-import PassBookingBanner from '../components/booking/PassBookingBanner';
+
 import type { ActivePass } from '../types/user';
 
 const BookingPage = () => {
@@ -61,15 +61,11 @@ const BookingPage = () => {
   const { showToast } = useToast();
 
   // Season Pass State
-  const { hasActivePass, getValidPasses } = useActivePass();
-  const [selectedPass, setSelectedPass] = useState<ActivePass | null>(null);
+  const { hasActivePass } = useActivePass();
+  const [selectedPass] = useState<ActivePass | null>(null);
   const isPassBookingMode = selectedPass !== null;
 
-  const handleUsePass = (pass: ActivePass) => {
-    setSelectedPass(pass);
-    // TODO: Filter services to show only pass-available ones
-    showToast('已切換至季卡預約模式', 'info');
-  };
+
 
   // Get booking info for selected designer
   const { 
