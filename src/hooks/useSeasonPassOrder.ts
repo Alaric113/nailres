@@ -16,7 +16,7 @@ import { useAuthStore } from '../store/authStore';
 import type { SeasonPassOrder, OrderStatus } from '../types/order';
 
 export const useSeasonPassOrder = () => {
-    const { userProfile } = useAuthStore();
+    const { userProfile, currentUser } = useAuthStore();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -28,16 +28,16 @@ export const useSeasonPassOrder = () => {
         price: number,
         note: string = ''
     ) => {
-        if (!userProfile) throw new Error('User not logged in');
+        if (!currentUser) throw new Error('User not logged in');
 
         setLoading(true);
         setError(null);
 
         try {
             const orderData: Omit<SeasonPassOrder, 'id'> = {
-                userId: userProfile.id,
-                userEmail: userProfile.email,
-                userName: userProfile.profile.displayName || 'Unknown User',
+                userId: currentUser.uid,
+                userEmail: currentUser.email || userProfile?.email || '',
+                userName: userProfile?.profile?.displayName || currentUser.displayName || 'Unknown User',
                 passId,
                 passName,
                 variantName,

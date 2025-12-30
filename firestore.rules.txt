@@ -216,5 +216,19 @@ service cloud.firestore {
       // 用戶可更新狀態 (例如使用優惠券)；員工也可更新
       allow update: if isStaff() || (isAuthenticated() && resource.data.userId == request.auth.uid);
     }
+
+    // =============================================
+    //           季卡訂單規則 (Season Pass Orders)
+    // =============================================
+    match /orders/{orderId} {
+      // 員工可讀取所有；用戶可讀取自己的
+      allow read, list: if isStaff() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      
+      // 用戶可建立自己的訂單 (必須標記為自己的 ID)
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // 員工可更新訂單 (確認收款、取消等)
+      allow update: if isStaff();
+    }
   }
 }
