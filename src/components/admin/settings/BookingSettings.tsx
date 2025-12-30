@@ -1,36 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
-import { ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline'; // Adjusted import
+import { ClipboardDocumentCheckIcon, BanknotesIcon } from '@heroicons/react/24/outline';
+import { useGlobalSettings } from '../../../hooks/useGlobalSettings';
 
 const BookingSettings: React.FC = () => {
+    const { settings, isLoading, updateGlobalSettings } = useGlobalSettings();
+    const [activeTab, setActiveTab] = useState<'booking' | 'payment'>('booking');
+    
+    // Form States
     const [notice, setNotice] = useState('');
+    const [bankInfo, setBankInfo] = useState({
+        bankCode: '',
+        bankName: '',
+        accountNumber: '',
+        accountName: ''
+    });
+
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+    // Load initial data
     useEffect(() => {
-        const fetchSettings = async () => {
-             try {
-                const docRef = doc(db, 'globals', 'settings');
-                const snap = await getDoc(docRef);
-                if (snap.exists()) {
-                    setNotice(snap.data().bookingNotice || '');
-                }
-             } catch(e) {
-                 console.error(e);
-             }
-        };
-        fetchSettings();
-    }, []);
+        if (!isLoading && settings) {
+            setNotice(settings.bookingNotice || '');
+            if (settings.bankInfo) {
+                setBankInfo(settings.bankInfo);
+            }
+        }
+    }, [isLoading, settings]);
 
     const handleSave = async () => {
         setIsSaving(true);
         setMessage(null);
         try {
-            await setDoc(doc(db, 'globals', 'settings'), {
-                bookingNotice: notice
-            }, { merge: true });
-            setMessage({ type: 'success', text: '預約注意事項已儲存' });
+            await updateGlobalSettings({
+                bookingNotice: notice,
+                bankInfo: bankInfo
+            });
+            setMessage({ type: 'success', text: '設定已儲存' });
         } catch (e) {
             console.error(e);
             setMessage({ type: 'error', text: '儲存失敗' });
@@ -39,30 +45,117 @@ const BookingSettings: React.FC = () => {
         }
     };
 
+    if (isLoading) return <div>載入中...</div>;
+
     return (
         <div className="space-y-6">
              <div className="mb-6">
                  <h2 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2">
-                     <ClipboardDocumentCheckIcon className="w-6 h-6 text-purple-600" /> 預約設定
+                     <ClipboardDocumentCheckIcon className="w-6 h-6 text-purple-600" /> 預約與支付設定
                  </h2>
                  <p className="text-sm text-gray-500 mt-1 ml-8">
-                     設定顧客在確認預約前看到的注意事項或條款。
+                     管理預約須知、條款以及匯款帳號資訊。
                  </p>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 mb-6">
+                <button
+                    onClick={() => setActiveTab('booking')}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeTab === 'booking' 
+                        ? 'border-purple-600 text-purple-600' 
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    預約須知
+                </button>
+                <button
+                    onClick={() => setActiveTab('payment')}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeTab === 'payment' 
+                        ? 'border-purple-600 text-purple-600' 
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    匯款資訊
+                </button>
             </div>
             
             <div className="bg-white rounded-xl shadow-sm border border-[#EFECE5] p-6 max-w-2xl">
-                 <div className="space-y-4">
-                     <div>
-                         <label className="block text-sm font-bold text-gray-700 mb-2">預約注意事項 (Confirmation Notice)</label>
-                         <p className="text-xs text-gray-500 mb-2">當顧客點擊「確認預約」時，會彈出此內容要求顧客確認。留空則不會顯示。</p>
-                         <textarea 
-                             rows={8}
-                             className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
-                             placeholder="例如：請勿遲到超過10分鐘，取消請提前24小時告知..."
-                             value={notice}
-                             onChange={(e) => setNotice(e.target.value)}
-                         />
-                     </div>
+                 <div className="space-y-6">
+                     
+                     {activeTab === 'booking' && (
+                         <div>
+                             <label className="block text-sm font-bold text-gray-700 mb-2">預約注意事項 (Confirmation Notice)</label>
+                             <p className="text-xs text-gray-500 mb-2">當顧客點擊「確認預約」時，會彈出此內容要求顧客確認。留空則不會顯示。</p>
+                             <textarea 
+                                 rows={8}
+                                 className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
+                                 placeholder="例如：請勿遲到超過10分鐘，取消請提前24小時告知..."
+                                 value={notice}
+                                 onChange={(e) => setNotice(e.target.value)}
+                             />
+                         </div>
+                     )}
+
+                     {activeTab === 'payment' && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 mb-4 text-gray-800 font-bold border-b pb-2">
+                                <BanknotesIcon className="w-5 h-5 text-gray-500" />
+                                <span>匯款帳號設定</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">銀行代碼</label>
+                                    <input 
+                                        type="text"
+                                        className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
+                                        placeholder="例如：822"
+                                        value={bankInfo.bankCode}
+                                        onChange={(e) => setBankInfo({...bankInfo, bankCode: e.target.value})}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">銀行名稱</label>
+                                    <input 
+                                        type="text"
+                                        className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
+                                        placeholder="例如：中國信託"
+                                        value={bankInfo.bankName}
+                                        onChange={(e) => setBankInfo({...bankInfo, bankName: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">銀行帳號</label>
+                                <input 
+                                    type="text"
+                                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
+                                    placeholder="例如：123-456-789012"
+                                    value={bankInfo.accountNumber}
+                                    onChange={(e) => setBankInfo({...bankInfo, accountNumber: e.target.value})}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">戶名</label>
+                                <input 
+                                    type="text"
+                                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
+                                    placeholder="例如：美甲沙龍有限公司"
+                                    value={bankInfo.accountName}
+                                    onChange={(e) => setBankInfo({...bankInfo, accountName: e.target.value})}
+                                />
+                            </div>
+                            
+                            <p className="text-xs text-gray-500 mt-2 bg-gray-50 p-2 rounded">
+                                此資訊將顯示於季卡購買頁面，供顧客匯款參考。
+                            </p>
+                        </div>
+                     )}
 
                      {message && (
                         <div className={`p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
@@ -70,7 +163,7 @@ const BookingSettings: React.FC = () => {
                         </div>
                      )}
 
-                     <div className="flex justify-end pt-4">
+                     <div className="flex justify-end pt-4 border-t border-gray-100">
                          <button 
                              onClick={handleSave}
                              disabled={isSaving}

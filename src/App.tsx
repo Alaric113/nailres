@@ -18,12 +18,14 @@ import ReschedulePage from './pages/member/ReschedulePage';
 import MemberRewardsPage from './pages/member/MemberRewardsPage';
 import MemberPassPage from './pages/member/MemberPassPage';
 import MemberCouponsPage from './pages/member/MemberCouponsPage';
+import PurchasePassPage from './pages/member/PurchasePassPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ServiceManagement from './pages/ServiceManagement';
 import CustomerListPage from './pages/CustomerListPage';
 import CustomerDetailPage from './pages/CustomerDetailPage';
 import HoursSettingsPage from './pages/HoursSettingsPage';
 import OrderManagementPage from './pages/OrderManagementPage';
+import PassOrderManagementPage from './pages/admin/PassOrderManagementPage';
 import OrderEditPage from './pages/OrderEditPage';
 import OrderFeedbackPage from './pages/OrderFeedbackPage'; // New Import
 import FeedbackPage from './pages/FeedbackPage';
@@ -101,8 +103,10 @@ const routes = [
                   { path: 'rewards', element: <MemberRewardsPage /> },
                   { path: 'pass', element: <MemberPassPage /> },
                   { path: 'coupons', element: <MemberCouponsPage /> },
+                  { path: 'coupons', element: <MemberCouponsPage /> },
                 ]
               },
+              { path: 'member/purchase/:passId', element: <PurchasePassPage /> },
             ],
           },
           { path: 'liff', element: <LiffEntry /> },
@@ -134,6 +138,7 @@ const routes = [
               { path: 'customers/:userId', element: <CustomerDetailPage />, handle: { title: '客戶詳情' } },
               { path: 'hours', element: <HoursSettingsPage />, handle: { title: '營業時間設定' } },
               { path: 'orders', element: <OrderManagementPage />, handle: { title: '訂單管理' } },
+              { path: 'orders-pass', element: <PassOrderManagementPage />, handle: { title: '季卡訂單管理' } },
               { path: 'orders/:orderId/edit', element: <OrderEditPage /> },
               { path: 'feedback', element: <FeedbackPage />, handle: { title: '問題回報' } }, // New Route
               { path: 'calendar', element: <CalendarPage />, handle: { title: '行事曆' } },

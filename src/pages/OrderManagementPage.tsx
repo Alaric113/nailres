@@ -22,6 +22,7 @@ import {
   UserCircleIcon // New Icon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import OrderTypeTabs from '../components/admin/OrderTypeTabs';
 
 // Stats Card Component
 const StatCard = ({ title, value, icon: Icon, color, bgColor }: { title: string, value: string | number, icon: any, color: string, bgColor: string }) => (
@@ -212,10 +213,12 @@ const OrderManagementPage = () => {
 
   return (
     <div className="min-h-full bg-[#FAF9F6] pb-24 md:pb-12 pt-4 md:pt-8 w-full">
-      <main className="container mx-auto px-4 max-w-3xl space-y-6">
+      <main className="container mx-auto px-4 max-w-3xl space-y-3">
         
+        <OrderTypeTabs />
+
         {/* 1. Header & Stats (Horizontal Scroll on Mobile) */}
-        <div className="space-y-4">
+        <div className="">
             <div className="flex justify-between items-center">
                 
                 

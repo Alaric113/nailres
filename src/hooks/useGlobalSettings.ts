@@ -1,14 +1,24 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export interface GlobalSettings {
   bookingDeadline: Date | null;
   bookingNotice?: string;
+  bankInfo?: {
+    bankCode: string;
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+  };
 }
 
 export const useGlobalSettings = () => {
-  const [settings, setSettings] = useState<GlobalSettings>({ bookingDeadline: null, bookingNotice: '' });
+  const [settings, setSettings] = useState<GlobalSettings>({
+    bookingDeadline: null,
+    bookingNotice: '',
+    bankInfo: { bankCode: '', bankName: '', accountNumber: '', accountName: '' }
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,6 +32,7 @@ export const useGlobalSettings = () => {
           setSettings({
             bookingDeadline: data.bookingDeadline ? data.bookingDeadline.toDate() : null,
             bookingNotice: data.bookingNotice || '',
+            bankInfo: data.bankInfo || { bankCode: '', bankName: '', accountNumber: '', accountName: '' },
           });
         }
       } catch (err) {
@@ -35,5 +46,22 @@ export const useGlobalSettings = () => {
     fetchGlobalSettings();
   }, []);
 
-  return { settings, isLoading, error };
+  const updateGlobalSettings = async (newSettings: Partial<GlobalSettings>) => {
+    try {
+      const globalSettingsRef = doc(db, 'globals', 'settings');
+      // Filter out undefined values
+      const updateData: any = { ...newSettings };
+      if (newSettings.bookingDeadline === undefined) delete updateData.bookingDeadline;
+
+      await updateDoc(globalSettingsRef, updateData);
+
+      setSettings(prev => ({ ...prev, ...newSettings }));
+      return true;
+    } catch (err) {
+      console.error("Error updating global settings:", err);
+      return false;
+    }
+  };
+
+  return { settings, isLoading, error, updateGlobalSettings };
 };

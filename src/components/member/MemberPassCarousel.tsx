@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { SeasonPass } from '../../types/seasonPass';
 
 // Swiper imports
@@ -65,15 +66,14 @@ const MemberPassCarousel = ({ passes }: MemberPassCarouselProps) => {
 const CarouselCard = ({ pass }: { pass: SeasonPass }) => {
     const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
 
+    const navigate = useNavigate();
+
     const handleBuy = () => {
         if (!pass.variants || pass.variants.length === 0) return;
         
-        const variant = pass.variants[selectedVariantIndex];
-        const text = `你好，我想購買會員方案：${pass.name} ${variant ? `- ${variant.name} ($${variant.price})` : ''}`;
-        // Using the LINE ID found in StoreInfoPage: @985jirte
-        // https://line.me/R/oaMessage/{LINE_ID}/?text={message}
-        const url = `https://line.me/R/oaMessage/@985jirte/?text=${encodeURIComponent(text)}`;
-        window.open(url, '_blank');
+        // Pass info by URL params primarily for simple data like index, 
+        // ID is in the path
+        navigate(`/member/purchase/${pass.id}?variant=${selectedVariantIndex}`);
     };
 
     return (

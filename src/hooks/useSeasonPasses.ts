@@ -7,8 +7,12 @@ import {
     deleteDoc,
     doc,
     query,
-    orderBy
+    orderBy,
+    getDoc,
+    arrayUnion,
+    Timestamp
 } from 'firebase/firestore';
+import type { ActivePass } from '../types/user';
 import { db } from '../lib/firebase';
 import type { SeasonPass } from '../types/seasonPass';
 
@@ -63,5 +67,64 @@ export const useSeasonPasses = () => {
         }
     };
 
-    return { passes, loading, error, addPass, updatePass, deletePass };
+    const activatePass = async (userId: string, passId: string, variantName: string) => {
+        try {
+            // 1. Get the Pass Definition
+            const passDoc = await getDoc(doc(db, 'season_passes', passId));
+            if (!passDoc.exists()) throw new Error('Pass not found');
+            const passDef = passDoc.data() as SeasonPass;
+
+            // 2. Calculate Expiry
+            // Simple parsing: '3個月' -> 3 months, '1年' -> 1 year
+            // Fallback to 3 months if parsing fails
+            let monthsToAdd = 3;
+            if (passDef.duration.includes('個月')) {
+                monthsToAdd = parseInt(passDef.duration) || 3;
+            } else if (passDef.duration.includes('年')) {
+                monthsToAdd = (parseInt(passDef.duration) || 1) * 12;
+            }
+
+            const startDate = new Date();
+            const expiryDate = new Date();
+            expiryDate.setMonth(startDate.getMonth() + monthsToAdd);
+
+            // 3. Initialize Usages
+            const remainingUsages: Record<string, number> = {};
+            passDef.contentItems.forEach(item => {
+                // If it's a benefit (權益), valid status is tracked by existence or maybe -1/1
+                // For countable services, setting initial quantity
+                if (item.category === '服務' && item.quantity) {
+                    remainingUsages[item.id] = item.quantity;
+                } else if (item.category === '權益') {
+                    // -1 indicates "Active Benefit" without countdown
+                    remainingUsages[item.id] = -1;
+                } else {
+                    // Unlimited service?
+                    remainingUsages[item.id] = -1;
+                }
+            });
+
+            // 4. Construct Active Pass Object
+            const newActivePass: ActivePass = {
+                passId: passDef.id,
+                passName: passDef.name,
+                variantName: variantName,
+                purchaseDate: Timestamp.now(),
+                expiryDate: Timestamp.fromDate(expiryDate),
+                remainingUsages
+            };
+
+            // 5. Update User Document
+            const userRef = doc(db, 'users', userId);
+            await updateDoc(userRef, {
+                activePasses: arrayUnion(newActivePass)
+            });
+
+        } catch (err) {
+            console.error("Error activating pass:", err);
+            throw err;
+        }
+    };
+
+    return { passes, loading, error, addPass, updatePass, deletePass, activatePass };
 };
