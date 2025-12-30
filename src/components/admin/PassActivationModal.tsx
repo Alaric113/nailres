@@ -43,7 +43,7 @@ const PassActivationModal: React.FC<PassActivationModalProps> = ({
       // Initialize remaining usages from content items
       const remainingUsages: { [key: string]: number } = {};
       selectedPass.contentItems.forEach(item => {
-        remainingUsages[item.id] = item.quantity;
+        remainingUsages[item.id] = item.quantity || 0;
       });
 
       const newActivePass: ActivePass = {

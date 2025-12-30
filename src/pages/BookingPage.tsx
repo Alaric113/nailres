@@ -61,7 +61,7 @@ const BookingPage = () => {
   const { showToast } = useToast();
 
   // Season Pass State
-  const { activePasses, hasActivePass, getValidPasses } = useActivePass();
+  const { hasActivePass, getValidPasses } = useActivePass();
   const [selectedPass, setSelectedPass] = useState<ActivePass | null>(null);
   const isPassBookingMode = selectedPass !== null;
 
