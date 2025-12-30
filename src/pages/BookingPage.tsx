@@ -402,6 +402,7 @@ const BookingPage = () => {
               initialCategory={initialCategory}
               onNext={() => setCurrentStep(2)}
               passMode={isPassBookingMode}
+              hasActivePass={hasActivePass}
             />
           </div>
         )}

@@ -13,9 +13,10 @@ interface ServiceSelectorProps {
   initialCategory?: string | null;
   onNext: () => void;
   passMode?: boolean; // When true, show only isPlanOnly services
+  hasActivePass?: boolean; // When true, show '季卡方案' category first
 }
 
-const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passMode = false }) => {
+const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passMode = false, hasActivePass = false }) => {
   const [searchParams] = useSearchParams();
   const { services, isLoading, error } = useServices();
   const { categories } = useServiceCategories();
@@ -87,7 +88,9 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passMode = fa
     return indexA - indexB;
   });
 
-  const displayCategories = ['全部', ...sortedCategories];
+  const displayCategories = hasActivePass 
+    ? ['全部','季卡專屬',  ...sortedCategories]
+    : ['全部', ...sortedCategories];
   
   const categoriesToShow = activeCategory === '全部' 
       ? sortedCategories 
