@@ -97,8 +97,87 @@ const PassOrderManagementPage = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* Mobile Card View (md:hidden) */}
+      <div className="grid grid-cols-1 gap-4 md:hidden">
+          {filteredOrders.length === 0 ? (
+              <div className="text-center p-8 text-gray-500 bg-white rounded-xl border border-gray-200">
+                  無符合條件的訂單
+              </div>
+          ) : (
+              filteredOrders.map(order => (
+                  <div key={order.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4">
+                      {/* Header: Date & Status */}
+                      <div className="flex justify-between items-start">
+                          <span className="text-xs text-gray-500">
+                              {order.createdAt?.seconds 
+                                  ? new Date(order.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+                                  : '刚刚'}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+                              order.status === 'completed' ? 'bg-green-100 text-green-800 border-green-200' :
+                              order.status === 'pending_payment' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                              'bg-gray-100 text-gray-800 border-gray-200'
+                          }`}>
+                              {order.status === 'completed' ? '已完成' : 
+                               order.status === 'pending_payment' ? '待付款' : '已取消'}
+                          </span>
+                      </div>
+
+                      {/* User Info */}
+                      <div className="flex items-center gap-3 border-b border-gray-50 pb-3">
+                           <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-lg">
+                              {order.userName.charAt(0)}
+                           </div>
+                           <div>
+                               <div className="font-bold text-gray-900">{order.userName}</div>
+                               <div className="text-xs text-gray-400">{order.userEmail}</div>
+                           </div>
+                      </div>
+
+                      {/* Pass Details */}
+                      <div>
+                          <div className="flex justify-between items-baseline mb-1">
+                              <span className="font-bold text-[#9F9586] text-lg">{order.passName}</span>
+                              <span className="font-bold text-gray-900">${order.price.toLocaleString()}</span>
+                          </div>
+                          <span className="inline-block px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                              {order.variantName}
+                          </span>
+                      </div>
+
+                      {/* Payment Note */}
+                      {order.paymentNote && (
+                          <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-600">
+                              <span className="font-bold text-xs text-gray-400 block mb-1">備註</span>
+                              {order.paymentNote}
+                          </div>
+                      )}
+
+                      {/* Actions */}
+                      {order.status === 'pending_payment' && (
+                          <div className="flex gap-3 mt-2 pt-3 border-t border-gray-100">
+                              <button 
+                                  onClick={() => handleCancelOrder(order.id)}
+                                  className="flex-1 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
+                              >
+                                  取消訂單
+                              </button>
+                              <button 
+                                  onClick={() => handleConfirmPayment(order)}
+                                  className="flex-1 py-2 bg-[#1a1a1a] text-white rounded-lg hover:bg-black text-sm font-bold shadow-md active:scale-95 transition-all flex items-center justify-center gap-1"
+                              >
+                                  <CheckCircleIcon className="w-4 h-4" />
+                                  確認收款
+                              </button>
+                          </div>
+                      )}
+                  </div>
+              ))
+          )}
+      </div>
+
+      {/* Desktop Table View (hidden md:block) */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-left border-collapse">
             <thead className="bg-[#FAF9F6] text-gray-600 font-medium text-sm">
                 <tr>
