@@ -9,7 +9,6 @@ import { useAuthStore } from '../../store/authStore';
 import LoadingSpinner from '../common/LoadingSpinner';
 import CartSidebar from './CartSidebar';
 import MobileCartBar from './MobileCartBar';
-import ServiceOptionsSheet from './ServiceOptionsSheet';
 import { SparklesIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 
@@ -18,13 +17,14 @@ import type { PlanContentItem } from '../../types/seasonPass';
 interface ServiceSelectorProps {
   initialCategory?: string | null;
   onNext: () => void;
+  onServiceClick: (service: Service) => void;
   passMode?: boolean; // When true, show only isPlanOnly services
   hasActivePass?: boolean; // When true, show '季卡方案' category first
   activePass?: ActivePass | null;
   passContentItems?: PlanContentItem[];
 }
 
-const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passContentItems, hasActivePass = false, activePass }) => {
+const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClick, passContentItems, hasActivePass = false, activePass }) => {
   const [searchParams] = useSearchParams();
   const { services, isLoading, error } = useServices();
   const { categories } = useServiceCategories();
@@ -33,8 +33,6 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passContentIt
   const promo = settings.seasonPassPromo;
   
   const [activeCategory, setActiveCategory] = useState<string>('全部');
-  const [selectedService, setSelectedService] = useState<Service | null>(null); // For Options Sheet
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
  
   // Initialize active category from URL or Default
   useEffect(() => {
@@ -113,11 +111,6 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passContentIt
         ? ['季卡專屬']
         : sortedCategories.filter(c => c === activeCategory);
   
-  const handleServiceClick = (service: Service) => {
-      setSelectedService(service);
-      setIsSheetOpen(true);
-  };
-
     return (
       <div className="flex bg-[#FAF9F6] h-full overflow-hidden relative ">
         {/* Main Content Area */}
@@ -222,7 +215,7 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passContentIt
                                     return (
                                         <div 
                                             key={service.id}
-                                            onClick={() => !isDisabled && handleServiceClick(service)}
+                                            onClick={() => !isDisabled && onServiceClick(service)}
                                             className={`
                                                 p-4 rounded-xl border shadow-sm transition-all flex gap-4 group relative
                                                 ${isDisabled 
@@ -301,13 +294,6 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passContentIt
         <div className="lg:hidden">
             <MobileCartBar onNext={onNext} />
         </div>
-
-        {/* Options Sheet */}
-        <ServiceOptionsSheet 
-            isOpen={isSheetOpen} 
-            onClose={() => setIsSheetOpen(false)} 
-            service={selectedService} 
-        />
 
       </div>
     );

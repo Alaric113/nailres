@@ -11,9 +11,11 @@ import TimeSlotSelector from '../components/booking/TimeSlotSelector';
 import BookingForm from '../components/booking/BookingForm';
 import CalendarSelector from '../components/booking/CalendarSelector';
 import CouponSelectorModal from '../components/booking/CouponSelectorModal';
+import ServiceOptionsSheet from '../components/booking/ServiceOptionsSheet'; // NEW IMPORT
 import type { UserCoupon } from '../types/coupon';
 import type { Designer } from '../types/designer';
 import type { BookingStatus } from '../types/booking'; // NEW IMPORT
+import type { Service } from '../types/service'; // NEW IMPORT
 import { collection, serverTimestamp, writeBatch, doc, increment } from 'firebase/firestore'; // NEW IMPORT
 import { db } from '../lib/firebase'; // NEW IMPORT
 import { useToast } from '../context/ToastContext'; // NEW IMPORT
@@ -58,7 +60,15 @@ const BookingPage = () => {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false); // NEW STATE
-  
+  // Service Notice Modal State
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [noticeModalContent, setNoticeModalContent] = useState<string[]>([]);
+  // Service Selection State (Options Sheet)
+  const [activeService, setActiveService] = useState<Service | null>(null);
+  const [isOptionsSheetOpen, setIsOptionsSheetOpen] = useState(false);
+  const [pendingService, setPendingService] = useState<Service | null>(null);
+
+
   const { userProfile, currentUser } = useAuthStore();
   const { settings: globalSettings } = useGlobalSettings(); // NEW HOOK
   const { services } = useServices(); // Fetch fresh services for pricing
@@ -66,9 +76,50 @@ const BookingPage = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
+  
+  // Handle click on service card
+  const handleServiceClick = (service: Service) => {
+      // Check for notices first
+      if (globalSettings.serviceNotices && globalSettings.serviceNotices.length > 0) {
+          const matchedNotices: string[] = [];
+          const notices = globalSettings.serviceNotices.filter(n => n.serviceIds.includes(service.id) && n.active);
+          
+          if (notices) {
+             notices.forEach(n => {
+                 if (!matchedNotices.includes(n.content)) {
+                     matchedNotices.push(n.content);
+                 }
+             });
+          }
 
+          if (matchedNotices.length > 0) {
+              setNoticeModalContent(matchedNotices);
+              setPendingService(service);
+              setShowNoticeModal(true);
+              return;
+          }
+      }
 
-// ...
+      // If no notices, proceed to open options sheet
+      setActiveService(service);
+      setIsOptionsSheetOpen(true);
+  };
+
+  const handleNoticeAgree = () => {
+      setShowNoticeModal(false);
+      if (pendingService) {
+          setActiveService(pendingService);
+          setIsOptionsSheetOpen(true);
+          setPendingService(null);
+      }
+  };
+
+  // Handler for transitions from Step 1 -> Step 2
+  const handleServiceSelectionNext = () => {
+      // Notice check moved to handleServiceClick
+      setCurrentStep(2);
+      window.scrollTo(0, 0);
+  };
 
   // Season Pass State
   const { hasActivePass, activePasses } = useActivePass();
@@ -476,23 +527,53 @@ const BookingPage = () => {
       
       {/* Progress Bar - Hidden as per request */}
 
+      {/* Modal for Service Notices */}
+      <Modal 
+        isOpen={showNoticeModal} 
+        onClose={() => {
+            setShowNoticeModal(false);
+            setPendingService(null);
+        }}
+        title="預約注意事項"
+      >
+        <div className="space-y-4">
+            {noticeModalContent.map((notice, index) => (
+                <div key={index} className="bg-orange-50 p-4 rounded-lg border border-orange-100 text-sm text-gray-700">
+                    <p className="whitespace-pre-wrap">{notice}</p>
+                </div>
+            ))}
+            <div className="pt-4">
+                <button 
+                    onClick={handleNoticeAgree}
+                    className="w-full py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary-dark transition-colors"
+                >
+                    我了解並同意
+                </button>
+            </div>
+        </div>
+      </Modal>
+
       {/* Main Content Area */}
       <main className={`container mx-auto ${currentStep === 1 ? (isLiff ? 'max-w-7xl h-[100dvh]' : 'max-w-7xl h-[calc(100vh-140px)]') : 'max-w-lg'}`}>
         
         {/* Step 1: Services (New Uber Eats Style) */}
         {currentStep === 1 && (
           <div className="h-full">
-           
-            
-            
-            
             <ServiceSelector 
               initialCategory={initialCategory}
-              onNext={() => setCurrentStep(2)}
+              onNext={handleServiceSelectionNext} // Use custom handler
+              onServiceClick={handleServiceClick} // NEW HANDLER
               passMode={isPassBookingMode}
               hasActivePass={hasActivePass}
               activePass={selectedPass}
               passContentItems={selectedPassDefinition?.contentItems}
+            />
+            
+            {/* Options Sheet moved here */}
+            <ServiceOptionsSheet 
+                isOpen={isOptionsSheetOpen} 
+                onClose={() => setIsOptionsSheetOpen(false)} 
+                service={activeService} 
             />
           </div>
         )}

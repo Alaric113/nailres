@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardDocumentCheckIcon, BanknotesIcon, MegaphoneIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
-import { useGlobalSettings, type SeasonPassPromo, type SeasonPassFlexSettings } from '../../../hooks/useGlobalSettings';
+import { ClipboardDocumentCheckIcon, BanknotesIcon, MegaphoneIcon, ChatBubbleLeftRightIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { useGlobalSettings, type SeasonPassPromo, type SeasonPassFlexSettings, type ServiceNotice } from '../../../hooks/useGlobalSettings';
+import { useServices } from '../../../hooks/useServices'; // Import services hook
 
 const BookingSettings: React.FC = () => {
+    const { services } = useServices(); // Fetch services for selection
     const { settings, isLoading, updateGlobalSettings } = useGlobalSettings();
-    const [activeTab, setActiveTab] = useState<'booking' | 'payment' | 'promo' | 'lineFlex'>('booking');
+    const [activeTab, setActiveTab] = useState<'booking' | 'payment' | 'promo' | 'lineFlex' | 'serviceNotice'>('booking'); // Added 'serviceNotice'
     
     // Form States
     const [notice, setNotice] = useState('');
+    const [serviceNotices, setServiceNotices] = useState<ServiceNotice[]>([]); // Synced with settings
+    
+    // Draft Service Notice State
+    const [editingNoticeId, setEditingNoticeId] = useState<string | null>(null);
+    const [draftNotice, setDraftNotice] = useState<{serviceId: string, content: string}>({ serviceId: '', content: '' });
+
     const [bankInfo, setBankInfo] = useState({
         bankCode: '',
         bankName: '',
@@ -38,10 +46,13 @@ const BookingSettings: React.FC = () => {
     useEffect(() => {
         if (!isLoading && settings) {
             setNotice(settings.bookingNotice || '');
+            if (settings.serviceNotices) {
+                setServiceNotices(settings.serviceNotices);
+            }
             if (settings.bankInfo) {
                 setBankInfo({
                     ...settings.bankInfo,
-                    note: settings.bankInfo.note || ''
+                    note: settings.bankInfo.note || '' // Ensure note exists
                 });
             }
             if (settings.seasonPassPromo) {
@@ -59,6 +70,7 @@ const BookingSettings: React.FC = () => {
         try {
             await updateGlobalSettings({
                 bookingNotice: notice,
+                serviceNotices: serviceNotices, // Save array
                 bankInfo: bankInfo,
                 seasonPassPromo: promo,
                 seasonPassFlexMessage: flexSettings
@@ -70,7 +82,45 @@ const BookingSettings: React.FC = () => {
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const handleSaveNotice = () => {
+        if (!draftNotice.serviceId || !draftNotice.content) return;
         
+        if (editingNoticeId) {
+            setServiceNotices(prev => prev.map(item => 
+                item.id === editingNoticeId 
+                ? { ...item, serviceIds: [draftNotice.serviceId], content: draftNotice.content }
+                : item
+            ));
+            setEditingNoticeId(null);
+        } else {
+            const newNotice: ServiceNotice = {
+                id: Date.now().toString(),
+                serviceIds: [draftNotice.serviceId],
+                content: draftNotice.content,
+                active: true
+            };
+            setServiceNotices([...serviceNotices, newNotice]);
+        }
+        setDraftNotice({ serviceId: '', content: '' });
+    };
+
+    const handleEditNotice = (notice: ServiceNotice) => {
+        setEditingNoticeId(notice.id);
+        setDraftNotice({
+            serviceId: notice.serviceIds[0],
+            content: notice.content
+        });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingNoticeId(null);
+        setDraftNotice({ serviceId: '', content: '' });
+    };
+
+    const handleDeleteNotice = (id: string) => {
+        setServiceNotices(serviceNotices.filter(n => n.id !== id));
     };
 
     if (isLoading) return <div>載入中...</div>;
@@ -87,20 +137,30 @@ const BookingSettings: React.FC = () => {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-gray-200 mb-6">
+            <div className="flex border-b border-gray-200 mb-6 overflow-x-auto flex-wrap gap-1">
                 <button
                     onClick={() => setActiveTab('booking')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                         activeTab === 'booking' 
                         ? 'border-purple-600 text-purple-600' 
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                 >
-                    預約須知
+                    預約須知(General)
+                </button>
+                <button
+                    onClick={() => setActiveTab('serviceNotice')}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                        activeTab === 'serviceNotice' 
+                        ? 'border-purple-600 text-purple-600' 
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    個別服務注意事項
                 </button>
                 <button
                     onClick={() => setActiveTab('payment')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                         activeTab === 'payment' 
                         ? 'border-purple-600 text-purple-600' 
                         : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -110,7 +170,7 @@ const BookingSettings: React.FC = () => {
                 </button>
                 <button
                     onClick={() => setActiveTab('promo')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                         activeTab === 'promo' 
                         ? 'border-purple-600 text-purple-600' 
                         : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -120,7 +180,7 @@ const BookingSettings: React.FC = () => {
                 </button>
                 <button
                     onClick={() => setActiveTab('lineFlex')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                         activeTab === 'lineFlex' 
                         ? 'border-purple-600 text-purple-600' 
                         : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -144,6 +204,100 @@ const BookingSettings: React.FC = () => {
                                  value={notice}
                                  onChange={(e) => setNotice(e.target.value)}
                              />
+                         </div>
+                     )}
+
+                     {activeTab === 'serviceNotice' && (
+                         <div className="space-y-6">
+                             <div className={`p-4 rounded-lg border mb-4 ${editingNoticeId ? 'bg-purple-50 border-purple-100' : 'bg-blue-50 border-blue-100'}`}>
+                                 <h3 className={`font-bold text-sm mb-2 ${editingNoticeId ? 'text-purple-900' : 'text-blue-900'}`}>
+                                     {editingNoticeId ? '編輯服務注意事項' : '新增服務注意事項'}
+                                 </h3>
+                                 <div className="space-y-3">
+                                     <div>
+                                         <label className="block text-xs font-bold text-gray-500 mb-1">選擇服務</label>
+                                         <select 
+                                            value={draftNotice.serviceId} 
+                                            onChange={(e) => setDraftNotice({...draftNotice, serviceId: e.target.value})}
+                                            className="w-full border border-gray-300 rounded-md p-2 text-sm"
+                                         >
+                                             <option value="">請選擇...</option>
+                                             {services.map(s => (
+                                                 <option key={s.id} value={s.id}>{s.name} ({s.category})</option>
+                                             ))}
+                                         </select>
+                                     </div>
+                                     <div>
+                                         <label className="block text-xs font-bold text-gray-500 mb-1">注意事項內容</label>
+                                         <textarea 
+                                             value={draftNotice.content}
+                                             onChange={(e) => setDraftNotice({...draftNotice, content: e.target.value})}
+                                             rows={6} 
+                                             className="w-full border border-gray-300 rounded-md p-2 text-sm resize-none"
+                                             placeholder="當客戶選擇此服務時，在下一步前會跳出此提示..."
+                                         />
+                                     </div>
+                                     <div className="flex gap-2">
+                                         <button 
+                                            onClick={handleSaveNotice}
+                                            disabled={!draftNotice.serviceId || !draftNotice.content}
+                                            className={`${editingNoticeId ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'} text-white text-sm px-4 py-2 rounded-md disabled:bg-gray-300 disabled:cursor-not-allowed w-full md:w-auto transition-colors`}
+                                         >
+                                            {editingNoticeId ? '更新' : '新增'}
+                                         </button>
+                                         {editingNoticeId && (
+                                             <button 
+                                                onClick={handleCancelEdit}
+                                                className="bg-gray-200 text-gray-700 text-sm px-4 py-2 rounded-md hover:bg-gray-300 w-full md:w-auto transition-colors"
+                                             >
+                                                取消
+                                             </button>
+                                         )}
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <div className="space-y-4">
+                                 <h3 className="font-bold text-gray-700 border-b pb-2">已設定的服務注意事項</h3>
+                                 {serviceNotices.length === 0 ? (
+                                     <p className="text-gray-400 text-sm text-center py-4">尚未設定任何注意事項</p>
+                                 ) : (
+                                     serviceNotices.map((item) => {
+                                         const serviceName = services.find(s => s.id === item.serviceIds[0])?.name || '未知服務';
+                                         const isEditing = item.id === editingNoticeId;
+                                         return (
+                                             <div key={item.id} className={`border rounded-lg p-3 transition-colors flex justify-between gap-4 ${isEditing ? 'border-purple-300 bg-purple-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                                                 <div className="flex-1">
+                                                     <div className="flex items-center gap-2 mb-1">
+                                                        <span className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded font-bold">
+                                                            {serviceName}
+                                                        </span>
+                                                     </div>
+                                                     <p className="text-sm text-gray-700 whitespace-pre-wrap">{item.content}</p>
+                                                 </div>
+                                                 <div className="flex flex-col gap-2">
+                                                     <button 
+                                                        onClick={() => handleEditNotice(item)}
+                                                        className="text-gray-400 hover:text-purple-600 self-start"
+                                                        title="編輯"
+                                                        disabled={!!editingNoticeId && !isEditing}
+                                                     >
+                                                         <PencilSquareIcon className="w-5 h-5" />
+                                                     </button>
+                                                     <button 
+                                                        onClick={() => handleDeleteNotice(item.id)}
+                                                        className="text-gray-400 hover:text-red-600 self-start"
+                                                        title="刪除"
+                                                        disabled={!!editingNoticeId} // Disable delete while editing
+                                                     >
+                                                          ✕
+                                                     </button>
+                                                 </div>
+                                             </div>
+                                         );
+                                     })
+                                 )}
+                             </div>
                          </div>
                      )}
 

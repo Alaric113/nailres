@@ -19,9 +19,17 @@ export interface SeasonPassFlexSettings {
   footerText: string;
 }
 
+export interface ServiceNotice {
+  id: string; // Unique ID (e.g. timestamp or random)
+  serviceIds: string[]; // Services this notice applies to
+  content: string; // The notice content
+  active: boolean; // Toggle on/off
+}
+
 export interface GlobalSettings {
   bookingDeadline: Date | null;
   bookingNotice?: string;
+  serviceNotices?: ServiceNotice[]; // New field
   bankInfo?: {
     bankCode: string;
     bankName: string;
@@ -53,6 +61,7 @@ export const useGlobalSettings = () => {
   const [settings, setSettings] = useState<GlobalSettings>({
     bookingDeadline: null,
     bookingNotice: '',
+    serviceNotices: [], // Initialize
     bankInfo: { bankCode: '', bankName: '', accountNumber: '', accountName: '', note: '' },
     seasonPassPromo: defaultPromo,
     seasonPassFlexMessage: defaultFlexSettings
@@ -70,6 +79,7 @@ export const useGlobalSettings = () => {
           setSettings({
             bookingDeadline: data.bookingDeadline ? data.bookingDeadline.toDate() : null,
             bookingNotice: data.bookingNotice || '',
+            serviceNotices: data.serviceNotices || [], // Load from DB
             bankInfo: data.bankInfo || { bankCode: '', bankName: '', accountNumber: '', accountName: '', note: '' },
             seasonPassPromo: data.seasonPassPromo || defaultPromo,
             seasonPassFlexMessage: data.seasonPassFlexMessage || defaultFlexSettings,
