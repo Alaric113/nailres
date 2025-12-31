@@ -149,5 +149,23 @@ export const updateBookingStatus = async (bookingId: string, newStatus: BookingS
         }
     }
 
+    // Handle Automatic Role Upgrade (General -> Platinum)
+    if (newStatus === 'completed' && bookingData.userId) {
+        try {
+            const userRef = doc(db, 'users', bookingData.userId);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                if (userData.role === 'user') {
+                    await updateDoc(userRef, { role: 'platinum' });
+                    console.log(`[Role Upgrade] User ${bookingData.userId} upgraded to platinum.`);
+                }
+            }
+        } catch (err) {
+            console.error("Error processing role upgrade:", err);
+        }
+    }
+
     await updateDoc(bookingRef, updates);
 };

@@ -1,8 +1,12 @@
 import type { Handler } from "@netlify/functions";
 import * as admin from "firebase-admin";
 
-// Use a singleton pattern to prevent multiple initializations in the same container
-if (!admin.apps.length) {
+// Helper to safely initialize Firebase Admin
+function initializeFirebase() {
+    if (admin.apps.length > 0) {
+        return true; // Already initialized
+    }
+
     let serviceAccount: any = null;
 
     try {
@@ -10,35 +14,55 @@ if (!admin.apps.length) {
         let serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
 
         if (serviceAccountJson) {
-            // Check if base64 encoded (starts with 'e' commonly for {"type"...) or doesn't start with '{'
             if (!serviceAccountJson.trim().startsWith('{')) {
                 try {
                     serviceAccountJson = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
                 } catch (e) {
-                    console.warn("Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
+                    console.warn("[notify-booking] Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting raw value.");
                 }
             }
-            serviceAccount = JSON.parse(serviceAccountJson);
+            try {
+                serviceAccount = JSON.parse(serviceAccountJson);
+            } catch (e) {
+                console.error("[notify-booking] Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:", e);
+            }
         }
-        // Option 2: Individual variables
-        else if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+
+        // Option 2: Individual variables (Fallback)
+        if (!serviceAccount && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+            let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+            // Handle potential wrapping quotes
+            if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+                privateKey = privateKey.slice(1, -1);
+            }
+            if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
+                privateKey = privateKey.slice(1, -1);
+            }
+
+            // Replace escaped newlines (handle both \\n and \n)
+            privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
+
             serviceAccount = {
                 projectId: process.env.VITE_FIREBASE_PROJECT_ID,
                 clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                // Replace literal \n with actual newlines if they are escaped
-                privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+                privateKey: privateKey
             };
         }
 
-        if (serviceAccount && (serviceAccount.project_id || serviceAccount.projectId)) {
+        if (serviceAccount) {
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount),
             });
+            console.log("[notify-booking] Firebase Admin initialized successfully.");
+            return true;
         } else {
-            console.warn("Missing valid Firebase Service Account credentials (FIREBASE_SERVICE_ACCOUNT or FIREBASE_PRIVATE_KEY+FIREBASE_CLIENT_EMAIL).");
+            console.error("[notify-booking] No valid credentials found for Firebase Admin.");
+            return false;
         }
-    } catch (error) {
-        console.error("Error initializing Firebase Admin:", error);
+    } catch (e: any) {
+        console.error(`[notify-booking] Error init firebase admin: ${e.message}`, e);
+        return false;
     }
 }
 
@@ -58,7 +82,7 @@ const handler: Handler = async (event, context) => {
     }
 
     // Ensure Firebase Admin is initialized
-    if (!admin.apps.length) {
+    if (!initializeFirebase()) {
         return { statusCode: 500, body: "Firebase Admin not initialized" };
     }
 

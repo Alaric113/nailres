@@ -347,7 +347,11 @@ const BookingPage = () => {
       setCurrentStep(1);
       setIsCalendarExpanded(true);
       
-      navigate('/dashboard'); 
+      if (initialStatus === 'pending_payment') {
+          navigate(`/booking/pay/${newBookingRef.id}`);
+      } else {
+          navigate('/dashboard');
+      } 
 
     } catch (err) {
       console.error('Booking failed:', err);

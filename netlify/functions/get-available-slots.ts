@@ -7,43 +7,70 @@ import { format, parseISO, addMinutes, isAfter, isBefore, startOfDay, endOfDay }
 const SLOT_INTERVAL = 30; // 30 minutes
 const BUFFER_TIME = 15;   // 15 minutes
 
-const initFirebase = () => {
-    if (!admin.apps.length) {
-        try {
-            const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
-            const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-            const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-            const projectId = process.env.VITE_FIREBASE_PROJECT_ID;
+// Helper to safely initialize Firebase Admin
+function initializeFirebase() {
+    if (admin.apps.length > 0) {
+        return true; // Already initialized
+    }
 
-            let credential;
+    let serviceAccount: any = null;
 
-            if (serviceAccountEnv) {
-                let jsonStr = serviceAccountEnv;
-                if (!jsonStr.trim().startsWith('{')) {
-                    try {
-                        jsonStr = Buffer.from(jsonStr, 'base64').toString('utf-8');
-                    } catch (e) {
-                        console.warn("[get-available-slots] Failed to decode base64, using raw.");
-                    }
+    try {
+        // Option 1: Full JSON in FIREBASE_SERVICE_ACCOUNT
+        let serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+        if (serviceAccountJson) {
+            if (!serviceAccountJson.trim().startsWith('{')) {
+                try {
+                    serviceAccountJson = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
+                } catch (e) {
+                    console.warn("[get-available-slots] Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting raw value.");
                 }
-                credential = admin.credential.cert(JSON.parse(jsonStr));
-            } else if (privateKey && clientEmail) {
-                credential = admin.credential.cert({
-                    projectId,
-                    clientEmail,
-                    privateKey: privateKey.replace(/\\n/g, '\n')
-                });
-            } else {
-                throw new Error("Missing Firebase credentials.");
+            }
+            try {
+                serviceAccount = JSON.parse(serviceAccountJson);
+            } catch (e) {
+                console.error("[get-available-slots] Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:", e);
+            }
+        }
+
+        // Option 2: Individual variables (Fallback)
+        if (!serviceAccount && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+            let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+            // Handle potential wrapping quotes
+            if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+                privateKey = privateKey.slice(1, -1);
+            }
+            if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
+                privateKey = privateKey.slice(1, -1);
             }
 
-            admin.initializeApp({ credential });
-        } catch (error: any) {
-            console.error("[get-available-slots] Init failed:", error);
-            throw error;
+            // Replace escaped newlines (handle both \\n and \n)
+            privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
+
+            serviceAccount = {
+                projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                privateKey: privateKey
+            };
         }
+
+        if (serviceAccount) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+            });
+            console.log("[get-available-slots] Firebase Admin initialized successfully.");
+            return true;
+        } else {
+            console.error("[get-available-slots] No valid credentials found for Firebase Admin.");
+            return false;
+        }
+    } catch (e: any) {
+        console.error(`[get-available-slots] Error init firebase admin: ${e.message}`, e);
+        return false;
     }
-};
+}
 
 const handler: Handler = async (event: HandlerEvent) => {
     if (event.httpMethod !== 'GET') {
@@ -51,7 +78,9 @@ const handler: Handler = async (event: HandlerEvent) => {
     }
 
     try {
-        initFirebase();
+        if (!initializeFirebase()) {
+            return { statusCode: 500, body: JSON.stringify({ message: "Firebase init failed" }) };
+        }
         const db = getFirestore();
 
         const { designerId, date, duration } = event.queryStringParameters || {};

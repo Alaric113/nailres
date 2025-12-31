@@ -161,16 +161,31 @@ const statusStyles: Record<string, {
 const createBookingConfirmationFlex = (customerName: string, serviceNames: string[], formattedDateTime: string, amount: number, status: string, bookingId: string) => {
   const style = statusStyles[status] || statusStyles.default;
 
+  let actionData: any = {
+    label: '查看詳細資訊',
+    uri: 'https://liff.line.me/' + process.env.VITE_LIFF_ID
+  };
+
+  if (status === 'pending_payment') {
+    actionData = {
+      label: '前往付款', // Go to Payment
+      uri: 'https://liff.line.me/' + process.env.VITE_LIFF_ID + '/booking/pay/' + bookingId
+    };
+  } else if (bookingId) {
+    // Optional: Deep link to specific booking details if you have a detail page
+    // actionData.uri = ...
+  }
+
   const footerContents: any[] = [
     {
       type: 'button',
       action: {
         type: 'uri',
-        label: '查看詳細資訊',
-        uri: 'https://liff.line.me/' + process.env.VITE_LIFF_ID
+        label: actionData.label,
+        uri: actionData.uri
       },
-      style: status === 'completed' ? 'secondary' : 'primary', // De-emphasize details if completed? Or keep same?
-      color: '#9F9586',
+      style: 'primary',
+      color: status === 'pending_payment' ? '#B45309' : '#9F9586', // Amber for payment, Brand color for others
       height: 'sm'
     }
   ];

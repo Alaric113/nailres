@@ -11,6 +11,7 @@ import LiffEntry from './pages/liff/LiffEntry';
 
 // Page Components
 import BookingPage from './pages/BookingPage';
+import BookingPaymentPage from './pages/booking/BookingPaymentPage'; // New Import
 import StoreInfoPage from './pages/StoreInfoPage';
 import UserMemberPage from './pages/UserMemberPage';
 import MemberHistoryPage from './pages/member/MemberHistoryPage';
@@ -93,6 +94,7 @@ const routes = [
             children: [
               { path: 'dashboard', element: <Home /> },
               { path: 'booking', element: <BookingPage /> },
+              { path: 'booking/pay/:bookingId', element: <BookingPaymentPage /> }, // New Route
               { path: 'store', element: <StoreInfoPage /> }, // Added Store Route
               { 
                 path: 'member', 
