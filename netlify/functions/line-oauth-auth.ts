@@ -3,12 +3,18 @@ import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import axios from 'axios';
 
-const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
-const LINE_CHANNEL_ID = process.env.VITE_LINE_CHANNEL_ID; // Your LINE Login Channel ID
-const LINE_CHANNEL_SECRET = process.env.VITE_LINE_CHANNEL_SECRET; // Your LINE Login Channel Secret
+const LINE_CHANNEL_ID = process.env.VITE_LINE_CHANNEL_ID;
+const LINE_CHANNEL_SECRET = process.env.VITE_LINE_CHANNEL_SECRET;
 
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
+console.log(`[line-oauth-auth] Channel ID: ${LINE_CHANNEL_ID ? LINE_CHANNEL_ID.substring(0, 3) + '...' : 'undefined'}`);
+console.log(`[line-oauth-auth] Channel Secret Length: ${LINE_CHANNEL_SECRET ? LINE_CHANNEL_SECRET.length : 0}`);
+
+// Helper to safely initialize Firebase Admin
+function initializeFirebase() {
+  if (admin.apps.length > 0) {
+    return true; // Already initialized
+  }
+
   let serviceAccount: any = null;
 
   try {
@@ -16,22 +22,39 @@ if (!admin.apps.length) {
     let serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
 
     if (serviceAccountJson) {
-      // Check if base64 encoded
       if (!serviceAccountJson.trim().startsWith('{')) {
         try {
           serviceAccountJson = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
         } catch (e) {
-          console.warn("Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
+          console.warn("[line-oauth-auth] Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting raw value.");
         }
       }
-      serviceAccount = JSON.parse(serviceAccountJson);
+      try {
+        serviceAccount = JSON.parse(serviceAccountJson);
+      } catch (e) {
+        console.error("[line-oauth-auth] Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:", e);
+      }
     }
-    // Option 2: Individual variables
-    else if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+
+    // Option 2: Individual variables (Fallback)
+    if (!serviceAccount && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+      let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+      // Handle potential wrapping quotes
+      if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+        privateKey = privateKey.slice(1, -1);
+      }
+      if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
+        privateKey = privateKey.slice(1, -1);
+      }
+
+      // Replace escaped newlines (handle both \\n and \n)
+      privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
+
       serviceAccount = {
         projectId: process.env.VITE_FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+        privateKey: privateKey
       };
     }
 
@@ -39,21 +62,30 @@ if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
+      console.log("[line-oauth-auth] Firebase Admin initialized successfully.");
+      return true;
     } else {
-      console.error("Firebase service account is not configured. Check FIREBASE_SERVICE_ACCOUNT or FIREBASE_PRIVATE_KEY/FIREBASE_CLIENT_EMAIL environment variables.");
-      // Force throw to ensure the function fails if DB access is critical
-      throw new Error("Firebase configuration missing");
+      console.error("[line-oauth-auth] No valid credentials found for Firebase Admin.");
+      return false;
     }
-  } catch (e) {
-    console.error("Error init firebase admin:", e);
-    // Throwing error here to ensuring the lambda fails fast if initialization fails
-    throw new Error("Failed to initialize Firebase Admin");
+  } catch (e: any) {
+    console.error(`[line-oauth-auth] Error init firebase admin: ${e.message}`, e);
+    return false;
   }
 }
-const auth = admin.auth();
-const db = getFirestore();
 
 const handler: Handler = async (event: HandlerEvent) => {
+  // Initialize Firebase First
+  if (!initializeFirebase()) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: 'Internal Server Error: Firebase Initialization Failed' })
+    };
+  }
+
+  const auth = admin.auth();
+  const db = getFirestore();
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -74,6 +106,11 @@ const handler: Handler = async (event: HandlerEvent) => {
     console.error('LINE_CHANNEL_ID or LINE_CHANNEL_SECRET is not set in environment variables.');
     return { statusCode: 500, body: JSON.stringify({ message: 'Server configuration error: LINE Channel credentials missing.' }) };
   }
+
+  console.log(`[line-oauth-auth] Channel ID: ${LINE_CHANNEL_ID.substring(0, 5)}...`);
+  console.log(`[line-oauth-auth] Channel Secret Length: ${LINE_CHANNEL_SECRET.length}`);
+  console.log(`[line-oauth-auth] Redirect URI: ${redirectUri}`);
+  console.log(`[line-oauth-auth] Code Length: ${code?.length}`);
 
   try {
     // 1. Exchange authorization code for tokens
@@ -197,6 +234,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     } else {
       // --- EXISTING USER FLOW ---
       await userRef.set({
+        lineUserId: lineUserId, // Ensure this is always backfilled/updated
         profile: profileData,
         updatedAt: timestamp,
       }, { merge: true });

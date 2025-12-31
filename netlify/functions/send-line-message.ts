@@ -5,31 +5,60 @@ import type { UserDocument } from '../../src/types/user';
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
 
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
+// Initialize Firebase Admin SDK
+const initializeFirebase = () => {
+  if (admin.apps.length > 0) {
+    console.log('[send-line-message] Firebase already initialized.');
+    return true;
+  }
+
+  console.log('[send-line-message] Initializing Firebase Admin...');
   let serviceAccount: any = null;
 
   try {
     // Option 1: Full JSON in FIREBASE_SERVICE_ACCOUNT
-    let serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
 
     if (serviceAccountJson) {
-      // Check if base64 encoded
-      if (!serviceAccountJson.trim().startsWith('{')) {
-        try {
-          serviceAccountJson = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
-        } catch (e) {
-          console.warn("Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
+      console.log('[send-line-message] Found FIREBASE_SERVICE_ACCOUNT');
+      try {
+        let jsonStr = serviceAccountJson;
+        // Check if base64 encoded
+        if (!jsonStr.trim().startsWith('{')) {
+          try {
+            jsonStr = Buffer.from(jsonStr, 'base64').toString('utf-8');
+          } catch (e) {
+            console.warn("[send-line-message] Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
+          }
         }
+        serviceAccount = JSON.parse(jsonStr);
+        console.log('[send-line-message] Successfully parsed FIREBASE_SERVICE_ACCOUNT JSON');
+      } catch (e) {
+        console.error('[send-line-message] Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:', e);
+        serviceAccount = null;
       }
-      serviceAccount = JSON.parse(serviceAccountJson);
     }
-    // Option 2: Individual variables
-    else if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+
+    // Option 2: Individual variables (Fallback or Primary if Option 1 missing)
+    if (!serviceAccount && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+      console.log('[send-line-message] Using FIREBASE_PRIVATE_KEY and FIREBASE_CLIENT_EMAIL');
+      let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+      // Fix potential formatting issues with env vars
+      if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+        privateKey = privateKey.slice(1, -1);
+      }
+      if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
+        privateKey = privateKey.slice(1, -1);
+      }
+
+      // Replace escaped newlines (handle both \\n and \n)
+      privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
+
       serviceAccount = {
         projectId: process.env.VITE_FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+        privateKey: privateKey
       };
     }
 
@@ -37,17 +66,17 @@ if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
+      console.log('[send-line-message] Firebase initialized successfully.');
+      return true;
     } else {
-      console.warn("Firebase credentials missing. LINE notifications may fail if they depend on Firestore.");
-      // Don't throw here to allow function to proceed if DB isn't strictly needed for all paths?
-      // Actually, this function DOES use firestore, so it will fail later.
+      console.warn("[send-line-message] Firebase credentials missing. LINE notifications may fail if they depend on Firestore.");
+      return false;
     }
   } catch (e) {
-    console.error("Error init firebase admin:", e);
+    console.error("[send-line-message] Error init firebase admin:", e);
+    return false;
   }
-}
-
-const db = admin.firestore();
+};
 
 /**
  * Sends a message to a specified LINE user.
@@ -416,13 +445,16 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     console.log(`[send-line-message] Request: type=${type}, userId=${userId}`);
 
     // Check Firebase Admin Init
-    if (admin.apps.length === 0) {
-      throw new Error("Firebase Admin not initialized. Check FIREBASE_SERVICE_ACCOUNT or credential config.");
+    if (!initializeFirebase()) {
+      throw new Error("Firebase Admin failed to initialize.");
     }
+
+    const db = admin.firestore();
 
     // 1. Get all Admins who want to receive notifications
     const adminsQuery = db.collection('users').where('receivesAdminNotifications', '==', true);
     const adminSnapshot = await adminsQuery.get();
+
     const adminLineUserIds = adminSnapshot.docs
       .map(doc => (doc.data() as UserDocument).lineUserId)
       .filter((id): id is string => !!id);
@@ -453,12 +485,23 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
       // Fetch Settings
       const settingsDoc = await db.collection('globals').doc('settings').get();
+
+      console.log(`[send-line-message] Reading globals/settings (Exists: ${settingsDoc.exists})`);
+      if (settingsDoc.exists) {
+        console.log(`[send-line-message] Data keys: ${Object.keys(settingsDoc.data() || {}).join(', ')}`);
+        console.log(`[send-line-message] Data content: ${JSON.stringify(settingsDoc.data(), null, 2)}`);
+      } else {
+        console.error("[send-line-message] globals/settings document does NOT exist!");
+      }
+
       const settings = settingsDoc.data();
       const flexSettings = settings?.seasonPassFlexMessage;
       const bankInfo = settings?.bankInfo;
 
+      console.log(`[send-line-message] Project ID: ${process.env.VITE_FIREBASE_PROJECT_ID}`);
+
       if (!flexSettings?.enabled) {
-        console.log("[send-line-message] Season Pass notifications disabled.");
+        console.log("[send-line-message] Season Pass notifications disabled (or settings missing).");
         return { statusCode: 200, body: JSON.stringify({ message: 'Notifications disabled' }) };
       }
 

@@ -57,6 +57,7 @@ const NotificationSettings: React.FC = () => {
   
       fetchUsers();
     }, [currentUser, isAdminOrManager]);
+    console.log(notificationTargetUser);
   
     // Fetch Designers for PWA Settings (Admin Only)
     useEffect(() => {

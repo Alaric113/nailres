@@ -5,7 +5,7 @@ import { useGlobalSettings, type SeasonPassPromo, type SeasonPassFlexSettings } 
 const BookingSettings: React.FC = () => {
     const { settings, isLoading, updateGlobalSettings } = useGlobalSettings();
     const [activeTab, setActiveTab] = useState<'booking' | 'payment' | 'promo' | 'lineFlex'>('booking');
-    
+    console.log(settings)
     // Form States
     const [notice, setNotice] = useState('');
     const [bankInfo, setBankInfo] = useState({
@@ -70,6 +70,7 @@ const BookingSettings: React.FC = () => {
         } finally {
             setIsSaving(false);
         }
+        
     };
 
     if (isLoading) return <div>載入中...</div>;

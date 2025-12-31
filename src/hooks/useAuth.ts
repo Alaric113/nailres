@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, getRedirectResult, type User } from 'firebase/auth';
-import { doc, serverTimestamp, collection, query, where, limit, getDocs, writeBatch, onSnapshot, Timestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, collection, query, where, limit, getDocs, writeBatch, onSnapshot, Timestamp, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 import type { UserDocument } from '../types/user';
@@ -109,7 +109,21 @@ export const useAuth = () => {
 
             unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
               if (docSnap.exists()) {
-                setAuthState(firebaseUser, docSnap.data() as UserDocument);
+                const userData = docSnap.data() as UserDocument;
+
+                // Check if we need to backfill lineUserId for existing users
+                const socialProviderData = firebaseUser.providerData.find(p => p.providerId.includes('line'));
+                if (socialProviderData && !userData.lineUserId) {
+                  console.log('[Auth] Backfilling lineUserId for existing user...');
+                  updateDoc(userDocRef, {
+                    lineUserId: socialProviderData.uid
+                  }).catch(e => console.error('Error backfilling lineUserId:', e));
+
+                  // Optimistically update local state
+                  userData.lineUserId = socialProviderData.uid;
+                }
+
+                setAuthState(firebaseUser, userData);
               } else {
                 // Start creation process if doc doesn't exist
                 // We only want to trigger this once. The onSnapshot might fire again after creation.
