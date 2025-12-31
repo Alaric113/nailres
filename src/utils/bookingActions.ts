@@ -24,8 +24,7 @@ export const updateBookingStatus = async (bookingId: string, newStatus: BookingS
     const bookingData = bookingSnap.data();
     const updates: any = { status: newStatus };
 
-    // DEBUG LOG
-    console.log(`[updateBookingStatus] ID: ${bookingId}, New: ${newStatus}, Curr: ${bookingData.status}, Deducted: ${bookingData.passUsageDeducted}, HasUsage: ${!!bookingData.passUsage}`);
+
 
     // Handle Season Pass Deduction
     // Condition: New status is 'confirmed' AND plain pass usage exists AND hasn't been deducted yet
@@ -33,8 +32,6 @@ export const updateBookingStatus = async (bookingId: string, newStatus: BookingS
         bookingData.passUsage &&
         bookingData.userId &&
         !bookingData.passUsageDeducted) {
-
-        console.log("Attempting deduction...");
 
         try {
             const userRef = doc(db, 'users', bookingData.userId);
@@ -81,7 +78,6 @@ export const updateBookingStatus = async (bookingId: string, newStatus: BookingS
                     await updateDoc(userRef, { activePasses: updatedPasses });
                     // Mark as deducted to prevent double deduction
                     updates.passUsageDeducted = true;
-                    console.log("Deduction successful.");
                 }
             }
         } catch (err) {
@@ -99,18 +95,6 @@ export const updateBookingStatus = async (bookingId: string, newStatus: BookingS
         (bookingData.passUsageDeducted === true || bookingData.status === 'confirmed');
 
     if (shouldRefund) {
-        // ... existing refund logic
-    } else if (newStatus === 'cancelled') {
-        console.log("Refund skipped. Condition failed:", {
-            hasUsage: !!bookingData.passUsage,
-            hasUserId: !!bookingData.userId,
-            isDeducted: bookingData.passUsageDeducted === true,
-            isConfirmed: bookingData.status === 'confirmed'
-        });
-    }
-
-    if (shouldRefund) {
-        console.log(`Attempting refund for booking ${bookingId}. Reason: Cancelled and previously deducted/confirmed.`);
         try {
             const userRef = doc(db, 'users', bookingData.userId);
             const userSnap = await getDoc(userRef);
@@ -158,9 +142,6 @@ export const updateBookingStatus = async (bookingId: string, newStatus: BookingS
                 if (refundHappened) {
                     await updateDoc(userRef, { activePasses: updatedPasses });
                     updates.passUsageDeducted = false;
-                    console.log("Refund successful for booking", bookingId);
-                } else {
-                    console.log("No matching pass found to refund for booking", bookingId);
                 }
             }
         } catch (err) {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useServices } from '../../hooks/useServices';
 import { useServiceCategories } from '../../hooks/useServiceCategories';
+import { useGlobalSettings } from '../../hooks/useGlobalSettings';
 import type { Service } from '../../types/service';
 import type { ActivePass } from '../../types/user';
 import { useAuthStore } from '../../store/authStore';
@@ -9,6 +10,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import CartSidebar from './CartSidebar';
 import MobileCartBar from './MobileCartBar';
 import ServiceOptionsSheet from './ServiceOptionsSheet';
+import { SparklesIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 
 import type { PlanContentItem } from '../../types/seasonPass';
@@ -27,6 +29,8 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passContentIt
   const { services, isLoading, error } = useServices();
   const { categories } = useServiceCategories();
   const { userProfile } = useAuthStore();
+  const { settings } = useGlobalSettings();
+  const promo = settings.seasonPassPromo;
   
   const [activeCategory, setActiveCategory] = useState<string>('全部');
   const [selectedService, setSelectedService] = useState<Service | null>(null); // For Options Sheet
@@ -145,6 +149,35 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, passContentIt
 
             {/* Scrollable Service List */}
             <div className="flex-1 overflow-y-auto pb-24">
+                {/* Season Pass Promo Card - Only for non-pass users */}
+                {!hasActivePass && promo?.enabled && promo.title && (
+                    <div className="max-w-3xl mx-auto px-4 pt-4">
+                        <Link 
+                            to={promo.ctaLink || '/member/pass'}
+                            className="block bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50 rounded-2xl p-5 border border-rose-100/50 shadow-sm hover:shadow-md transition-all group"
+                        >
+                            <div className="flex items-start gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 to-orange-400 flex items-center justify-center shrink-0">
+                                    <SparklesIcon className="w-6 h-6 text-white" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1">
+                                        {promo.title}
+                                    </h3>
+                                    {promo.description && (
+                                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                                            {promo.description}
+                                        </p>
+                                    )}
+                                    <span className="inline-flex items-center gap-1 text-sm font-semibold text-rose-600 group-hover:gap-2 transition-all">
+                                        {promo.ctaText || '了解更多'}
+                                        <ArrowRightIcon className="w-4 h-4" />
+                                    </span>
+                                </div>
+                            </div>
+                        </Link>
+                    </div>
+                )}
                 <div className="max-w-3xl mx-auto p-4 space-y-8">
                     {categoriesToShow.map(category => {
                         // Determine which services to show for this category

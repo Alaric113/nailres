@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
+export interface SeasonPassPromo {
+  enabled: boolean;
+  title: string;
+  description: string;
+  ctaText: string;
+  ctaLink: string;
+  imageUrl?: string;
+}
+
 export interface GlobalSettings {
   bookingDeadline: Date | null;
   bookingNotice?: string;
@@ -11,13 +20,23 @@ export interface GlobalSettings {
     accountNumber: string;
     accountName: string;
   };
+  seasonPassPromo?: SeasonPassPromo;
 }
+
+const defaultPromo: SeasonPassPromo = {
+  enabled: false,
+  title: '',
+  description: '',
+  ctaText: '了解更多',
+  ctaLink: '/member/pass',
+};
 
 export const useGlobalSettings = () => {
   const [settings, setSettings] = useState<GlobalSettings>({
     bookingDeadline: null,
     bookingNotice: '',
-    bankInfo: { bankCode: '', bankName: '', accountNumber: '', accountName: '' }
+    bankInfo: { bankCode: '', bankName: '', accountNumber: '', accountName: '' },
+    seasonPassPromo: defaultPromo
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +52,7 @@ export const useGlobalSettings = () => {
             bookingDeadline: data.bookingDeadline ? data.bookingDeadline.toDate() : null,
             bookingNotice: data.bookingNotice || '',
             bankInfo: data.bankInfo || { bankCode: '', bankName: '', accountNumber: '', accountName: '' },
+            seasonPassPromo: data.seasonPassPromo || defaultPromo,
           });
         }
       } catch (err) {

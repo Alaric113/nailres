@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { SeasonPass, SeasonPassVariant, PlanContentItem } from '../../types/seasonPass';
 import { useServices } from '../../hooks/useServices';
-import { PlusIcon, TrashIcon, PhotoIcon, BoltIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, PhotoIcon, BoltIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; 
 import { db } from '../../lib/firebase';
@@ -39,6 +39,9 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
     // Dynamic Lists
     const [variants, setVariants] = useState<SeasonPassVariant[]>(plan?.variants || [{ name: '一般', price: 0 }]);
     const [contentItems, setContentItems] = useState<PlanContentItem[]>(plan?.contentItems || []);
+    
+    // Collapsible State for Content Items (set of expanded item IDs)
+    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     
     // Handlers for Variants
     const addVariant = () => {
@@ -321,63 +324,76 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                             {/* Variants List */}
                             <div className="space-y-3">
                                 {variants.length === 0 && (
-                                    <div className="text-center py-8 text-gray-400 text-sm">
+                                    <div className="text-center py-8 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
                                         尚未新增任何價格方案
                                     </div>
                                 )}
                                 {variants.map((v, idx) => (
                                     <div 
                                         key={idx} 
-                                        className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-2"
+                                        className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4"
                                     >
-                                        {/* Variant Name */}
-                                        <div className="flex flex-row items-end gap-1">
-                                            <label className="block text-xs text-gray-500 mb-1  text-nowrap">方案名稱</label>
-                                            <input 
-                                                type="text" 
-                                                placeholder="方案名稱 (例如：120本、基礎款)"
-                                                value={v.name}
-                                                onChange={(e) => updateVariant(idx, 'name', e.target.value)}
-                                                className="w-full border-b border-gray-300 text-sm  px-3 font-medium"
-                                            />
-                                        </div>
-
-                                        {/* Price Row */}
-                                        <div className="flex flex-wrap gap-3 items-end">
-                                            <div className="flex-1 min-w-[120px] flex flex-row items-center">
-                                                <label className="block text-xs text-gray-500 mb-1 text-nowrap">售價</label>
-                                                <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                                                    <input 
-                                                        type="number" 
-                                                        placeholder="0"
-                                                        value={v.price}
-                                                        onChange={(e) => updateVariant(idx, 'price', Number(e.target.value))}
-                                                        className="w-full border-b border-gray-300 text-sm  pl-7 pr-3"
-                                                    />
-                                                </div>
+                                        {/* Header Row with Index & Delete */}
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                                                    {idx + 1}
+                                                </span>
+                                                <span className="text-sm font-medium text-gray-700">
+                                                    {v.name || '未命名方案'}
+                                                </span>
                                             </div>
-                                            <div className="flex-1 min-w-[120px] flex flex-row items-center">
-                                                <label className="block text-xs text-gray-500 mb-1 text-nowrap">原價 (選填)</label>
-                                                <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                                                    <input 
-                                                        type="number" 
-                                                        placeholder="0"
-                                                        value={v.originalPrice || ''}
-                                                        onChange={(e) => updateVariant(idx, 'originalPrice', Number(e.target.value))}
-                                                        className="w-full border-b border-gray-300 text-sm px-3"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 min-w-[120px] flex flex-row justify-end items-center">
                                             <button 
                                                 type="button" 
                                                 onClick={() => removeVariant(idx)} 
-                                                className="p-2 relative text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors self-end"
+                                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                             >
-                                                <TrashIcon className="w-5 h-5" />
+                                                <TrashIcon className="w-4 h-4" />
                                             </button>
+                                        </div>
+
+                                        {/* Form Fields */}
+                                        <div className="space-y-3">
+                                            {/* Variant Name */}
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">方案名稱</label>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="例如：120本、基礎款"
+                                                    value={v.name}
+                                                    onChange={(e) => updateVariant(idx, 'name', e.target.value)}
+                                                    className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3 focus:ring-primary focus:border-primary"
+                                                />
+                                            </div>
+
+                                            {/* Price Row */}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-500 mb-1">售價</label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                                                        <input 
+                                                            type="number" 
+                                                            placeholder="0"
+                                                            value={v.price}
+                                                            onChange={(e) => updateVariant(idx, 'price', Number(e.target.value))}
+                                                            className="w-full rounded-lg border-gray-300 text-sm py-2.5 pl-7 pr-3 focus:ring-primary focus:border-primary"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-500 mb-1">原價 (選填)</label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                                                        <input 
+                                                            type="number" 
+                                                            placeholder="0"
+                                                            value={v.originalPrice || ''}
+                                                            onChange={(e) => updateVariant(idx, 'originalPrice', Number(e.target.value))}
+                                                            className="w-full rounded-lg border-gray-300 text-sm py-2.5 pl-7 pr-3 focus:ring-primary focus:border-primary"
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -397,7 +413,14 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                                 </div>
                                 <button 
                                     type="button" 
-                                    onClick={addContentItem} 
+                                    onClick={() => {
+                                        addContentItem();
+                                        // Auto-expand newly added item
+                                        setTimeout(() => {
+                                            const newId = contentItems[contentItems.length]?.id;
+                                            if (newId) setExpandedItems(prev => new Set([...prev, newId]));
+                                        }, 0);
+                                    }} 
                                     className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-medium text-sm rounded-lg transition-colors"
                                 >
                                     <PlusIcon className="w-4 h-4" />
@@ -405,154 +428,228 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                                 </button>
                             </div>
 
-                            {/* Content Items List */}
-                            <div className="space-y-3">
+                            {/* Content Items List - Accordion Style */}
+                            <div className="space-y-2">
                                 {contentItems.length === 0 && (
                                     <div className="text-center py-8 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
                                         尚未新增任何內容項目
                                     </div>
                                 )}
-                                {contentItems.map((item, idx) => (
-                                    <div key={item.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
-                                        {/* Top Row: Tags + Delete */}
-                                        <div className="flex flex-wrap gap-2 items-center">
-                                            <select 
-                                                value={item.category}
-                                                onChange={(e) => updateContentItem(idx, 'category', e.target.value as '服務' | '權益')}
-                                                className="text-xs border-none bg-indigo-50 text-indigo-700 font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-200"
-                                            >
-                                                <option value="服務">🎫 服務</option>
-                                                <option value="權益">⭐ 權益</option>
-                                            </select>
-                                            <select 
-                                                value={item.benefitType || 'standalone'}
-                                                onChange={(e) => updateContentItem(idx, 'benefitType', e.target.value)}
-                                                className="text-xs border-none bg-amber-50 text-amber-700 font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-amber-200"
-                                            >
-                                                <option value="standalone">獨立使用</option>
-                                                <option value="upgrade">附加升級</option>
-                                                <option value="discount">折扣券</option>
-                                            </select>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => removeContentItem(idx)} 
-                                                className="ml-auto p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            >
-                                                <TrashIcon className="w-4 h-4" />
-                                            </button>
-                                        </div>
+                                {contentItems.map((item, idx) => {
+                                    const isExpanded = expandedItems.has(item.id);
+                                    const displayName = item.name || '未命名項目';
+                                    
+                                    const toggleExpand = () => {
+                                        setExpandedItems(prev => {
+                                            const newSet = new Set(prev);
+                                            if (newSet.has(item.id)) {
+                                                newSet.delete(item.id);
+                                            } else {
+                                                newSet.add(item.id);
+                                            }
+                                            return newSet;
+                                        });
+                                    };
 
-                                        {/* Service Selection */}
-                                        <div className="space-y-2">
-                                            {item.benefitType === 'standalone' && (
-                                                <div className="space-y-2">
-                                                    <select
-                                                        value={item.serviceId || ''}
-                                                        onChange={(e) => updateContentItem(idx, 'serviceId', e.target.value || undefined)}
-                                                        className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3"
-                                                    >
-                                                        <option value="">選擇服務...</option>
-                                                        {services.map(s => (
-                                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                                        ))}
-                                                    </select>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setShowQuickAdd(true);
-                                                            setPendingQuickAddIndex(idx);
-                                                        }}
-                                                        className="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1"
-                                                    >
-                                                        <BoltIcon className="w-3 h-3" /> 快速建立隱藏服務
-                                                    </button>
+                                    return (
+                                        <div 
+                                            key={item.id} 
+                                            className={`rounded-xl border overflow-hidden transition-all ${
+                                                isExpanded 
+                                                    ? 'bg-white border-primary/30 shadow-sm' 
+                                                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                            }`}
+                                        >
+                                            {/* Accordion Header */}
+                                            <div 
+                                                onClick={toggleExpand}
+                                                className="flex items-center justify-between p-3 cursor-pointer"
+                                            >
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                                                        isExpanded ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'
+                                                    }`}>
+                                                        {idx + 1}
+                                                    </span>
+                                                    <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
+                                                        item.category === '權益' 
+                                                            ? 'bg-purple-100 text-purple-700' 
+                                                            : 'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                        {item.category === '權益' ? '⭐' : '🎫'}
+                                                    </span>
+                                                    <span className={`font-medium truncate ${isExpanded ? 'text-gray-900' : 'text-gray-600'}`}>
+                                                        {displayName}
+                                                    </span>
                                                 </div>
-                                            )}
-
-                                            {item.benefitType === 'upgrade' && (
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                    <select
-                                                        value={item.appliesTo || ''}
-                                                        onChange={(e) => {
-                                                            updateContentItem(idx, 'appliesTo', e.target.value || undefined);
-                                                            updateContentItem(idx, 'upgradeOptionId', undefined);
-                                                        }}
-                                                        className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3"
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={(e) => { e.stopPropagation(); removeContentItem(idx); }} 
+                                                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                     >
-                                                        <option value="">選擇服務...</option>
-                                                        {services.filter(s => s.options && s.options.length > 0).map(s => (
-                                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                                        ))}
-                                                    </select>
-                                                    {item.appliesTo && (() => {
-                                                        const selectedService = services.find(s => s.id === item.appliesTo);
-                                                        const allOptions = selectedService?.options?.flatMap(opt => 
-                                                            opt.items.map(optItem => ({ ...optItem, optionGroupName: opt.name }))
-                                                        ) || [];
-                                                        return (
-                                                            <select
-                                                                value={item.upgradeOptionId || ''}
-                                                                onChange={(e) => updateContentItem(idx, 'upgradeOptionId', e.target.value || undefined)}
-                                                                className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3"
+                                                        <TrashIcon className="w-4 h-4" />
+                                                    </button>
+                                                    {isExpanded ? (
+                                                        <ChevronUpIcon className="w-5 h-5 text-gray-400" />
+                                                    ) : (
+                                                        <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Accordion Content (Expanded) */}
+                                            {isExpanded && (
+                                                <div className="px-4 pb-4 pt-2 border-t border-gray-100 space-y-4">
+                                                    {/* Display Name Input - First */}
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-500 mb-1">顯示名稱</label>
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder="例: 3次完整睫毛嫁接"
+                                                            value={item.name}
+                                                            onChange={(e) => updateContentItem(idx, 'name', e.target.value)}
+                                                            className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3 focus:ring-primary focus:border-primary"
+                                                        />
+                                                    </div>
+
+                                                    {/* Category & Benefit Type Row */}
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-500 mb-1">類型</label>
+                                                            <select 
+                                                                value={item.category}
+                                                                onChange={(e) => updateContentItem(idx, 'category', e.target.value as '服務' | '權益')}
+                                                                className="w-full text-sm rounded-lg border-gray-300 py-2.5 px-3 focus:ring-primary focus:border-primary"
                                                             >
-                                                                <option value="">選擇附加項目...</option>
-                                                                {allOptions.map(opt => (
-                                                                    <option key={opt.id} value={opt.id}>
-                                                                        {opt.optionGroupName}: {opt.name} (+${opt.price})
-                                                                    </option>
+                                                                <option value="服務">🎫 服務</option>
+                                                                <option value="權益">⭐ 權益</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-500 mb-1">使用方式</label>
+                                                            <select 
+                                                                value={item.benefitType || 'standalone'}
+                                                                onChange={(e) => updateContentItem(idx, 'benefitType', e.target.value)}
+                                                                className="w-full text-sm rounded-lg border-gray-300 py-2.5 px-3 focus:ring-primary focus:border-primary"
+                                                            >
+                                                                <option value="standalone">獨立使用</option>
+                                                                <option value="upgrade">附加升級</option>
+                                                                <option value="discount">折扣券</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Service Selection (Conditional) */}
+                                                    {item.benefitType === 'standalone' && (
+                                                        <div className="space-y-2">
+                                                            <label className="block text-xs font-medium text-gray-500 mb-1">連結服務</label>
+                                                            <select
+                                                                value={item.serviceId || ''}
+                                                                onChange={(e) => updateContentItem(idx, 'serviceId', e.target.value || undefined)}
+                                                                className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3 focus:ring-primary focus:border-primary"
+                                                            >
+                                                                <option value="">選擇服務...</option>
+                                                                {services.map(s => (
+                                                                    <option key={s.id} value={s.id}>{s.name}</option>
                                                                 ))}
                                                             </select>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setShowQuickAdd(true);
+                                                                    setPendingQuickAddIndex(idx);
+                                                                }}
+                                                                className="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1"
+                                                            >
+                                                                <BoltIcon className="w-3 h-3" /> 快速建立隱藏服務
+                                                            </button>
+                                                        </div>
+                                                    )}
 
-                                            {item.benefitType === 'discount' && (
-                                                <div className="text-xs text-gray-400 italic py-2 px-3 bg-gray-50 rounded-lg">
-                                                    優惠券連結功能開發中...
+                                                    {item.benefitType === 'upgrade' && (
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                            <div>
+                                                                <label className="block text-xs font-medium text-gray-500 mb-1">適用服務</label>
+                                                                <select
+                                                                    value={item.appliesTo || ''}
+                                                                    onChange={(e) => {
+                                                                        updateContentItem(idx, 'appliesTo', e.target.value || undefined);
+                                                                        updateContentItem(idx, 'upgradeOptionId', undefined);
+                                                                    }}
+                                                                    className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3"
+                                                                >
+                                                                    <option value="">選擇服務...</option>
+                                                                    {services.filter(s => s.options && s.options.length > 0).map(s => (
+                                                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            {item.appliesTo && (() => {
+                                                                const selectedService = services.find(s => s.id === item.appliesTo);
+                                                                const allOptions = selectedService?.options?.flatMap(opt => 
+                                                                    opt.items.map(optItem => ({ ...optItem, optionGroupName: opt.name }))
+                                                                ) || [];
+                                                                return (
+                                                                    <div>
+                                                                        <label className="block text-xs font-medium text-gray-500 mb-1">附加選項</label>
+                                                                        <select
+                                                                            value={item.upgradeOptionId || ''}
+                                                                            onChange={(e) => updateContentItem(idx, 'upgradeOptionId', e.target.value || undefined)}
+                                                                            className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3"
+                                                                        >
+                                                                            <option value="">選擇附加項目...</option>
+                                                                            {allOptions.map(opt => (
+                                                                                <option key={opt.id} value={opt.id}>
+                                                                                    {opt.optionGroupName}: {opt.name} (+${opt.price})
+                                                                                </option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    )}
+
+                                                    {item.benefitType === 'discount' && (
+                                                        <div className="text-xs text-gray-400 italic py-2 px-3 bg-gray-50 rounded-lg">
+                                                            優惠券連結功能開發中...
+                                                        </div>
+                                                    )}
+
+                                                    {/* Quantity & Monthly Limit (For Standalone Services) */}
+                                                    {item.category === '服務' && item.benefitType === 'standalone' && (
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div>
+                                                                <label className="block text-xs font-medium text-gray-500 mb-1">總次數</label>
+                                                                <input 
+                                                                    type="number" 
+                                                                    placeholder="1"
+                                                                    value={item.quantity || 1}
+                                                                    min={1}
+                                                                    onChange={(e) => updateContentItem(idx, 'quantity', Number(e.target.value))}
+                                                                    className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3 text-center"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-xs font-medium text-gray-500 mb-1">每月限制 (選填)</label>
+                                                                <input 
+                                                                    type="number" 
+                                                                    placeholder="無限制"
+                                                                    value={item.monthlyLimit || ''}
+                                                                    min={0}
+                                                                    onChange={(e) => updateContentItem(idx, 'monthlyLimit', e.target.value ? Number(e.target.value) : undefined)}
+                                                                    className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3 text-center"
+                                                                    title="每月使用限制 (空=無限制)"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
-
-                                        {/* Name + Quantity Row */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
-                                            <input 
-                                                type="text" 
-                                                placeholder="顯示名稱 (例: 3次完整睫毛嫁接)"
-                                                value={item.name}
-                                                onChange={(e) => updateContentItem(idx, 'name', e.target.value)}
-                                                className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3"
-                                            />
-                                            {item.category === '服務' && item.benefitType === 'standalone' && (
-                                                <>
-                                                    <div className="flex items-center gap-1">
-                                                        <label className="text-xs text-gray-500 shrink-0">次數:</label>
-                                                        <input 
-                                                            type="number" 
-                                                            placeholder="1"
-                                                            value={item.quantity || 1}
-                                                            min={1}
-                                                            onChange={(e) => updateContentItem(idx, 'quantity', Number(e.target.value))}
-                                                            className="w-16 rounded-lg border-gray-300 text-sm py-2 px-2 text-center"
-                                                        />
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <label className="text-xs text-gray-500 shrink-0">月限:</label>
-                                                        <input 
-                                                            type="number" 
-                                                            placeholder="無"
-                                                            value={item.monthlyLimit || ''}
-                                                            min={0}
-                                                            onChange={(e) => updateContentItem(idx, 'monthlyLimit', e.target.value ? Number(e.target.value) : undefined)}
-                                                            className="w-16 rounded-lg border-gray-300 text-sm py-2 px-2 text-center"
-                                                            title="每月使用限制 (空=無限制)"
-                                                        />
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
