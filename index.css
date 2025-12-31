@@ -8,9 +8,19 @@
   body {
     @apply bg-secondary-light text-text-main font-sans antialiased;
   }
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-serif;
   }
+}
+
+body {
+  background: #FAF9F6;
 }
 
 /* ========================================
@@ -23,7 +33,8 @@
 .fc-toolbar-title {
   font-size: 1.125rem !important;
   font-weight: 700 !important;
-  color: #111827 !important; /* 深黑色 - 更好的可讀性 */
+  color: #111827 !important;
+  /* 深黑色 - 更好的可讀性 */
 }
 
 @media (min-width: 640px) {
@@ -38,7 +49,8 @@
 .fc-button {
   background-color: #fff !important;
   border: 1px solid #e5e7eb !important;
-  color: #111827 !important; /* 按鈕文字黑色 */
+  color: #111827 !important;
+  /* 按鈕文字黑色 */
   text-transform: none !important;
   font-weight: 500 !important;
   padding: 0.5rem 0.875rem !important;
@@ -77,35 +89,40 @@
 .fc-event-yellow {
   background-color: #fef3c7 !important;
   border-color: #f59e0b !important;
-  color: #78350f !important; /* 深棕色文字 */
+  color: #78350f !important;
+  /* 深棕色文字 */
 }
 
 /* 待確認 - 藍色 */
 .fc-event-blue {
   background-color: #dbeafe !important;
   border-color: #3b82f6 !important;
-  color: #1e3a8a !important; /* 深藍色文字 */
+  color: #1e3a8a !important;
+  /* 深藍色文字 */
 }
 
 /* 已確認 - 綠色 */
 .fc-event-green {
   background-color: #d1fae5 !important;
   border-color: #10b981 !important;
-  color: #065f46 !important; /* 深綠色文字 */
+  color: #065f46 !important;
+  /* 深綠色文字 */
 }
 
 /* 已完成 - 灰色 */
 .fc-event-gray {
   background-color: #f3f4f6 !important;
   border-color: #9ca3af !important;
-  color: #1f2937 !important; /* 深灰色文字 */
+  color: #1f2937 !important;
+  /* 深灰色文字 */
 }
 
 /* 已取消 - 紅色 */
 .fc-event-red {
   background-color: #fee2e2 !important;
   border-color: #ef4444 !important;
-  color: #991b1b !important; /* 深紅色文字 */
+  color: #991b1b !important;
+  /* 深紅色文字 */
 }
 
 /* 時間衝突警告 */
@@ -183,13 +200,15 @@
 .fc-col-header-cell {
   background-color: #f9fafb !important;
   font-weight: 600 !important;
-  color: #111827 !important; /* 黑色文字 */
+  color: #111827 !important;
+  /* 黑色文字 */
   padding: 0.875rem 0.5rem !important;
   border-bottom: 2px solid #e5e7eb !important;
 }
 
 .fc-col-header-cell-cushion {
-  color: #111827 !important; /* 確保內容也是黑色 */
+  color: #111827 !important;
+  /* 確保內容也是黑色 */
 }
 
 /* ========================================
@@ -220,7 +239,8 @@
 
 /* 日期數字 (1, 2, 3...) */
 .fc-daygrid-day-number {
-  color: #111827 !important; /* 黑色 */
+  color: #111827 !important;
+  /* 黑色 */
   font-weight: 500 !important;
   font-size: 0.875rem !important;
   padding: 0.5rem !important;
@@ -263,6 +283,7 @@
    移動端優化 (手機 < 768px)
    ======================================== */
 @media (max-width: 767px) {
+
   /* 工具列改為垂直排列 */
   .fc-toolbar {
     flex-direction: column !important;
@@ -369,6 +390,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
