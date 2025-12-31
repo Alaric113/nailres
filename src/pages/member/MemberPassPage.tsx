@@ -38,7 +38,7 @@ const MemberPassPage = () => {
                 <p className="text-xs text-gray-400">請確認網路連線或聯繫管理員 (Firebase Rules)</p>
             </div>
          ) : activePasses.length > 0 ? (
-            <div className="h-full py-2">
+            <div className="h-full overflow-hidden">
                 <MemberPassCarousel passes={activePasses} />
             </div>
          ) : (
