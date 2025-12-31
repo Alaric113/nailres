@@ -5,16 +5,25 @@ import { useNavigate } from 'react-router-dom';
 import { useSeasonPasses } from '../../hooks/useSeasonPasses';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import MemberPassCarousel from '../../components/member/MemberPassCarousel';
+import { useEffect } from 'react';
 
 const MemberPassPage = () => {
   const navigate = useNavigate();
   const { passes, loading, error } = useSeasonPasses();
 
+  // Lock body scroll for app-like experience
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   // Filter active passes only
   const activePasses = passes.filter(p => p.isActive);
 
   return (
-    <div className="h-[calc(100vh-64px)] bg-[#FAF9F6] flex flex-col">
+    <div className="h-[calc(100vh-64px)] bg-[#FAF9F6] flex flex-col overflow-y-hidden">
       {/* Header */}
       <div className="bg-white px-4 py-3 shadow-sm z-10 flex items-center gap-2 shrink-0">
         <button 

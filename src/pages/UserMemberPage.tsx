@@ -6,6 +6,7 @@ import {
   TicketIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../store/authStore';
+import { useActivePass } from '../hooks/useActivePass';
 import StackedCardDeck from '../components/dashboard/StackedCardDeck';
 import LoyaltyCard from '../components/dashboard/LoyaltyCard';
 import SeasonPassCard from '../components/dashboard/SeasonPassCard';
@@ -13,8 +14,8 @@ import { useEffect } from 'react';
 
 const UserMemberPage = () => {
   const { logout, userProfile } = useAuthStore();
+  const { activePasses } = useActivePass();
   const navigate = useNavigate();
-  const activePasses = userProfile?.activePasses || [];
 
   // Lock body scroll for app-like experience
   useEffect(() => {
@@ -53,6 +54,7 @@ const UserMemberPage = () => {
     },
   ];
 
+  
   // Prepare card list
   const cards = [
       <LoyaltyCard key="loyalty" />,
@@ -89,9 +91,13 @@ const UserMemberPage = () => {
       <div className="flex-1 flex flex-col px-4 sm:px-6 lg:px-8 space-y-6 overflow-hidden">
         {/* 2. Loyalty Card Section */}
         <section className="relative z-10 shrink-0"> {/* Ensure z-index context for cards */}
-          <StackedCardDeck>
-              {cards}
-          </StackedCardDeck>
+          {activePasses?.length > 0 ? (
+            <StackedCardDeck>
+                {cards}
+            </StackedCardDeck>
+          ): (
+            <LoyaltyCard />
+          ) }
         </section>
 
         {/* 3. Function Menu */}

@@ -19,7 +19,13 @@ export const useActivePass = (): UseActivePassResult => {
     const { userProfile } = useAuthStore();
 
     const activePasses = useMemo(() => {
-        return userProfile?.activePasses || [];
+        const allPasses = userProfile?.activePasses || [];
+        const now = new Date();
+        // Filter out expired passes by default
+        return allPasses.filter(pass => {
+            const expiry = pass.expiryDate?.toDate?.();
+            return expiry ? expiry > now : false;
+        });
     }, [userProfile?.activePasses]);
 
     const hasActivePass = activePasses.length > 0;
