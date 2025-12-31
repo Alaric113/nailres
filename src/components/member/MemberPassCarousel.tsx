@@ -90,7 +90,7 @@ const PassCard = ({ pass }: PassCardProps) => {
   const services = pass.contentItems?.filter(i => i.category === '服務') || [];
   const benefits = pass.contentItems?.filter(i => i.category === '權益') || [];
 
-  console.log(selectedVariant)
+  
   return (
     <div className="bg-white rounded-3xl overflow-hidden border border-gray-100 w-full flex flex-col h-[calc(100dvh-200px)] max-h-[600px] min-h-[480px]">
       {/* Hero Section with Gradient */}
