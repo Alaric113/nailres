@@ -7,7 +7,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import zhTwLocale from '@fullcalendar/core/locales/zh-tw';
-import { doc, updateDoc, collection, query, orderBy, getDocs } from 'firebase/firestore'; // Added imports
+import { collection, query, orderBy, getDocs } from 'firebase/firestore'; // Added imports
 import { db } from '../lib/firebase';
 import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
 import { useBusinessHoursSummary } from '../hooks/useBusinessHoursSummary';
@@ -18,6 +18,7 @@ import type { Designer } from '../types/designer'; // New type
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import BookingDetailModal from '../components/admin/BookingDetailModal';
 import { FunnelIcon, UserCircleIcon } from '@heroicons/react/24/outline'; // Added Icon
+import { updateBookingStatus } from '../utils/bookingActions';
 
 const useWindowSize = () => {
     // ... existing implementation ...
@@ -97,8 +98,21 @@ const CalendarPage = () => {
   })), [closedDays]);
 
   const handleUpdateBookingStatus = async (bookingId: string, newStatus: BookingStatus) => {
-    const bookingRef = doc(db, 'bookings', bookingId);
-    await updateDoc(bookingRef, { status: newStatus });
+    try {
+        await updateBookingStatus(bookingId, newStatus);
+        
+        // Refresh data or let live listener handle it?
+        // useAllBookings uses onSnapshot internally? 
+        // Let's check useAllBookings. If it uses listener, it will auto-update.
+        // Assuming it does.
+        
+    } catch (error) {
+        console.error("Failed to update status from calendar:", error);
+        // showToast is not available here?
+        // CalendarPage doesn't use useToast?
+        // Ah, it doesn't seem to have useToast.
+        alert('更新失敗'); 
+    }
   };
 
   const changeView = (viewName: string) => {

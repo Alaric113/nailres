@@ -328,23 +328,24 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                                 {variants.map((v, idx) => (
                                     <div 
                                         key={idx} 
-                                        className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"
+                                        className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-2"
                                     >
                                         {/* Variant Name */}
-                                        <div className="mb-3">
+                                        <div className="flex flex-row items-end gap-1">
+                                            <label className="block text-xs text-gray-500 mb-1  text-nowrap">方案名稱</label>
                                             <input 
                                                 type="text" 
                                                 placeholder="方案名稱 (例如：120本、基礎款)"
                                                 value={v.name}
                                                 onChange={(e) => updateVariant(idx, 'name', e.target.value)}
-                                                className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3 font-medium"
+                                                className="w-full border-b border-gray-300 text-sm  px-3 font-medium"
                                             />
                                         </div>
 
                                         {/* Price Row */}
-                                        <div className="flex flex-wrap gap-3 items-center">
-                                            <div className="flex-1 min-w-[120px]">
-                                                <label className="block text-xs text-gray-500 mb-1">售價</label>
+                                        <div className="flex flex-wrap gap-3 items-end">
+                                            <div className="flex-1 min-w-[120px] flex flex-row items-center">
+                                                <label className="block text-xs text-gray-500 mb-1 text-nowrap">售價</label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                                                     <input 
@@ -352,12 +353,12 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                                                         placeholder="0"
                                                         value={v.price}
                                                         onChange={(e) => updateVariant(idx, 'price', Number(e.target.value))}
-                                                        className="w-full rounded-lg border-gray-300 text-sm py-2.5 pl-7 pr-3"
+                                                        className="w-full border-b border-gray-300 text-sm  pl-7 pr-3"
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="flex-1 min-w-[120px]">
-                                                <label className="block text-xs text-gray-500 mb-1">原價 (選填)</label>
+                                            <div className="flex-1 min-w-[120px] flex flex-row items-center">
+                                                <label className="block text-xs text-gray-500 mb-1 text-nowrap">原價 (選填)</label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                                                     <input 
@@ -365,17 +366,19 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                                                         placeholder="0"
                                                         value={v.originalPrice || ''}
                                                         onChange={(e) => updateVariant(idx, 'originalPrice', Number(e.target.value))}
-                                                        className="w-full rounded-lg border-gray-300 text-sm py-2.5 pl-7 pr-3"
+                                                        className="w-full border-b border-gray-300 text-sm px-3"
                                                     />
                                                 </div>
                                             </div>
+                                            <div className="flex-1 min-w-[120px] flex flex-row justify-end items-center">
                                             <button 
                                                 type="button" 
                                                 onClick={() => removeVariant(idx)} 
-                                                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors self-end"
+                                                className="p-2 relative text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors self-end"
                                             >
                                                 <TrashIcon className="w-5 h-5" />
                                             </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -557,7 +560,7 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                 </div>
 
                 {/* Footer Buttons - Fixed on mobile */}
-                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-5 mt-auto border-t border-gray-100 bg-white -mx-4 sm:-mx-6 px-4 sm:px-6 pb-safe-area sticky bottom-0">
+                <div className="flex flex-row justify-end gap-3 pt-5 mt-auto border-t border-gray-100 bg-white -mx-4 sm:-mx-6 px-4 sm:px-6 pb-safe-area sticky bottom-2">
                     <button
                         type="button"
                         onClick={onClose}

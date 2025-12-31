@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, addDoc, updateDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { updateBookingStatus } from '../utils/bookingActions';
 import type { BookingDocument, BookingStatus, BookingItem } from '../types/booking';
 import type { UserDocument } from '../types/user';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -180,8 +181,9 @@ const OrderEditPage = () => {
     if (!booking || !status) return;
     setSaving(true);
     try {
-      const docRef = doc(db, 'bookings', booking.id);
-      await updateDoc(docRef, { status: status as BookingStatus });
+      // Use centralized utility to handle status change + pass deduction/refund
+      await updateBookingStatus(booking.id, status as BookingStatus);
+
       showToast('訂單狀態已更新', 'success');
       setBooking(prev => prev ? { ...prev, status: status as BookingStatus } : null);
       

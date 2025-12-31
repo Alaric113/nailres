@@ -16,6 +16,8 @@ import type { BookingStatus } from '../types/booking'; // NEW IMPORT
 import { collection, serverTimestamp, writeBatch, doc, increment } from 'firebase/firestore'; // NEW IMPORT
 import { db } from '../lib/firebase'; // NEW IMPORT
 import { useToast } from '../context/ToastContext'; // NEW IMPORT
+
+
 import { 
   TicketIcon, 
   ChevronRightIcon,
@@ -30,6 +32,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useDesignerBookingInfo } from '../hooks/useDesignerBookingInfo';
 import { isLiffBrowser } from '../lib/liff';
 import { useActivePass } from '../hooks/useActivePass';
+
+import { useSeasonPasses } from '../hooks/useSeasonPasses';
 
 import type { ActivePass } from '../types/user';
 
@@ -60,9 +64,28 @@ const BookingPage = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
+
+
+// ...
+
   // Season Pass State
-  const { hasActivePass } = useActivePass();
-  const [selectedPass] = useState<ActivePass | null>(null);
+  const { hasActivePass, activePasses } = useActivePass();
+  const { passes: seasonPassDefinitions } = useSeasonPasses();
+  const [selectedPass, setSelectedPass] = useState<ActivePass | null>(null);
+
+  // Auto-select pass if available and not set
+  useMemo(() => {
+      if (hasActivePass && activePasses.length > 0 && !selectedPass) {
+          setSelectedPass(activePasses[0]);
+      }
+  }, [hasActivePass, activePasses, selectedPass]);
+
+  // Derive selected pass definition to get content mapping
+  const selectedPassDefinition = useMemo(() => {
+    if (!selectedPass) return null;
+    return seasonPassDefinitions.find(p => p.id === selectedPass.passId);
+  }, [selectedPass, seasonPassDefinitions]);
+
   const isPassBookingMode = selectedPass !== null;
 
 
@@ -111,7 +134,6 @@ const BookingPage = () => {
     const final = Math.max(0, basePrice - discount);
 
     return { totalDuration: duration, originalPrice: basePrice, finalPrice: final, discountAmount: discount };
-    return { totalDuration: duration, originalPrice: basePrice, finalPrice: final, discountAmount: discount };
   }, [cart, selectedCoupon]);
 
   const allowedDesignerIds = useMemo(() => {
@@ -153,7 +175,9 @@ const BookingPage = () => {
 
     setIsSubmitting(true);
 
-    const initialStatus: BookingStatus = userProfile?.role === 'platinum' ? 'pending_confirmation' : 'pending_payment';
+    const initialStatus: BookingStatus = selectedPass 
+        ? 'pending_confirmation' 
+        : (userProfile?.role === 'platinum' ? 'pending_confirmation' : 'pending_payment');
 
     try {
       const batch = writeBatch(db);
@@ -245,6 +269,9 @@ const BookingPage = () => {
       }
 
       // 3. If a pass was used, update remaining usages
+      // 3. If a pass was used, update remaining usages
+      // MOVED TO ADMIN CONFIRMATION: Usage is now deducted when admin confirms the booking
+      /* 
       if (selectedPass && userProfile) {
         const userRef = doc(db, 'users', currentUser.uid);
         // We need to update the specific pass within activePasses array
@@ -256,8 +283,17 @@ const BookingPage = () => {
             // Deduct usages for each service booked
             const updatedUsages = { ...pass.remainingUsages };
             serviceIds.forEach(sId => {
-              if (updatedUsages[sId] && updatedUsages[sId] > 0) {
-                updatedUsages[sId] -= 1;
+               // MAP SERVICE ID -> CONTENT ITEM ID
+               let usageKey = sId;
+               if (selectedPassDefinition && selectedPassDefinition.contentItems) {
+                   const contentItem = selectedPassDefinition.contentItems.find(item => item.serviceId === sId);
+                   if (contentItem) {
+                       usageKey = contentItem.id;
+                   }
+               }
+
+              if (updatedUsages[usageKey] && updatedUsages[usageKey] > 0) {
+                updatedUsages[usageKey] -= 1;
               }
             });
             return { ...pass, remainingUsages: updatedUsages };
@@ -266,6 +302,7 @@ const BookingPage = () => {
         });
         batch.update(userRef, { activePasses: updatedPasses });
       }
+      */
 
       await batch.commit();
 
@@ -377,6 +414,8 @@ const BookingPage = () => {
               onNext={() => setCurrentStep(2)}
               passMode={isPassBookingMode}
               hasActivePass={hasActivePass}
+              activePass={selectedPass}
+              passContentItems={selectedPassDefinition?.contentItems}
             />
           </div>
         )}

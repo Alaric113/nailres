@@ -1,6 +1,6 @@
 import { useState } from 'react'; // ADDED
-import { doc, updateDoc } from 'firebase/firestore'; // ADDED
-import { db } from '../lib/firebase';
+import { updateBookingStatus } from '../utils/bookingActions';
+// import { db } from '../lib/firebase';
 import { useBookings } from '../hooks/useBookings';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { format } from 'date-fns';
@@ -19,9 +19,8 @@ const BookingHistoryPage = () => {
     }
     setIsCancelling(bookingId);
     try {
-      // Assuming cancelBooking exists in useBookings hook
-      // If not, need to implement the updateDoc logic here
-      await updateDoc(doc(db, 'bookings', bookingId), { status: 'cancelled' });
+      // Use centralized utility to handle cancellation and potential refund
+      await updateBookingStatus(bookingId, 'cancelled');
       showToast('預約已成功取消。', 'success');
     } catch (err) {
       console.error('Error cancelling booking:', err);

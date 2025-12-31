@@ -61,7 +61,8 @@ const EditPassModal: React.FC<EditPassModalProps> = ({
 
   const handleUsageChange = (itemId: string, val: string) => {
       const num = parseInt(val);
-      if (!isNaN(num) && num >= 0) {
+      // Allow -1 for unlimited rights
+      if (!isNaN(num) && num >= -1) {
           setUsages(prev => ({ ...prev, [itemId]: num }));
       }
   };
@@ -99,7 +100,10 @@ const EditPassModal: React.FC<EditPassModalProps> = ({
                 </div>
 
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-3">剩餘次數調整</label>
+                    <div className="flex justify-between items-center mb-3">
+                        <label className="block text-xs font-bold text-gray-500">剩餘次數 adjustment</label>
+                        <span className="text-[10px] text-gray-400">輸入 -1 代表無限/權益</span>
+                    </div>
                     <div className="space-y-3">
                         {Object.entries(usages).map(([itemId, qty]) => {
                             const itemDef = originalPass?.contentItems.find(i => i.id === itemId);
@@ -119,7 +123,7 @@ const EditPassModal: React.FC<EditPassModalProps> = ({
                                         <span className="text-xs text-gray-400">剩餘</span>
                                         <input 
                                             type="number" 
-                                            min="0"
+                                            min="-1"
                                             value={qty}
                                             onChange={(e) => handleUsageChange(itemId, e.target.value)}
                                             className="w-16 py-1 px-2 text-center text-sm border border-gray-300 rounded focus:ring-primary focus:border-primary"

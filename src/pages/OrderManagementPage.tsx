@@ -23,6 +23,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import OrderTypeTabs from '../components/admin/OrderTypeTabs';
+import { updateBookingStatus } from '../utils/bookingActions';
 
 // Stats Card Component
 const StatCard = ({ title, value, icon: Icon, color, bgColor }: { title: string, value: string | number, icon: any, color: string, bgColor: string }) => (
@@ -154,15 +155,17 @@ const OrderManagementPage = () => {
   const handleUpdateStatus = async (booking: EnrichedBooking, newStatus: BookingStatus) => {
     setUpdatingId(booking.id);
     try {
-      const batch = writeBatch(db);
-      const bookingRef = doc(db, 'bookings', booking.id);
-      batch.update(bookingRef, { status: newStatus });
+      // Use centralized utility for status update (handles Season Pass deduction)
+      await updateBookingStatus(booking.id, newStatus);
 
+      // Handle Loyalty Points (if completed)
+      // Note: This is now a separate transaction from status update
       if (newStatus === 'completed' && booking.userId && booking.amount > 0) {
+        const batch = writeBatch(db);
         await grantLoyaltyPoints(batch, booking);
+        await batch.commit();
       }
 
-      await batch.commit();
       showToast(`訂單已更新：${getStatusLabel(newStatus)}`, 'success');
       
       if (['confirmed', 'completed', 'cancelled'].includes(newStatus)) {
