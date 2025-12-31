@@ -11,6 +11,14 @@ export interface SeasonPassPromo {
   imageUrl?: string;
 }
 
+export interface SeasonPassFlexSettings {
+  enabled: boolean;
+  headerText: string;
+  headerColor: string;
+  bodyTextTemplate: string;
+  footerText: string;
+}
+
 export interface GlobalSettings {
   bookingDeadline: Date | null;
   bookingNotice?: string;
@@ -19,8 +27,10 @@ export interface GlobalSettings {
     bankName: string;
     accountNumber: string;
     accountName: string;
+    note?: string;
   };
   seasonPassPromo?: SeasonPassPromo;
+  seasonPassFlexMessage?: SeasonPassFlexSettings;
 }
 
 const defaultPromo: SeasonPassPromo = {
@@ -31,12 +41,21 @@ const defaultPromo: SeasonPassPromo = {
   ctaLink: '/member/pass',
 };
 
+const defaultFlexSettings: SeasonPassFlexSettings = {
+  enabled: true,
+  headerText: '季卡訂單成立',
+  headerColor: '#9F9586',
+  bodyTextTemplate: '親愛的 {{customerName}} 您好，\n感謝您購買 {{passName}} - {{variantName}}。\n\n您的訂單金額為 ${{price}}。\n請匯款至以下帳號：\n{{bankInfo}}\n\n匯款後請告知末五碼，謝謝！',
+  footerText: '如有疑問請聯繫客服',
+};
+
 export const useGlobalSettings = () => {
   const [settings, setSettings] = useState<GlobalSettings>({
     bookingDeadline: null,
     bookingNotice: '',
-    bankInfo: { bankCode: '', bankName: '', accountNumber: '', accountName: '' },
-    seasonPassPromo: defaultPromo
+    bankInfo: { bankCode: '', bankName: '', accountNumber: '', accountName: '', note: '' },
+    seasonPassPromo: defaultPromo,
+    seasonPassFlexMessage: defaultFlexSettings
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,8 +70,9 @@ export const useGlobalSettings = () => {
           setSettings({
             bookingDeadline: data.bookingDeadline ? data.bookingDeadline.toDate() : null,
             bookingNotice: data.bookingNotice || '',
-            bankInfo: data.bankInfo || { bankCode: '', bankName: '', accountNumber: '', accountName: '' },
+            bankInfo: data.bankInfo || { bankCode: '', bankName: '', accountNumber: '', accountName: '', note: '' },
             seasonPassPromo: data.seasonPassPromo || defaultPromo,
+            seasonPassFlexMessage: data.seasonPassFlexMessage || defaultFlexSettings,
           });
         }
       } catch (err) {

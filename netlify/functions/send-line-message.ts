@@ -287,6 +287,86 @@ const createBookingConfirmationFlex = (customerName: string, serviceNames: strin
   };
 };
 
+const createSeasonPassFlexMessage = (
+  customerName: string,
+  passName: string,
+  variantName: string,
+  price: number,
+  bankInfo: any,
+  settings: any
+) => {
+  const { headerText = '季卡訂單成立', headerColor = '#9F9586', bodyTextTemplate = '', footerText = '' } = settings;
+
+  // Replace variables in template
+  let bodyText = bodyTextTemplate
+    .replace('{{customerName}}', customerName)
+    .replace('{{passName}}', passName)
+    .replace('{{variantName}}', variantName)
+    .replace('{{price}}', price.toLocaleString());
+
+  // Handle bankInfo specially
+  const bankInfoText = `${bankInfo.bankCode} ${bankInfo.bankName}\n${bankInfo.accountNumber}\n${bankInfo.accountName}`;
+  bodyText = bodyText.replace('{{bankInfo}}', bankInfoText);
+
+  return {
+    type: 'bubble',
+    size: 'mega',
+    header: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: headerText,
+          weight: 'bold',
+          size: 'xl',
+          color: '#FFFFFF',
+          align: 'center'
+        }
+      ],
+      backgroundColor: headerColor,
+      paddingAll: '20px'
+    },
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: bodyText,
+          wrap: true,
+          size: 'sm',
+          color: '#666666',
+          lineSpacing: '4px'
+        }
+      ],
+      paddingAll: '20px',
+      backgroundColor: '#FFFFFF'
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'separator',
+          color: '#EFEFEF'
+        },
+        {
+          type: 'text',
+          text: footerText,
+          size: 'xs',
+          color: '#AAAAAA',
+          align: 'center',
+          margin: 'md',
+          wrap: true
+        }
+      ],
+      backgroundColor: '#FFFFFF',
+      paddingAll: '10px'
+    }
+  };
+};
+
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   if (event.httpMethod !== 'POST') {
     return {
@@ -331,9 +411,9 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       bodyContent = Buffer.from(bodyContent, 'base64').toString('utf-8');
     }
     const body = JSON.parse(bodyContent);
-    const { type, userId, serviceNames, dateTime, amount, notes, status, bookingId } = body;
+    const { type, userId, serviceNames, dateTime, amount, notes, status, bookingId, passName, variantName, price } = body;
 
-    console.log(`[send-line-message] Request: type=${type}, bookingId=${bookingId}, status=${status}, userId=${userId}`);
+    console.log(`[send-line-message] Request: type=${type}, userId=${userId}`);
 
     // Check Firebase Admin Init
     if (admin.apps.length === 0) {
@@ -362,6 +442,57 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
           body: JSON.stringify({ message: 'No admins found with notifications enabled.' }),
         };
       }
+    }
+
+    // Handle Season Pass Purchase Notification
+    if (type === 'season_pass_purchase') {
+      if (!userId || !passName || !variantName || !price) {
+        console.error("[send-line-message] Missing required fields for season pass:", { userId, passName, variantName, price });
+        return { statusCode: 400, body: JSON.stringify({ message: "Missing required fields" }) };
+      }
+
+      // Fetch Settings
+      const settingsDoc = await db.collection('globals').doc('settings').get();
+      const settings = settingsDoc.data();
+      const flexSettings = settings?.seasonPassFlexMessage;
+      const bankInfo = settings?.bankInfo;
+
+      if (!flexSettings?.enabled) {
+        console.log("[send-line-message] Season Pass notifications disabled.");
+        return { statusCode: 200, body: JSON.stringify({ message: 'Notifications disabled' }) };
+      }
+
+      // Get Customer
+      const userDoc = await db.collection('users').doc(userId).get();
+      const customerData = userDoc.exists ? (userDoc.data() as UserDocument) : null;
+      const customerLineUserId = customerData?.lineUserId;
+      const customerName = customerData?.profile?.displayName || '客戶';
+
+      // 1. Send Flex to Customer
+      const messagePromises = [];
+      if (customerLineUserId) {
+        const flexMessage = createSeasonPassFlexMessage(
+          customerName,
+          passName,
+          variantName,
+          price,
+          bankInfo || { bankCode: '', bankName: '', accountNumber: '', accountName: '' },
+          flexSettings
+        );
+        const altText = `訂單成立通知：${passName}`;
+        messagePromises.push(sendLineMessage(customerLineUserId, flexMessage, altText));
+      }
+
+      // 2. Send Text to Admins
+      if (adminLineUserIds.length > 0) {
+        const adminMessage = `🔔 新季卡訂單 🔔\n\n客戶：${customerName}\n方案：${passName} - ${variantName}\n金額：$${price}\n\n請至後台確認款項。`;
+        for (const adminId of adminLineUserIds) {
+          messagePromises.push(sendLineMessage(adminId, { type: 'text', text: adminMessage }, adminMessage));
+        }
+      }
+
+      await Promise.all(messagePromises);
+      return { statusCode: 200, body: JSON.stringify({ message: 'Season pass notifications sent.' }) };
     }
 
     // Handle regular booking notification

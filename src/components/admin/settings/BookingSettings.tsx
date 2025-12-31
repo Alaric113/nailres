@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardDocumentCheckIcon, BanknotesIcon, MegaphoneIcon } from '@heroicons/react/24/outline';
-import { useGlobalSettings, type SeasonPassPromo } from '../../../hooks/useGlobalSettings';
+import { ClipboardDocumentCheckIcon, BanknotesIcon, MegaphoneIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import { useGlobalSettings, type SeasonPassPromo, type SeasonPassFlexSettings } from '../../../hooks/useGlobalSettings';
 
 const BookingSettings: React.FC = () => {
     const { settings, isLoading, updateGlobalSettings } = useGlobalSettings();
-    const [activeTab, setActiveTab] = useState<'booking' | 'payment' | 'promo'>('booking');
+    const [activeTab, setActiveTab] = useState<'booking' | 'payment' | 'promo' | 'lineFlex'>('booking');
     
     // Form States
     const [notice, setNotice] = useState('');
@@ -12,7 +12,8 @@ const BookingSettings: React.FC = () => {
         bankCode: '',
         bankName: '',
         accountNumber: '',
-        accountName: ''
+        accountName: '',
+        note: ''
     });
     const [promo, setPromo] = useState<SeasonPassPromo>({
         enabled: false,
@@ -21,6 +22,13 @@ const BookingSettings: React.FC = () => {
         ctaText: '了解更多',
         ctaLink: '/member/pass',
         imageUrl: ''
+    });
+    const [flexSettings, setFlexSettings] = useState<SeasonPassFlexSettings>({
+        enabled: true,
+        headerText: '',
+        headerColor: '#9F9586',
+        bodyTextTemplate: '',
+        footerText: ''
     });
 
     const [isSaving, setIsSaving] = useState(false);
@@ -31,10 +39,16 @@ const BookingSettings: React.FC = () => {
         if (!isLoading && settings) {
             setNotice(settings.bookingNotice || '');
             if (settings.bankInfo) {
-                setBankInfo(settings.bankInfo);
+                setBankInfo({
+                    ...settings.bankInfo,
+                    note: settings.bankInfo.note || ''
+                });
             }
             if (settings.seasonPassPromo) {
                 setPromo(settings.seasonPassPromo);
+            }
+            if (settings.seasonPassFlexMessage) {
+                setFlexSettings(settings.seasonPassFlexMessage);
             }
         }
     }, [isLoading, settings]);
@@ -46,7 +60,8 @@ const BookingSettings: React.FC = () => {
             await updateGlobalSettings({
                 bookingNotice: notice,
                 bankInfo: bankInfo,
-                seasonPassPromo: promo
+                seasonPassPromo: promo,
+                seasonPassFlexMessage: flexSettings
             });
             setMessage({ type: 'success', text: '設定已儲存' });
         } catch (e) {
@@ -101,6 +116,16 @@ const BookingSettings: React.FC = () => {
                     }`}
                 >
                     季卡推廣
+                </button>
+                <button
+                    onClick={() => setActiveTab('lineFlex')}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeTab === 'lineFlex' 
+                        ? 'border-purple-600 text-purple-600' 
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    LINE 通知
                 </button>
             </div>
             
@@ -173,9 +198,100 @@ const BookingSettings: React.FC = () => {
                                 />
                             </div>
                             
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">匯款說明</label>
+                                <textarea 
+                                    rows={3}
+                                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none resize-none"
+                                    placeholder="例如：請於匯款後告知末五碼"
+                                    value={bankInfo.note || ''}
+                                    onChange={(e) => setBankInfo({...bankInfo, note: e.target.value})}
+                                />
+                            </div>
+                            
                             <p className="text-xs text-gray-500 mt-2 bg-gray-50 p-2 rounded">
                                 此資訊將顯示於季卡購買頁面，供顧客匯款參考。
                             </p>
+                        </div>
+                     )}
+
+                     {activeTab === 'lineFlex' && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 mb-4 text-gray-800 font-bold border-b pb-2">
+                                <ChatBubbleLeftRightIcon className="w-5 h-5 text-green-600" />
+                                <span>訂單確認通知 (Flex Message)</span>
+                            </div>
+                            <p className="text-xs text-gray-500 -mt-2 mb-4">
+                               設定下單成功後發送給客戶的 LINE 訊息樣式。
+                            </p>
+
+                            {/* Enabled Toggle */}
+                            <div className="flex items-center gap-3 py-2">
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input 
+                                        type="checkbox"
+                                        checked={flexSettings.enabled}
+                                        onChange={(e) => setFlexSettings({...flexSettings, enabled: e.target.checked})}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                </label>
+                                <span className="text-sm font-medium text-gray-700">啟用 LINE 通知</span>
+                            </div>
+
+                             <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">標題文字</label>
+                                    <input 
+                                        type="text"
+                                        className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
+                                        placeholder="例如：季卡訂單成立"
+                                        value={flexSettings.headerText}
+                                        onChange={(e) => setFlexSettings({...flexSettings, headerText: e.target.value})}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">標題背景色 (Hex)</label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="color"
+                                            className="h-9 w-9 p-1 rounded cursor-pointer border border-gray-300"
+                                            value={flexSettings.headerColor}
+                                            onChange={(e) => setFlexSettings({...flexSettings, headerColor: e.target.value})}
+                                        />
+                                        <input 
+                                            type="text"
+                                            className="w-full border border-gray-300 rounded-lg p-2 text-sm font-mono focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none uppercase"
+                                            placeholder="#9F9586"
+                                            value={flexSettings.headerColor}
+                                            onChange={(e) => setFlexSettings({...flexSettings, headerColor: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                             <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">內容模板</label>
+                                <p className="text-xs text-gray-500 mb-2">可用變數：{'{{customerName}}'}, {'{{passName}}'}, {'{{variantName}}'}, {'{{price}}'}, {'{{bankInfo}}'}</p>
+                                <textarea 
+                                    rows={6}
+                                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
+                                    placeholder="輸入訊息內容..."
+                                    value={flexSettings.bodyTextTemplate}
+                                    onChange={(e) => setFlexSettings({...flexSettings, bodyTextTemplate: e.target.value})}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">頁尾文字</label>
+                                <input 
+                                    type="text"
+                                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
+                                    placeholder="例如：如有疑問請聯繫客服"
+                                    value={flexSettings.footerText}
+                                    onChange={(e) => setFlexSettings({...flexSettings, footerText: e.target.value})}
+                                />
+                            </div>
                         </div>
                      )}
 

@@ -49,6 +49,21 @@ export const useSeasonPassOrder = () => {
             };
 
             const docRef = await addDoc(collection(db, 'orders'), orderData);
+
+            // Trigger LINE Notification (Fire and Forget)
+            fetch('/.netlify/functions/send-line-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'season_pass_purchase',
+                    userId: currentUser.uid,
+                    passName,
+                    variantName,
+                    price,
+                    bookingId: docRef.id // Use orderId as bookingId for reference
+                })
+            }).catch(err => console.error('Failed to send LINE notification:', err));
+
             return docRef.id;
         } catch (err: any) {
             console.error('Error creating order:', err);
