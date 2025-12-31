@@ -22,13 +22,13 @@ const ServiceManagement = () => {
     price: string;
     duration: string;
     category: string;
-    platinumPrice: string;
+    platinumDiscount?: { type: 'percentage' | 'fixed' | 'none', value: number }; // Changed logic
     imageUrl: string;
-    description: string; // Add description here
+    description: string;
     options: ServiceOption[];
     supportedDesigners: string[];
-    isPlanOnly: boolean; // Add isPlanOnly to state
-  }>({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [], supportedDesigners: [], isPlanOnly: false });
+    isPlanOnly: boolean;
+  }>({ name: '', price: '', duration: '', category: '', platinumDiscount: { type: 'none', value: 0 }, imageUrl: '', description: '', options: [], supportedDesigners: [], isPlanOnly: false });
   
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,7 +55,9 @@ const ServiceManagement = () => {
         price: String(editingService.price),
         duration: String(editingService.duration),
         category: editingService.category,
-        platinumPrice: String(editingService.platinumPrice || ''),
+        platinumDiscount: editingService.platinumDiscount 
+             ? { ...editingService.platinumDiscount, type: editingService.platinumDiscount.type as any } 
+             : { type: 'none', value: 0 },
         imageUrl: editingService.imageUrl || '',
         description: editingService.description || '',
         options: editingService.options || [],
@@ -79,6 +81,16 @@ const ServiceManagement = () => {
       return;
     }
 
+    // Logic to prepare platinumDiscount data for saving
+    // If type is 'none', we save null or omit it
+    let savePlatinumDiscount = null;
+    if (formData.platinumDiscount && formData.platinumDiscount.type !== 'none') {
+        savePlatinumDiscount = {
+            type: formData.platinumDiscount.type,
+            value: formData.platinumDiscount.value
+        };
+    }
+
     setIsSubmitting(true);
     try {
       if (editingService) {
@@ -89,10 +101,10 @@ const ServiceManagement = () => {
           price: Number(formData.price),
           duration: Number(formData.duration),
           category: formData.category,
-          platinumPrice: formData.platinumPrice ? Number(formData.platinumPrice) : null,
+          platinumDiscount: savePlatinumDiscount, // Saved new format
           imageUrl: formData.imageUrl,
-          description: formData.description, // Added description
-          options: formData.options, // Save options
+          description: formData.description,
+          options: formData.options,
           supportedDesigners: formData.supportedDesigners,
           isPlanOnly: formData.isPlanOnly,
         });
@@ -107,15 +119,15 @@ const ServiceManagement = () => {
           price: Number(formData.price),
           duration: Number(formData.duration),
           category: formData.category,
-          platinumPrice: formData.platinumPrice ? Number(formData.platinumPrice) : null,
-          available: true, // New services are available by default
+          platinumDiscount: savePlatinumDiscount, // Saved new format
+          available: true, 
           imageUrl: formData.imageUrl,
-          description: formData.description, // Added description
+          description: formData.description, 
           createdAt: serverTimestamp(),
-          options: formData.options, // Save options
+          options: formData.options, 
           supportedDesigners: formData.supportedDesigners,
           isPlanOnly: formData.isPlanOnly,
-          order: 9999, // Put new services at end by default
+          order: 9999,
         });
         setSuccess(`服務項目 "${formData.name}" 已成功新增！`);
         showToast(`服務項目 "${formData.name}" 已成功新增！`, 'success');
@@ -149,7 +161,7 @@ const ServiceManagement = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', price: '', duration: '', category: '', platinumPrice: '', imageUrl: '', description: '', options: [], supportedDesigners: [], isPlanOnly: false });
+    setFormData({ name: '', price: '', duration: '', category: '', platinumDiscount: { type: 'none', value: 0 }, imageUrl: '', description: '', options: [], supportedDesigners: [], isPlanOnly: false });
     setFormError(null);
   };
 
@@ -292,28 +304,8 @@ const ServiceManagement = () => {
                     <input type="number" id="price" value={formData.price} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
                   </div>
                   <div>
-                    <label htmlFor="platinumPrice" className="block text-sm font-medium text-text-main">
-                      白金會員價 (選填)
-                    </label>
-                    <input
-                      type="number"
-                      name="platinumPrice"
-                      id="platinumPrice"
-                      value={formData.platinumPrice || ''}
-                      onChange={handleFieldChange}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent sm:text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="duration" className="block text-sm font-medium text-text-main">服務時長 (分鐘)</label>
-                    <input type="number" id="duration" value={formData.duration} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
-                  </div>
-                  <div>
                     <label htmlFor="category" className="block text-sm font-medium text-text-main">分類</label>
-                    <select
+                     <select
                       id="category"
                       value={formData.category}
                       onChange={handleFieldChange}
@@ -330,6 +322,69 @@ const ServiceManagement = () => {
                       {categoriesError && <option disabled>錯誤: {categoriesError}</option>}
                     </select>
                   </div>
+                </div>
+
+                 {/* Platinum Discount Section */}
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                    <div className="flex items-center gap-2 mb-3">
+                        <span className="text-lg">💎</span>
+                        <h3 className="text-sm font-bold text-purple-900">白金會員優惠設定</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-medium text-purple-800 mb-1">折扣類型</label>
+                            <select
+                                value={formData.platinumDiscount?.type || 'percentage'}
+                                onChange={(e) => setFormData(prev => ({
+                                    ...prev,
+                                    platinumDiscount: {
+                                        type: e.target.value as 'percentage' | 'fixed',
+                                        value: prev.platinumDiscount?.value || 0
+                                    }
+                                }))}
+                                className="block w-full px-3 py-2 border border-purple-200 rounded-md text-sm focus:ring-purple-500 focus:border-purple-500"
+                            >
+                                <option value="percentage">打折 (Percentage)</option>
+                                <option value="fixed">折抵金額 (Fixed)</option>
+                                <option value="none">無折扣</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-purple-800 mb-1">
+                                {formData.platinumDiscount?.type === 'percentage' ? '折數 (例如 90 = 9折)' : '折抵金額'}
+                            </label>
+                            <input
+                                type="number"
+                                value={formData.platinumDiscount?.value || ''}
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        platinumDiscount: {
+                                            type: prev.platinumDiscount?.type || 'percentage',
+                                            value: isNaN(val) ? 0 : val
+                                        }
+                                    }));
+                                }}
+                                disabled={!formData.platinumDiscount || (formData.platinumDiscount as any).type === 'none'} 
+                                className="block w-full px-3 py-2 border border-purple-200 rounded-md text-sm focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:text-gray-400"
+                            />
+                        </div>
+                    </div>
+                    {formData.platinumDiscount && formData.platinumDiscount.type !== 'none' as any && (
+                        <p className="text-xs text-purple-600 mt-2">
+                            * 此折扣將應用於「服務單價 + 附加選項」的總和。
+                        </p>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="duration" className="block text-sm font-medium text-text-main">服務時長 (分鐘)</label>
+                    <input type="number" id="duration" value={formData.duration} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
+                  </div>
+                   {/* Removed duplicate category select */}
                 </div>
 
                 {/* Plan Only Toggle */}
@@ -509,9 +564,15 @@ const ServiceManagement = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">
                             ${service.price}
-                            {service.platinumPrice && (
+                            {service.platinumDiscount ? (
+                                <span className="ml-2 text-purple-600 font-bold text-xs bg-purple-50 px-2 py-1 rounded-full">
+                                    {service.platinumDiscount.type === 'percentage' 
+                                        ? `會員${service.platinumDiscount.value < 10 ? service.platinumDiscount.value * 10 : service.platinumDiscount.value}折` 
+                                        : `折$${service.platinumDiscount.value}`}
+                                </span>
+                            ) : service.platinumPrice ? (
                               <span className="ml-2 text-accent font-bold">${service.platinumPrice}</span>
-                            )}
+                            ) : null}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">{service.duration}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">{service.category}</td>

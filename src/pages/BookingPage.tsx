@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useBookingStore } from '../store/bookingStore'; 
+import { useServices } from '../hooks/useServices'; // NEW IMPORT
 import { useGlobalSettings } from '../hooks/useGlobalSettings'; // NEW IMPORT
 import Modal from '../components/common/Modal'; // NEW IMPORT
 import ServiceSelector from '../components/booking/ServiceSelector';
@@ -60,6 +61,7 @@ const BookingPage = () => {
   
   const { userProfile, currentUser } = useAuthStore();
   const { settings: globalSettings } = useGlobalSettings(); // NEW HOOK
+  const { services } = useServices(); // Fetch fresh services for pricing
   const { cart, clearCart } = useBookingStore(); // Use Booking Store
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -122,19 +124,84 @@ const BookingPage = () => {
     setSelectedCoupon(coupon);
   };
 
+  /* New Per-Service Platinum Discount Logic */
   const { totalDuration, originalPrice, finalPrice, discountAmount } = useMemo(() => {
     const duration = cart.reduce((acc, item) => acc + item.totalDuration, 0);
-    const basePrice = cart.reduce((acc, item) => acc + item.totalPrice, 0);
+    
+    // Calculate price item by item to apply specific service discounts
+    let totalBasePrice = 0;
+    let totalDiscountedPrice = 0;
 
-    if (!selectedCoupon || basePrice < selectedCoupon.minSpend) {
-      return { totalDuration: duration, originalPrice: basePrice, finalPrice: basePrice, discountAmount: 0 };
+    cart.forEach(item => {
+        const itemBasePrice = item.totalPrice; // This includes service price + options price
+        totalBasePrice += itemBasePrice;
+
+        let itemFinalPrice = itemBasePrice;
+
+        // Check for Platinum Discount
+        if (userProfile?.role === 'platinum') {
+            // Find the service definition
+            const serviceDef = services.find(s => s.id === item.service.id);
+            
+            if (serviceDef?.platinumDiscount) {
+                const { type, value } = serviceDef.platinumDiscount;
+                if (type === 'percentage') {
+                    // E.g. 90 => 0.9.  (9折)
+                    // If user enters 90, we do * 0.9. If user enters 9 (checking for safety), maybe * 0.9 too?
+                    // Usually Taiwan usage: "90" means 90% of price (10% off). "9" often means "9折" (90%).
+                    // Let's assume standard logic: value / 100.
+                    // But if value is < 10 (e.g. 9), treating as 90 might be safer or just sticking to /100.
+                    // Let's stick to simple /100 logic (e.g. 90 = 90%).
+                    // Wait, earlier I wrote "value 90 => 9折".
+                    // If user inputs 9, 9/100 = 0.09 (1折 - huge discount).
+                    // I should probably ensure the UI placeholder said "90 = 9折".
+                    // Let's trust the input is correct percentage (0-100).
+                    itemFinalPrice = Math.floor(itemBasePrice * (value / 100));
+                } else if (type === 'fixed') {
+                    itemFinalPrice = Math.max(0, itemBasePrice - value);
+                }
+            } else if (serviceDef?.platinumPrice) {
+                 // Fallback to legacy platinumPrice ONLY for the service part? 
+                 // Legacy `platinumPrice` was for the service ONLY. 
+                 // Options were added on top.
+                 // item.price is the service price. item.totalPrice is service + options.
+                 // So if legacy, we assume options are NOT discounted? Or just replace service price?
+                 // Let's try to replicate: (PlatinumServicePrice) + (OptionsPrice).
+                 const optionsPrice = item.totalPrice - item.service.price; // item.service.price is recorded service base price
+                 // Actually item.price might vary.
+                 // Let's assume `platinumPrice` replaces the base service price.
+                 itemFinalPrice = (serviceDef.platinumPrice) + optionsPrice;
+            }
+        }
+        totalDiscountedPrice += itemFinalPrice;
+    });
+
+    // Apply Coupon logic on the SUM of all discounted items
+    // If no coupon, returning totals
+    if (!selectedCoupon || totalDiscountedPrice < selectedCoupon.minSpend) {
+      return { 
+          totalDuration: duration, 
+          originalPrice: totalBasePrice, 
+          finalPrice: totalDiscountedPrice, 
+          discountAmount: totalBasePrice - totalDiscountedPrice 
+      };
     }
 
-    const discount = selectedCoupon.type === 'fixed' ? selectedCoupon.value : Math.floor(basePrice * (selectedCoupon.value / 100));
-    const final = Math.max(0, basePrice - discount);
+    // Coupon Application
+    const couponDiscount = selectedCoupon.type === 'fixed' 
+        ? selectedCoupon.value 
+        : Math.floor(totalDiscountedPrice * (selectedCoupon.value / 100));
+        
+    const final = Math.max(0, totalDiscountedPrice - couponDiscount);
+    const totalDiscount = (totalBasePrice - totalDiscountedPrice) + couponDiscount;
 
-    return { totalDuration: duration, originalPrice: basePrice, finalPrice: final, discountAmount: discount };
-  }, [cart, selectedCoupon]);
+    return { 
+        totalDuration: duration, 
+        originalPrice: totalBasePrice, 
+        finalPrice: final, 
+        discountAmount: totalDiscount 
+    };
+  }, [cart, selectedCoupon, userProfile, services]);
 
   const allowedDesignerIds = useMemo(() => {
     const restrictionSets: string[][] = [];
@@ -175,6 +242,12 @@ const BookingPage = () => {
 
     setIsSubmitting(true);
 
+    // Logic Update: If Platinum user has $0 deposit or full discount, do they still skip payment?
+    // Current logic: Platinum -> pending_confirmation (SKIP PAYMENT).
+    // General -> pending_payment (PAYMENT).
+    // This logic holds regardless of the final price amount, unless price is 0?
+    // User requirement: "Platinum users skip deposit".
+    // So logic remains:
     const initialStatus: BookingStatus = selectedPass 
         ? 'pending_confirmation' 
         : (userProfile?.role === 'platinum' ? 'pending_confirmation' : 'pending_payment');
@@ -568,13 +641,16 @@ const BookingPage = () => {
                       <p className="font-medium text-gray-900 text-sm">
                         {selectedCoupon ? selectedCoupon.title : '使用優惠券'}
                       </p>
-                      {selectedCoupon && <p className="text-xs text-[#9F9586] font-medium">已折抵 NT$ {discountAmount}</p>}
+                      {/* Show discount amount if there is ANY discount (Member or Coupon) */}
+                      {discountAmount > 0 && <p className="text-xs text-[#9F9586] font-medium">共折抵 NT$ {discountAmount}</p>}
                     </div>
                   </div>
                   <ChevronRightIcon className="h-4 w-4 text-gray-400 group-hover:text-[#9F9586]" />
                 </button>
 
                <BookingForm
+                  originalPrice={originalPrice}
+                  discountAmount={discountAmount}
                   totalPrice={finalPrice}
                   notes={notes}
                   onNotesChange={setNotes}

@@ -1,17 +1,23 @@
-import type { Timestamp } from 'firebase/firestore';
+// import type { Timestamp } from 'firebase/firestore';
+
+export interface PlatinumDiscount {
+  type: 'percentage' | 'fixed';
+  value: number;
+}
 
 // This represents the data stored in the /services/{serviceId} document
 export interface Service {
   id: string; // The document ID
   name: string;
   price: number;
-  platinumPrice?: number | null;
   duration: number; // Duration in minutes
   category: string;
-  available: boolean;
+  platinumPrice?: number | null; // Deprecated, kept for backward compatibility
+  platinumDiscount?: PlatinumDiscount; // New field
   imageUrl?: string;
-  createdAt: Timestamp;
   description?: string; // Markdown or text description
+  available: boolean;
+  createdAt: any;
   options?: ServiceOption[];
   supportedDesigners?: string[]; // IDs of designers who can perform this service
   order?: number; // Added order field
