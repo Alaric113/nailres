@@ -38,7 +38,9 @@
   }
 
   /* Re-enable text selection for input fields */
-  input, textarea, [contenteditable] {
+  input,
+  textarea,
+  [contenteditable] {
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
@@ -108,6 +110,258 @@
   .pt-safe-area {
     padding-top: max(1rem, env(safe-area-inset-top));
   }
+
+  .px-safe-area {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  /* Safe area bottom for fixed elements (BottomNav, FABs) */
+  .mb-safe-area {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ========================================
+   Mobile-First Container System
+   ======================================== */
+
+/* Mobile container - optimized padding for phones */
+.mobile-container {
+  width: 100%;
+  max-width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .mobile-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mobile-container {
+    max-width: 1024px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Mobile section - consistent vertical spacing */
+.mobile-section {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .mobile-section {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+}
+
+/* ========================================
+   Mobile-Optimized Cards
+   ======================================== */
+
+/* Glass card effect - modern frosted glass */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* Solid card - clean white with subtle shadow */
+.solid-card {
+  background: #ffffff;
+  border: 1px solid #EFECE5;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Interactive card - with hover/active states */
+.interactive-card {
+  background: #ffffff;
+  border: 1px solid #EFECE5;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.interactive-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.interactive-card:active {
+  transform: scale(0.98);
+}
+
+/* ========================================
+   Mobile-Optimized Buttons
+   ======================================== */
+
+/* Primary CTA button - touch optimized */
+.btn-primary-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0.875rem 1.5rem;
+  background-color: #9F9586;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary-mobile:hover {
+  background-color: #8A8173;
+}
+
+.btn-primary-mobile:active {
+  transform: scale(0.97);
+  background-color: #7A746A;
+}
+
+.btn-primary-mobile:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Secondary button - outlined style */
+.btn-secondary-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 0.75rem 1.25rem;
+  background-color: #ffffff;
+  color: #5C5548;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  border-radius: 0.75rem;
+  border: 1px solid #DCD8CF;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-secondary-mobile:hover {
+  background-color: #FAF9F6;
+  border-color: #9F9586;
+}
+
+.btn-secondary-mobile:active {
+  transform: scale(0.97);
+}
+
+/* Small pill button - for category filters */
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  min-height: 36px;
+  background-color: #ffffff;
+  color: #5C5548;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 9999px;
+  border: 1px solid #EFECE5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+.btn-pill:hover {
+  background-color: #FAF9F6;
+  border-color: #9F9586;
+}
+
+.btn-pill.active {
+  background-color: #9F9586;
+  color: #ffffff;
+  border-color: #9F9586;
+}
+
+/* ========================================
+   Mobile-Optimized Form Elements
+   ======================================== */
+
+/* Text input - touch friendly */
+.input-mobile {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  background-color: #ffffff;
+  border: 1.5px solid #DCD8CF;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  color: #2C2825;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.input-mobile:focus {
+  outline: none;
+  border-color: #9F9586;
+  box-shadow: 0 0 0 3px rgba(159, 149, 134, 0.15);
+}
+
+.input-mobile::placeholder {
+  color: #B7AD9E;
+}
+
+/* ========================================
+   Scroll Enhancements
+   ======================================== */
+
+/* Hide scrollbar but keep functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Horizontal scroll container */
+.scroll-x-container {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+
+.scroll-x-container::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-x-container>* {
+  scroll-snap-align: start;
+  flex-shrink: 0;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -126,6 +380,47 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #9F9586;
+}
+
+/* ========================================
+   Skeleton Loading Animation
+   ======================================== */
+
+.skeleton {
+  background: linear-gradient(90deg,
+      #EFECE5 0%,
+      #FAF9F6 50%,
+      #EFECE5 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite ease-in-out;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ========================================
+   Fixed Bottom Bar (Mobile)
+   ======================================== */
+
+.fixed-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 0.75rem 1rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  z-index: 50;
 }
 
 /* ========================================
