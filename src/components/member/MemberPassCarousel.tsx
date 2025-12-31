@@ -199,14 +199,14 @@ const PassCard = ({ pass }: PassCardProps) => {
               <SparklesIcon className="w-4 h-4 text-purple-500" />
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">專屬權益</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
               {benefits.map((item, idx) => (
                 <div 
                   key={idx} 
                   className="flex items-center gap-2 bg-purple-50 rounded-xl px-3 py-2.5 border border-purple-100/50"
                 >
                   <CheckCircleIcon className="w-4 h-4 text-purple-500 shrink-0" />
-                  <span className="text-xs font-medium text-purple-900 truncate">{item.name}</span>
+                  <span className="text-xs font-medium text-purple-900 ">{item.name}</span>
                 </div>
               ))}
             </div>
