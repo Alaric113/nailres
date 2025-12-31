@@ -484,24 +484,14 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       }
 
       // Fetch Settings
+      // Fetch Settings
       const settingsDoc = await db.collection('globals').doc('settings').get();
-
-      console.log(`[send-line-message] Reading globals/settings (Exists: ${settingsDoc.exists})`);
-      if (settingsDoc.exists) {
-        console.log(`[send-line-message] Data keys: ${Object.keys(settingsDoc.data() || {}).join(', ')}`);
-        console.log(`[send-line-message] Data content: ${JSON.stringify(settingsDoc.data(), null, 2)}`);
-      } else {
-        console.error("[send-line-message] globals/settings document does NOT exist!");
-      }
-
       const settings = settingsDoc.data();
       const flexSettings = settings?.seasonPassFlexMessage;
       const bankInfo = settings?.bankInfo;
 
-      console.log(`[send-line-message] Project ID: ${process.env.VITE_FIREBASE_PROJECT_ID}`);
-
       if (!flexSettings?.enabled) {
-        console.log("[send-line-message] Season Pass notifications disabled (or settings missing).");
+        console.log("[send-line-message] Season Pass notifications disabled.");
         return { statusCode: 200, body: JSON.stringify({ message: 'Notifications disabled' }) };
       }
 

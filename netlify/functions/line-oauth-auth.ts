@@ -6,9 +6,6 @@ import axios from 'axios';
 const LINE_CHANNEL_ID = process.env.VITE_LINE_CHANNEL_ID;
 const LINE_CHANNEL_SECRET = process.env.VITE_LINE_CHANNEL_SECRET;
 
-console.log(`[line-oauth-auth] Channel ID: ${LINE_CHANNEL_ID ? LINE_CHANNEL_ID.substring(0, 3) + '...' : 'undefined'}`);
-console.log(`[line-oauth-auth] Channel Secret Length: ${LINE_CHANNEL_SECRET ? LINE_CHANNEL_SECRET.length : 0}`);
-
 // Helper to safely initialize Firebase Admin
 function initializeFirebase() {
   if (admin.apps.length > 0) {
@@ -106,11 +103,6 @@ const handler: Handler = async (event: HandlerEvent) => {
     console.error('LINE_CHANNEL_ID or LINE_CHANNEL_SECRET is not set in environment variables.');
     return { statusCode: 500, body: JSON.stringify({ message: 'Server configuration error: LINE Channel credentials missing.' }) };
   }
-
-  console.log(`[line-oauth-auth] Channel ID: ${LINE_CHANNEL_ID.substring(0, 5)}...`);
-  console.log(`[line-oauth-auth] Channel Secret Length: ${LINE_CHANNEL_SECRET.length}`);
-  console.log(`[line-oauth-auth] Redirect URI: ${redirectUri}`);
-  console.log(`[line-oauth-auth] Code Length: ${code?.length}`);
 
   try {
     // 1. Exchange authorization code for tokens
