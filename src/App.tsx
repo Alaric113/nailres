@@ -49,6 +49,7 @@ import AdminRoute from './components/AdminRoute';
 import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 
 import RootRedirect from './components/auth/RootRedirect';
+import ScrollToTop from './components/common/ScrollToTop';
 import { useNotification } from './hooks/useNotification'; // New Import
 
 function RootLayout() {
@@ -65,6 +66,7 @@ function RootLayout() {
   return (
     <ToastProvider>
       <PwaUpdatePrompt />
+      <ScrollToTop />
       <Outlet /> {/* This Outlet will render the current route's element */}
     </ToastProvider>
   );

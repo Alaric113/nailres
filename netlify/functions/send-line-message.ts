@@ -214,7 +214,7 @@ const createBookingConfirmationFlex = (customerName: string, serviceNames: strin
 
   return {
     type: 'bubble',
-    size: 'giga', // Maximized width
+    size: 'mega', // Maximized width
     header: {
       type: 'box',
       layout: 'vertical',
@@ -553,6 +553,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     // Handle regular booking notification
     if (!userId || !serviceNames || !dateTime || !bookingId) {
       const missing = [];
+
       if (!userId) missing.push('userId');
       if (!serviceNames) missing.push('serviceNames');
       if (!dateTime) missing.push('dateTime');
@@ -574,10 +575,11 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     });
 
     const messagePromises = [];
+    const style = statusStyles[status] || statusStyles.default;
 
     // 3. Send message to Admin
     if (adminLineUserIds.length > 0 && status !== 'completed') {
-      const adminMessage = `🔔 新預約通知 🔔\n\n客戶：${customerName}\n服務：${serviceNames.join('、')}\n時間：${formattedDateTime}\n金額：$${amount}\n備註：${notes || '無'}\n狀態：${status || '已確認'}`;
+      const adminMessage = `🔔 新預約通知 🔔\n\n客戶：${customerName}\n服務：${serviceNames.join('、')}\n時間：${formattedDateTime}\n金額：$${amount}\n備註：${notes || '無'}\n狀態：${style.statusText || '已確認'}`;
       for (const adminId of adminLineUserIds) {
         messagePromises.push(sendLineMessage(adminId, { type: 'text', text: adminMessage }, adminMessage));
       }

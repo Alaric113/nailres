@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet, useMatches, useNavigate } from 'react-router-dom';
 import {
   HomeIcon,
@@ -40,6 +40,14 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
   const matches = useMatches();
   const navigate = useNavigate();
   const { userProfile, logout } = useAuthStore();
+  const mainContentRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top when location changes
+  useEffect(() => {
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTop = 0;
+    }
+  }, [location.pathname]);
 
   const filteredNavigation = useMemo(() => {
     // Admin and Manager see everything
@@ -174,7 +182,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
         </div>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto focus:outline-none pb-[80px] lg:pb-0">
+        <main 
+          ref={mainContentRef}
+          className="flex-1 overflow-y-auto focus:outline-none pb-[80px] lg:pb-0"
+        >
           <Outlet />
         </main>
         

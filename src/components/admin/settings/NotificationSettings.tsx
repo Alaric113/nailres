@@ -30,7 +30,7 @@ const NotificationSettings: React.FC = () => {
     const [isTesting, setIsTesting] = useState(false);
     const [isSendingPwaTest, setIsSendingPwaTest] = useState(false);
   
-    const isAdminOrManager = userProfile?.role === 'admin' || userProfile?.role === 'manager';
+    const isAdminOrManager = userProfile?.role === 'admin' || userProfile?.role === 'manager' || userProfile?.role === 'designer';
     
     // Fetch Users for LINE Settings
     useEffect(() => {
@@ -42,7 +42,7 @@ const NotificationSettings: React.FC = () => {
              // If not admin/manager (e.g. designer), only show themselves if they have permission
              q = query(collection(db, 'users'), where('__name__', '==', currentUser.uid));
           } else {
-             q = query(collection(db, 'users'), where('role', 'in', ['admin', 'manager']));
+             q = query(collection(db, 'users'), where('role', 'in', ['admin', 'manager', 'designer']));
           }
           
           const querySnapshot = await getDocs(q);
@@ -57,7 +57,7 @@ const NotificationSettings: React.FC = () => {
   
       fetchUsers();
     }, [currentUser, isAdminOrManager]);
-    console.log(notificationTargetUser);
+
   
     // Fetch Designers for PWA Settings (Admin Only)
     useEffect(() => {
