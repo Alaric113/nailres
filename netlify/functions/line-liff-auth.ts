@@ -116,7 +116,7 @@ const handler: Handler = async (event: HandlerEvent) => {
           .where('isEnabled', '==', true)
           .get();
 
-
+        console.log(`[line-liff-auth] Found ${couponsSnapshot.size} potential new user coupons.`);
 
         if (!couponsSnapshot.empty) {
           const batch = db.batch();
