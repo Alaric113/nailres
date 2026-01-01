@@ -287,9 +287,9 @@ const CustomerDetailPage: React.FC = () => {
             </div>
             
             {/* Notes Section */}
-            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-gray-900">備註</h2>
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h2 className="font-bold text-gray-900 text-sm sm:text-base">備註</h2>
                 {!isEditingNotes && (
                   <button 
                     onClick={() => setIsEditingNotes(true)}
@@ -338,27 +338,27 @@ const CustomerDetailPage: React.FC = () => {
 
         {/* Tab: Loyalty */}
         {activeTab === 'loyalty' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
              {/* Points Summary */}
-             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+             <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
-                    <h2 className="font-bold text-gray-900 mb-1">現有忠誠點數</h2>
-                    <p className="text-gray-500 text-sm">可用於折抵消費或兌換獎勵</p>
+                    <h2 className="font-bold text-gray-900 mb-1 text-sm sm:text-base">現有點數</h2>
+                    <p className="text-gray-500 text-xs sm:text-sm">可用於折抵消費或兌換獎勵</p>
                 </div>
                 <div className="text-left sm:text-right w-full sm:w-auto">
-                    <p className="text-3xl font-bold text-primary">{user.loyaltyPoints || 0}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-primary">{user.loyaltyPoints || 0}</p>
                     <p className="text-xs text-gray-400 mt-1 truncate">累積總點數: {pointHistory.reduce((acc, curr) => acc + (curr.points > 0 ? curr.points : 0), 0)}</p>
                 </div>
              </div>
 
              {/* Coupons */}
-             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <TicketIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+             <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                    <TicketIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                     持有優惠券 ({coupons.length})
                 </h3>
                 {coupons.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-3 sm:gap-4">
                         {coupons.map(coupon => (
                              <div key={coupon.id} className={`border rounded-xl p-4 flex justify-between items-start ${coupon.isUsed || (coupon.validUntil && coupon.validUntil.toDate() < new Date()) ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-amber-200'}`}>
                                 <div className="min-w-0 pr-2">
@@ -388,9 +388,9 @@ const CustomerDetailPage: React.FC = () => {
              </div>
 
              {/* Point History */}
-             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <CalendarDaysIcon className="w-5 h-5 text-gray-400" />
+             <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                    <CalendarDaysIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                     點數紀錄
                 </h3>
                 {pointHistory.length > 0 ? (
