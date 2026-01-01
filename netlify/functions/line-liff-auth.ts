@@ -112,7 +112,7 @@ const handler: Handler = async (event: HandlerEvent) => {
       // B. Distribute "New User" Coupons
       try {
         const couponsSnapshot = await db.collection('coupons')
-          .where('targetType', '==', 'isNewUserCoupon')
+          .where('isNewUserCoupon', '==', true)
           .where('isEnabled', '==', true)
           .get();
 
