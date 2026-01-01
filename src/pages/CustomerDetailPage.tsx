@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, query, collection, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useBookings } from '../hooks/useBookings';
 import { useSeasonPasses } from '../hooks/useSeasonPasses';
@@ -70,6 +70,32 @@ const CustomerDetailPage: React.FC = () => {
     };
     fetchUser();
   }, [userId]);
+
+  // Fetch Coupons & History
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [pointHistory, setPointHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchData = async () => {
+        try {
+            // Coupons
+            const couponsQ = query(collection(db, 'user_coupons'), where('userId', '==', userId));
+            const couponsSnap = await getDocs(couponsQ);
+            setCoupons(couponsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+            
+            // Point History
+            const historyQ = query(collection(db, 'point_history'), where('userId', '==', userId), orderBy('createdAt', 'desc'));
+            const historySnap = await getDocs(historyQ);
+            setPointHistory(historySnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    if (activeTab === 'loyalty') {
+        fetchData();
+    }
+  }, [userId, activeTab]);
 
   // Handle notes save
   const handleSaveNotes = async () => {
@@ -171,28 +197,28 @@ const CustomerDetailPage: React.FC = () => {
   if (!user) return <div className="p-8 text-center text-gray-500">找不到該用戶</div>;
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6]">
+    <div className="min-h-screen bg-[#FAF9F6] overflow-x-hidden w-full">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
+        <div className="px-3 sm:px-4 py-3 sm:py-4 max-w-4xl mx-auto">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => navigate('/admin/customers')}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
             >
               <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
             </button>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg overflow-hidden">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-base sm:text-lg overflow-hidden flex-shrink-0">
                 {user.profile.avatarUrl ? (
                   <img src={user.profile.avatarUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
                   (user.profile.displayName || '?')[0]
                 )}
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">{user.profile.displayName || '未命名'}</h1>
-                <p className="text-sm text-gray-500">{user.email}</p>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{user.profile.displayName || '未命名'}</h1>
+                <p className="text-xs sm:text-sm text-gray-500 truncate">{user.email || user.lineUserId?.slice(0, 10) + '...'}</p>
               </div>
             </div>
           </div>
@@ -200,21 +226,22 @@ const CustomerDetailPage: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-100 overflow-hidden">
-        <div className="px-4">
-          <nav className="flex min0 scrollbar-hide -mb-px" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div className="bg-white border-b border-gray-100 sticky top-[57px] sm:top-[65px] z-20">
+        <div className="max-w-4xl mx-auto">
+          <nav className="flex overflow-x-auto scrollbar-hide -mb-px" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {tabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1.5 px-2 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeTab === tab.key
                     ? 'border-primary text-primary'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
-                {tab.label}
+                <span className="hidden xs:inline sm:inline">{tab.label}</span>
+                <span className="xs:hidden sm:hidden">{tab.label.slice(0, 2)}</span>
               </button>
             ))}
           </nav>
@@ -222,7 +249,7 @@ const CustomerDetailPage: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="container mx-auto px-4 py-6 max-w-4xl overflow-hidden">
         {/* Tab: Info */}
         {activeTab === 'info' && (
           <div className="space-y-6">
@@ -311,12 +338,79 @@ const CustomerDetailPage: React.FC = () => {
 
         {/* Tab: Loyalty */}
         {activeTab === 'loyalty' && (
-          <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-            <h2 className="font-bold text-gray-900 mb-4">點數與優惠券</h2>
-            <div className="text-center py-8 text-gray-400">
-              <GiftIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>功能開發中...</p>
-            </div>
+          <div className="space-y-6">
+             {/* Points Summary */}
+             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 className="font-bold text-gray-900 mb-1">現有忠誠點數</h2>
+                    <p className="text-gray-500 text-sm">可用於折抵消費或兌換獎勵</p>
+                </div>
+                <div className="text-left sm:text-right w-full sm:w-auto">
+                    <p className="text-3xl font-bold text-primary">{user.loyaltyPoints || 0}</p>
+                    <p className="text-xs text-gray-400 mt-1 truncate">累積總點數: {pointHistory.reduce((acc, curr) => acc + (curr.points > 0 ? curr.points : 0), 0)}</p>
+                </div>
+             </div>
+
+             {/* Coupons */}
+             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <TicketIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    持有優惠券 ({coupons.length})
+                </h3>
+                {coupons.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {coupons.map(coupon => (
+                             <div key={coupon.id} className={`border rounded-xl p-4 flex justify-between items-start ${coupon.isUsed || (coupon.validUntil && coupon.validUntil.toDate() < new Date()) ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-amber-200'}`}>
+                                <div className="min-w-0 pr-2">
+                                    <h4 className="font-bold text-gray-800 truncate">{coupon.title}</h4>
+                                    <p className="text-xs text-gray-500 mt-1 truncate">{coupon.description}</p>
+                                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                        <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600">{coupon.code}</span>
+                                        {coupon.isUsed ? <span className="text-xs text-red-500 font-bold whitespace-nowrap">已使用</span> : <span className="text-xs text-green-600 font-bold whitespace-nowrap">可使用</span>}
+                                    </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                     <span className="block text-lg font-bold text-primary whitespace-nowrap">
+                                        {coupon.type === 'percentage' ? `${100 - coupon.value}% OFF` : `$${coupon.value}`}
+                                     </span>
+                                     {coupon.validUntil && (
+                                         <p className="text-[10px] text-gray-400 mt-1 whitespace-nowrap">
+                                             ~ {format(coupon.validUntil.toDate(), 'yyyy-MM-dd')}
+                                         </p>
+                                     )}
+                                </div>
+                             </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-center text-gray-400 py-4 text-sm">尚無優惠券</p>
+                )}
+             </div>
+
+             {/* Point History */}
+             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <CalendarDaysIcon className="w-5 h-5 text-gray-400" />
+                    點數紀錄
+                </h3>
+                {pointHistory.length > 0 ? (
+                    <div className="space-y-3">
+                        {pointHistory.map(history => (
+                            <div key={history.id} className="flex justify-between items-center text-sm border-b border-gray-50 last:border-0 pb-3 last:pb-0">
+                                <div className="min-w-0 pr-2">
+                                    <p className="font-medium text-gray-800 truncate">{history.description || '點數變動'}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">{history.createdAt ? format(history.createdAt.toDate(), 'yyyy-MM-dd HH:mm') : '-'}</p>
+                                </div>
+                                <span className={`font-bold flex-shrink-0 ${history.points > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                    {history.points > 0 ? '+' : ''}{history.points}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-center text-gray-400 py-4 text-sm">尚無點數紀錄</p>
+                )}
+             </div>
           </div>
         )}
 
