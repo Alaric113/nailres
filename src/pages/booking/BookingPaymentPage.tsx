@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useGlobalSettings } from '../../hooks/useGlobalSettings';
 import { useToast } from '../../context/ToastContext';
@@ -64,34 +64,34 @@ const BookingPaymentPage = () => {
     
     setIsSubmitting(true);
     try {
-        const bookingRef = doc(db, 'bookings', bookingId);
-        const paymentNote = `[訂金已付] 末五碼: ${note}`;
-        
-        // Append to existing notes or create new line
-        // We'll prepend it to make it visible
-        const updatedNotes = booking.notes 
-            ? `${paymentNote}\n\n${booking.notes}`
-            : paymentNote;
+        const currentUser = (await import('../../lib/firebase')).auth.currentUser;
+        if (!currentUser) throw new Error('Not authenticated');
 
-        await updateDoc(bookingRef, {
-            status: 'pending_confirmation',
-            notes: updatedNotes,
-            // updatedBy: userProfile?.id || 'customer', // Optional
-            updatedAt: serverTimestamp()
+        const token = await currentUser.getIdToken();
+
+        const response = await fetch('/api/submit-payment', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                bookingId,
+                note
+            })
         });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Payment submission failed');
+        }
 
         setIsSuccess(true);
         showToast('付款資訊已送出', 'success');
 
-        // Optional: Trigger Notification API again if needed
-        // but 'pending_confirmation' usually doesn't trigger "New Booking" notification if it was already sent?
-        // Actually, the initial booking creation sent a notification.
-        // We might want to notify "Payment Received".
-        // For now, relies on Admin checking "Pending Confirmation".
-
-    } catch (err) {
+    } catch (err: any) {
         console.error(err);
-        showToast('更新失敗，請稍後再試', 'error');
+        showToast(err.message || '更新失敗，請稍後再試', 'error');
     } finally {
         setIsSubmitting(false);
     }

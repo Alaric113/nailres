@@ -302,7 +302,8 @@ const BookingPage = () => {
     const initialStatus: BookingStatus = selectedPass 
         ? 'pending_confirmation' 
         : (userProfile?.role === 'platinum' ? 'pending_confirmation' : 'pending_payment');
-
+    
+    
     try {
       const batch = writeBatch(db);
       const newBookingRef = doc(collection(db, 'bookings'));

@@ -30,18 +30,18 @@ const BookingForm: React.FC<BookingFormProps> = ({ totalPrice, originalPrice, di
         
         <div className="pt-2 pb-4 md:pb-0">
           {/* Discount Detail */}
-          {discountAmount && discountAmount > 0 && (
+          {discountAmount && discountAmount > 0 ? (
              <div className="flex justify-between items-center mb-1 text-sm">
                 <span className="text-gray-500">原價</span>
-                <span className="text-gray-400 ">${originalPrice}</span>
+                <span className="text-gray-400 line-through">${originalPrice}</span>
              </div>
-          )}
-          {discountAmount && discountAmount > 0 && (
+          ) : null}
+          {discountAmount && discountAmount > 0 ? (
              <div className="flex justify-between items-center mb-2 text-sm">
                 <span className="text-purple-600 font-medium">折扣優惠 (會員/優惠券)</span>
                 <span className="text-purple-600 font-bold">-${discountAmount}</span>
              </div>
-          )}
+          ) : null}
           <div className="flex justify-between items-center mb-4 border-t border-dashed border-gray-200 pt-3">
             <span className="text-gray-600 font-medium">總計費用</span>
             <span className="text-2xl font-bold text-[#9F9586]">${totalPrice}</span>

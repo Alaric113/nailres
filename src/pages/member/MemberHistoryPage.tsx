@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useBookings } from '../../hooks/useBookings';
 import BookingCard from '../../components/dashboard/BookingCard';
@@ -6,14 +5,18 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { ArchiveBoxIcon, ChevronLeftIcon, CalendarDaysIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { isBefore } from 'date-fns';
+import { isLiffBrowser } from '../../lib/liff'; // Import isLiffBrowser
 
 type Tab = 'upcoming' | 'history';
 
 const MemberHistoryPage = () => {
-  const { bookings, isLoading, error, cancelBooking } = useBookings(); // Added cancelBooking
+  const { bookings, isLoading, error, cancelBooking } = useBookings();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('upcoming');
   const now = new Date();
+  
+  // Check if running in LIFF
+  const isLiff = isLiffBrowser();
 
   // Filter Bookings
   const upcomingBookings = bookings.filter(b => {
@@ -31,10 +34,14 @@ const MemberHistoryPage = () => {
   const displayedBookings = activeTab === 'upcoming' ? upcomingBookings : historyBookings;
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#FAF9F6] pb-24">
+    <div className={`min-h-screen bg-[#FAF9F6] pb-24 ${isLiff ? 'pt-[env(safe-area-inset-top)]' : ''}`}>
       {/* Header */}
-      <div className="bg-white px-4 py-3 shadow-sm sticky top-16 z-30">
+      <div className={`bg-white px-4 py-3 shadow-sm sticky z-30 ${isLiff ? 'top-0 pt-2' : 'top-16'}`}>
         <div className="flex items-center gap-2 mb-4">
+          {/* Hide Back Button in LIFF if appropriate, or keep it. User requested optimization. 
+              Usually in LIFF, native header might handle back, or we want full width. 
+              Let's keep it but ensure spacing is distinct. 
+          */}
           <button 
             onClick={() => navigate(-1)}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"

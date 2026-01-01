@@ -15,6 +15,7 @@ import BookingPaymentPage from './pages/booking/BookingPaymentPage'; // New Impo
 import StoreInfoPage from './pages/StoreInfoPage';
 import UserMemberPage from './pages/UserMemberPage';
 import MemberHistoryPage from './pages/member/MemberHistoryPage';
+import MemberOrderDetailPage from './pages/member/MemberOrderDetailPage'; // New Import
 import ReschedulePage from './pages/member/ReschedulePage';
 import MemberRewardsPage from './pages/member/MemberRewardsPage';
 import MemberPassPage from './pages/member/MemberPassPage';
@@ -112,6 +113,7 @@ const routes = [
             ],
           },
           { path: 'liff', element: <LiffEntry /> },
+          { path: 'orders/:bookingId', element: <MemberOrderDetailPage /> }, // New Order Detail Route
           { path: 'orders/:orderId/feedback', element: <OrderFeedbackPage /> }, // Feedback Route
         ],
       },

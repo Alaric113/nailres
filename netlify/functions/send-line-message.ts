@@ -123,8 +123,15 @@ const statusStyles: Record<string, {
 }> = {
   pending_payment: {
     headerColor: '#F5F3EF', // Soft cream
-    titleText: '預約確認中',
+    titleText: '等待訂金支付',
     statusText: '待付訂金',
+    statusTextColor: '#B45309', // Amber 700
+    themeColor: '#D97706', // Amber 600
+  },
+  pending_confirmation: {
+    headerColor: '#F5F3EF', // Soft cream
+    titleText: '等待確認',
+    statusText: '待確認',
     statusTextColor: '#B45309', // Amber 700
     themeColor: '#D97706', // Amber 600
   },
@@ -163,7 +170,7 @@ const createBookingConfirmationFlex = (customerName: string, serviceNames: strin
 
   let actionData: any = {
     label: '查看詳細資訊',
-    uri: 'https://liff.line.me/' + process.env.VITE_LIFF_ID
+    uri: 'https://liff.line.me/' + process.env.VITE_LIFF_ID + '/orders/' + bookingId
   };
 
   if (status === 'pending_payment') {
