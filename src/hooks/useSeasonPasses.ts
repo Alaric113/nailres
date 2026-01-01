@@ -10,7 +10,9 @@ import {
     orderBy,
     getDoc,
     arrayUnion,
-    Timestamp
+    Timestamp,
+    increment,
+    serverTimestamp
 } from 'firebase/firestore';
 import type { ActivePass } from '../types/user';
 import { db } from '../lib/firebase';
@@ -72,7 +74,8 @@ export const useSeasonPasses = () => {
             // 1. Get the Pass Definition
             const passDoc = await getDoc(doc(db, 'season_passes', passId));
             if (!passDoc.exists()) throw new Error('Pass not found');
-            const passDef = passDoc.data() as SeasonPass;
+            const passDef = { id: passDoc.id, ...passDoc.data() } as SeasonPass;
+            console.log(passDoc);
 
             // 2. Calculate Expiry
             // Simple parsing: '3個月' -> 3 months, '1年' -> 1 year
@@ -114,11 +117,31 @@ export const useSeasonPasses = () => {
                 remainingUsages
             };
 
-            // 5. Update User Document
+
+            // 5. Calculate Points & Update User
+            const variant = passDef.variants.find(v => v.name === variantName);
+            const price = variant ? variant.price : 0;
+            const pointsEarned = Math.floor(price / 1000);
+
             const userRef = doc(db, 'users', userId);
+            console.log('User Reference:', userRef);
+
             await updateDoc(userRef, {
-                activePasses: arrayUnion(newActivePass)
+                activePasses: arrayUnion(newActivePass),
+                loyaltyPoints: increment(pointsEarned)
             });
+
+            // 6. Create Point History Record
+            if (pointsEarned > 0) {
+                await addDoc(collection(db, 'point_history'), {
+                    userId,
+                    amount: pointsEarned,
+                    type: 'earned',
+                    reason: `購買季票: ${passDef.name} ${variantName}`,
+                    refId: `sp_${passId}_${Date.now()}`,
+                    createdAt: serverTimestamp()
+                });
+            }
 
         } catch (err) {
             console.error("Error activating pass:", err);

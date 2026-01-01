@@ -21,6 +21,7 @@ import AccountSettings from '../components/admin/settings/AccountSettings';
 import NotificationSettings from '../components/admin/settings/NotificationSettings';
 import BookingSettings from '../components/admin/settings/BookingSettings';
 import SeasonPassSettings from '../components/admin/settings/SeasonPassSettings';
+import ReviewSettings from '../components/admin/settings/ReviewSettings';
 
 // --- Main Settings Dashboard ---
 
@@ -117,6 +118,14 @@ const SettingsPage: React.FC = () => {
               onClick: () => setSearchParams({ view: 'booking' }),
               roles: ['admin', 'manager']
             },
+            { 
+              title: "客戶評論", 
+              icon: UserGroupIcon, // Or ChatBubbleLeftRightIcon if available, but UserGroup is imported. Let's use UserGroup for now or import new one.
+              color: "bg-teal-50 text-teal-600", 
+              subtext: "評論管理與顯示設定", 
+              onClick: () => setSearchParams({ view: 'reviews' }),
+              roles: ['admin', 'manager']
+            },
         ]
     },
     {
@@ -146,6 +155,7 @@ const SettingsPage: React.FC = () => {
   if (currentView === 'account') return <div className="p-4 sm:p-6 lg:p-8"><AccountSettings /></div>;
   if (currentView === 'booking') return <div className="p-4 sm:p-6 lg:p-8"><BookingSettings /></div>;
   if (currentView === 'season-pass') return <div className="p-4 sm:p-6 lg:p-8"><SeasonPassSettings /></div>;
+  if (currentView === 'reviews') return <div className="p-4 sm:p-6 lg:p-8"><ReviewSettings /></div>;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">

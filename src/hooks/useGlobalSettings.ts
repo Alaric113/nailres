@@ -39,6 +39,10 @@ export interface GlobalSettings {
   };
   seasonPassPromo?: SeasonPassPromo;
   seasonPassFlexMessage?: SeasonPassFlexSettings;
+  reviewSettings?: {
+    showReviews: boolean;
+    minRating: number;
+  };
 }
 
 const defaultPromo: SeasonPassPromo = {
@@ -64,7 +68,8 @@ export const useGlobalSettings = () => {
     serviceNotices: [], // Initialize
     bankInfo: { bankCode: '', bankName: '', accountNumber: '', accountName: '', note: '' },
     seasonPassPromo: defaultPromo,
-    seasonPassFlexMessage: defaultFlexSettings
+    seasonPassFlexMessage: defaultFlexSettings,
+    reviewSettings: { showReviews: true, minRating: 4 }
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +88,7 @@ export const useGlobalSettings = () => {
             bankInfo: data.bankInfo || { bankCode: '', bankName: '', accountNumber: '', accountName: '', note: '' },
             seasonPassPromo: data.seasonPassPromo || defaultPromo,
             seasonPassFlexMessage: data.seasonPassFlexMessage || defaultFlexSettings,
+            reviewSettings: data.reviewSettings || { showReviews: true, minRating: 4 },
           });
         }
       } catch (err) {

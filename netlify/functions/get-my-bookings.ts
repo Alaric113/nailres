@@ -2,41 +2,71 @@ import type { Handler, HandlerEvent } from '@netlify/functions';
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
+// Initialize Firebase Admin SDK
 const initFirebase = () => {
-    if (!admin.apps.length) {
-        try {
-            const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
-            const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-            const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-            const projectId = process.env.VITE_FIREBASE_PROJECT_ID;
+    if (admin.apps.length > 0) {
+        return;
+    }
 
-            let credential;
+    console.log('[get-my-bookings] Initializing Firebase Admin...');
+    let serviceAccount: any = null;
 
-            if (serviceAccountEnv) {
-                let jsonStr = serviceAccountEnv;
+    try {
+        // Option 1: Full JSON in FIREBASE_SERVICE_ACCOUNT
+        const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+        if (serviceAccountJson) {
+            try {
+                let jsonStr = serviceAccountJson;
+                // Check if base64 encoded
                 if (!jsonStr.trim().startsWith('{')) {
                     try {
                         jsonStr = Buffer.from(jsonStr, 'base64').toString('utf-8');
                     } catch (e) {
-                        console.warn("[get-my-bookings] Failed to decode base64, using raw.");
+                        console.warn("[get-my-bookings] Failed to decode FIREBASE_SERVICE_ACCOUNT from Base64, attempting to use raw value.");
                     }
                 }
-                credential = admin.credential.cert(JSON.parse(jsonStr));
-            } else if (privateKey && clientEmail) {
-                credential = admin.credential.cert({
-                    projectId,
-                    clientEmail,
-                    privateKey: privateKey.replace(/\\n/g, '\n')
-                });
-            } else {
-                throw new Error("Missing Firebase credentials.");
+                serviceAccount = JSON.parse(jsonStr);
+            } catch (e) {
+                console.error('[get-my-bookings] Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:', e);
+                serviceAccount = null;
+            }
+        }
+
+        // Option 2: Individual variables (Fallback or Primary if Option 1 missing)
+        if (!serviceAccount && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+            let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+            // Fix potential formatting issues with env vars
+            if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+                privateKey = privateKey.slice(1, -1);
+            }
+            if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
+                privateKey = privateKey.slice(1, -1);
             }
 
-            admin.initializeApp({ credential });
-        } catch (error: any) {
-            console.error("[get-my-bookings] Init failed:", error);
-            throw error;
+            // Replace escaped newlines (handle both \\n and \n)
+            privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
+
+            serviceAccount = {
+                projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                privateKey: privateKey
+            };
         }
+
+        if (serviceAccount) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+            });
+            console.log('[get-my-bookings] Firebase initialized successfully.');
+        } else {
+            console.warn("[get-my-bookings] Firebase credentials missing.");
+            throw new Error("Missing Firebase Credentials");
+        }
+    } catch (e) {
+        console.error("[get-my-bookings] Error init firebase admin:", e);
+        throw e;
     }
 };
 

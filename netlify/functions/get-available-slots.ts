@@ -134,6 +134,7 @@ const handler: Handler = async (event: HandlerEvent) => {
             }
         });
 
+
         // 3. Calculate Slots
         const slots: string[] = []; // Return ISO strings
 
@@ -143,6 +144,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         // We construct "YYYY-MM-DDTHH:mm:00+08:00" to ensure consistent absolute time regardless of server TZ.
 
         const timeSlots = businessData.timeSlots || [];
+        console.log(serviceDuration)
 
         timeSlots.forEach((slot: any) => {
             // Force +08:00 timezone
@@ -177,6 +179,7 @@ const handler: Handler = async (event: HandlerEvent) => {
                 currentSlotStart = addMinutes(currentSlotStart, SLOT_INTERVAL);
             }
         });
+
 
         return {
             statusCode: 200,

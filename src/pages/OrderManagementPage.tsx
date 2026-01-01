@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { format, isSameMonth } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { doc, getDoc, writeBatch, collection, getDocs, orderBy, query } from 'firebase/firestore'; // Added imports
+import { doc, getDoc, writeBatch, collection, getDocs, orderBy, query, where, limit, serverTimestamp } from 'firebase/firestore'; // Added imports
 import { db } from '../lib/firebase';
 import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
 import { useCurrentDesigner } from '../hooks/useCurrentDesigner'; // New hook
@@ -109,6 +109,21 @@ const OrderManagementPage = () => {
   const grantLoyaltyPoints = async (batch: ReturnType<typeof writeBatch>, booking: EnrichedBooking) => {
     if (!booking.userId || booking.amount <= 0) return;
     try {
+        // 1. Check if points already granted for this booking
+        const historyRef = collection(db, 'point_history');
+        const q = query(
+            historyRef, 
+            where('refId', '==', booking.id),
+            where('type', '==', 'earned'),
+            limit(1)
+        );
+        const historySnap = await getDocs(q);
+        
+        if (!historySnap.empty) {
+            console.log(`Points already granted for booking ${booking.id}, skipping.`);
+            return;
+        }
+
         const settingsRef = doc(db, 'globals', 'settings');
         const settingsSnap = await getDoc(settingsRef);
         const loyaltySettings = settingsSnap.data()?.loyaltySettings;
@@ -122,12 +137,26 @@ const OrderManagementPage = () => {
             const currentPoints = userSnap.data()?.loyaltyPoints || 0;
             batch.update(userRef, { loyaltyPoints: currentPoints + pointsEarned });
 
+            // Create record in point_history
+            // Use set on a custom ID or addDoc. 
+            // Using addDoc for consistent history
+            const newHistoryRef = doc(collection(db, 'point_history')); 
+            batch.set(newHistoryRef, {
+                userId: booking.userId,
+                amount: pointsEarned,
+                type: 'earned',
+                reason: `完成預約 #${booking.id.substring(0, 6)}`,
+                refId: booking.id,
+                createdAt: serverTimestamp(), // Use serverTimestamp for consistency
+            });
+            
+            // Legacy Log (Optional: Keep it if other parts use it, or deprecate)
             const logRef = doc(db, 'loyaltyPointLogs', `${booking.id}_${Date.now()}`);
             batch.set(logRef, {
-            userId: booking.userId,
-            pointsChange: pointsEarned,
-            reason: `完成預約 #${booking.id.substring(0, 6)}`,
-            createdAt: new Date(),
+                userId: booking.userId,
+                pointsChange: pointsEarned,
+                reason: `完成預約 #${booking.id.substring(0, 6)}`,
+                createdAt: new Date(),
             });
         }
         }

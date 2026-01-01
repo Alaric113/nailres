@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { useGlobalSettings } from '../../hooks/useGlobalSettings';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
 
@@ -15,6 +16,7 @@ import 'swiper/css/autoplay';
 import 'swiper/css/effect-fade';
 
 const CustomerReviews = () => {
+  const { settings, isLoading: settingsLoading } = useGlobalSettings();
   const [reviews, setReviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -23,8 +25,8 @@ const CustomerReviews = () => {
       try {
         const reviewsRef = collection(db, 'public_reviews');
         // Note: orderBy('createdAt', 'desc') might require an index. 
-        // If it fails, rely on default order or create index.
-        const q = query(reviewsRef, limit(5));
+        // We limit to 20 to allow for client-side filtering (e.g. if some are hidden)
+        const q = query(reviewsRef, limit(20));
         
         try {
            const querySnapshot = await getDocs(q);
@@ -37,18 +39,10 @@ const CustomerReviews = () => {
                     rating: data.rating,
                     comment: data.comment
                  },
-                 serviceNames: data.serviceNames
+                 serviceNames: data.serviceNames,
+                 isReviewHidden: data.isReviewHidden // Explicitly get hidden status
               };
            });
-
-           // Fallback Dummy Data if empty (for demo purposes)
-           if (fetchedReviews.length === 0) {
-              fetchedReviews = [{
-                  id: 'test-1',
-                  customerFeedback: { rating: 5, comment: "這裡目前的氣氛非常放鬆，設計師非常專業！" },
-                  serviceNames: ['測試服務']
-              }];
-           }
 
            setReviews(fetchedReviews);
         } catch (err) {
@@ -64,7 +58,19 @@ const CustomerReviews = () => {
     fetchReviews();
   }, []);
 
-  if (isLoading || reviews.length === 0) return null;
+  if (settingsLoading || isLoading) return null;
+
+  const reviewSettings = settings.reviewSettings || { showReviews: true, minRating: 4 };
+
+  if (!reviewSettings.showReviews) return null;
+
+  const filteredReviews = reviews.filter(r => 
+      !r.isReviewHidden && 
+      (r.customerFeedback.rating || 0) >= reviewSettings.minRating
+  );
+
+  if (filteredReviews.length === 0) return null; // Or return dummy if no real reviews? 
+  // Let's use filteredReviews for display instead of reviews.
 
   return (
     <section className="bg-[#9F9586] rounded-2xl p-6 shadow-soft relative overflow-hidden my-8 mx-4 md:mx-auto max-w-4xl">
@@ -86,7 +92,7 @@ const CustomerReviews = () => {
           }}
           className="w-full relative z-10"
        >
-          {reviews.map((review, index) => (
+          {filteredReviews.map((review, index) => (
              <SwiperSlide key={index}>
                 <div className="flex flex-col items-start text-center space-y-4 px-2">
                    {/* Stars */}
