@@ -89,6 +89,22 @@ const BookingPaymentPage = () => {
         setIsSuccess(true);
         showToast('付款資訊已送出', 'success');
 
+        // Send LINE Notification to Admins (Fire and forget, don't block UI)
+        fetch('/api/send-line-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'payment_report',
+                bookingId,
+                note,
+                customerName: booking.customerName || '客戶',
+                serviceName: booking.serviceNames?.join(', ') || '一般預約',
+                amount: booking.totalAmount || 1000 // Using totalAmount if available, or default deposit
+            })
+        }).catch(err => console.error('Failed to send LINE notification:', err));
+        
+        setIsSuccess(true);
+
     } catch (err: any) {
         console.error(err);
         showToast(err.message || '更新失敗，請稍後再試', 'error');
@@ -111,7 +127,7 @@ const BookingPaymentPage = () => {
             管理員確認款項後，您的預約將會正式成立。
           </p>
           <button 
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate(`/orders/${bookingId}`)}
             className="px-6 py-2 bg-[#9F9586] text-white rounded-lg hover:bg-[#8a8174]"
           >
             查看我的預約

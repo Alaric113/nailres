@@ -146,7 +146,7 @@ const statusStyles: Record<string, {
     headerColor: '#F3F4F6', // Gray
     titleText: '服務完成',
     statusText: '已完成',
-    statusTextColor: '#4B5563',
+    statusTextColor: '#1159bdff',
     themeColor: '#6B7280',
   },
   cancelled: {
@@ -175,7 +175,7 @@ const createBookingConfirmationFlex = (customerName: string, serviceNames: strin
 
   if (status === 'pending_payment') {
     actionData = {
-      label: '前往付款', // Go to Payment
+      label: '我已付款?', // Go to Payment
       uri: 'https://liff.line.me/' + process.env.VITE_LIFF_ID + '/booking/pay/' + bookingId
     };
   } else if (bookingId) {
@@ -206,7 +206,7 @@ const createBookingConfirmationFlex = (customerName: string, serviceNames: strin
         uri: 'https://liff.line.me/' + process.env.VITE_LIFF_ID + '/orders/' + bookingId + '/feedback'
       },
       style: 'primary',
-      color: '#D97706', // Accent color for feedback? Or brand color? Using Amber for now to stand out or maybe consistent.
+      color: '#9F9586', // Accent color for feedback? Or brand color? Using Amber for now to stand out or maybe consistent.
       height: 'sm',
       margin: 'md'
     });
@@ -481,7 +481,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       .map(doc => (doc.data() as UserDocument).lineUserId)
       .filter((id): id is string => !!id);
 
-    // Handle test notification
+    // Handle Test Notification
     if (type === 'test_notification') {
       if (adminLineUserIds.length > 0) {
         const testMessage = `✅ 這是一則來自後台的測試訊息 (${new Date().toLocaleTimeString()})。如果您收到此訊息，表示 LINE 通知功能運作正常！`;
@@ -495,6 +495,34 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
           statusCode: 404,
           body: JSON.stringify({ message: 'No admins found with notifications enabled.' }),
         };
+      }
+    }
+
+    // Handle Payment Report Notification
+    if (type === 'payment_report') {
+      const { note, amount, customerName, serviceName, bookingId } = body;
+
+      if (!note || !bookingId) {
+        return { statusCode: 400, body: JSON.stringify({ message: "Missing note or bookingId" }) };
+      }
+
+      if (adminLineUserIds.length > 0) {
+        const adminMessage = `💰 匯款回報通知 💰\n\n客戶：${customerName || '未知客戶'}\n訂單：${serviceName || '一般預約'}\n金額：$${amount || '-'}\n末五碼：${note}\n\n請至後台確認款項與訂單狀態。`;
+        const actionUrl = `https://liff.line.me/${process.env.VITE_LIFF_ID}/orders/${bookingId}`;
+
+        // Send simple text message (easier for admins to read quickly)
+        // Or Flex message for better looking actions
+        // Let's stick to text for simplicity as requested, but maybe add link
+
+        await Promise.all(adminLineUserIds.map(adminId => sendLineMessage(adminId, {
+          type: 'text',
+          text: `${adminMessage}\n\n👇 查看訂單\n${actionUrl}`
+        }, adminMessage)));
+
+        return { statusCode: 200, body: JSON.stringify({ message: 'Payment report sent to admins.' }) };
+      } else {
+        console.log("[send-line-message] No admins available to receive payment report.");
+        return { statusCode: 200, body: JSON.stringify({ message: 'No admins subscribed.' }) };
       }
     }
 

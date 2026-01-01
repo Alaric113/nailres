@@ -200,12 +200,15 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
                                     if (activePass) {
                                         // Default: use service ID (fallback)
                                         remainingCount = activePass.remainingUsages?.[service.id];
+                                       
                                         
                                         // If we have mapping, try to find specific item
                                         if (passContentItems) {
                                             const contentItem = passContentItems.find(item => item.serviceId === service.id);
+
                                             if (contentItem) {
                                                 remainingCount = activePass.remainingUsages?.[contentItem.id];
+                                                
                                             }
                                         }
                                     }
@@ -253,9 +256,9 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-baseline gap-2">
+                                                <div className={`flex items-baseline gap-2 ${price == 0 ? 'hidden' : ''}`}>
                                                     <span className={`text-lg font-serif font-bold`}>
-                                                        ${isPlatinum ? originalPrice : price}<span className="text-xs"> 起</span>
+                                                        ${isPlatinum ? originalPrice : price}<span className={`text-xs `}> 起</span>
                                                     </span>
                                                 </div>
                                             </div>
