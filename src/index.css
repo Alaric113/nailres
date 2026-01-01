@@ -40,11 +40,22 @@
   /* Re-enable text selection for input fields */
   input,
   textarea,
+  select,
   [contenteditable] {
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
     user-select: text;
+  }
+
+  /* Prevent iOS auto-zoom on input focus (requires 16px minimum) */
+  @media screen and (max-width: 767px) {
+
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
   }
 
   /* Optimize font rendering */
