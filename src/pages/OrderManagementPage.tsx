@@ -81,7 +81,7 @@ const OrderManagementPage = () => {
     
     // Monthly Revenue (This Month)
     const monthlyRevenue = bookings
-      .filter(b => isSameMonth(b.dateTime, now) && b.status !== 'cancelled')
+      .filter(b => isSameMonth(b.dateTime, now) && b.status === 'completed')
       .reduce((acc, curr) => acc + curr.amount, 0);
     
     const pendingCount = bookings.filter(b => b.status === 'pending_confirmation' || b.status === 'pending_payment').length;
