@@ -249,12 +249,12 @@ const CustomerDetailPage: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-6 max-w-4xl overflow-hidden">
+      <div className="px-3 sm:px-4 py-4 sm:py-6 max-w-4xl mx-auto">
         {/* Tab: Info */}
         {activeTab === 'info' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-              <h2 className="font-bold text-gray-900 mb-4">用戶資訊</h2>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+              <h2 className="font-bold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">用戶資訊</h2>
               <dl className="space-y-3 text-sm">
                 <div className="flex justify-between items-center">
                   <dt className="text-gray-500">角色</dt>
