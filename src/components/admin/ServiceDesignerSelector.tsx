@@ -49,7 +49,7 @@ const ServiceDesignerSelector: React.FC<ServiceDesignerSelectorProps> = ({
           {selectedDesignerIds.length === designers.length ? '全取消' : '全選'}
         </button>
       </div>
-      
+
       <p className="text-sm text-gray-500 mb-4">
         請勾選可執行此服務的設計師。若未勾選任何設計師，則預設為 <strong>所有設計師</strong> 皆可執行。
       </p>
@@ -63,8 +63,8 @@ const ServiceDesignerSelector: React.FC<ServiceDesignerSelectorProps> = ({
               onClick={() => handleToggle(designer.id)}
               className={`
                 flex items-center p-3 rounded-lg border cursor-pointer transition-all
-                ${isSelected 
-                  ? 'border-primary bg-primary/5 ring-1 ring-primary' 
+                ${isSelected
+                  ? 'border-primary bg-primary/5 ring-1 ring-primary'
                   : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'
                 }
               `}
@@ -79,21 +79,21 @@ const ServiceDesignerSelector: React.FC<ServiceDesignerSelectorProps> = ({
                   </svg>
                 )}
               </div>
-              
+
               <div className="flex items-center">
-                 {designer.avatarUrl ? (
-                    <img src={designer.avatarUrl} alt={designer.name} className="w-8 h-8 rounded-full object-cover mr-3 bg-gray-200" />
-                 ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-200 mr-3 flex items-center justify-center text-xs text-gray-500">
-                        {designer.name[0]}
-                    </div>
-                 )}
-                 <div>
-                     <p className={`text-sm font-medium ${isSelected ? 'text-primary-dark' : 'text-gray-700'}`}>
-                        {designer.name}
-                     </p>
-                     <p className="text-xs text-gray-400">{designer.title || '設計師'}</p>
-                 </div>
+                {designer.avatarUrl ? (
+                  <img src={designer.avatarUrl} alt={designer.name} className="w-8 h-8 rounded-full object-cover mr-3 bg-gray-200" loading="lazy" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-200 mr-3 flex items-center justify-center text-xs text-gray-500">
+                    {designer.name[0]}
+                  </div>
+                )}
+                <div>
+                  <p className={`text-sm font-medium ${isSelected ? 'text-primary-dark' : 'text-gray-700'}`}>
+                    {designer.name}
+                  </p>
+                  <p className="text-xs text-gray-400">{designer.title || '設計師'}</p>
+                </div>
               </div>
             </div>
           );

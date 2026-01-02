@@ -26,10 +26,10 @@ const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, s
         const q = query(designersRef, where('isActive', '==', true));
         const snap = await getDocs(q);
         let activeDesigners = snap.docs.map(d => ({ id: d.id, ...d.data() } as Designer))
-                                        .sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
+          .sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
 
         if (allowedDesignerIds) {
-           activeDesigners = activeDesigners.filter(d => allowedDesignerIds.includes(d.id));
+          activeDesigners = activeDesigners.filter(d => allowedDesignerIds.includes(d.id));
         }
 
         setDesigners(activeDesigners);
@@ -80,7 +80,7 @@ const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, s
                 )}
                 <div className="flex-shrink-0 w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 mr-4">
                   {designer.avatarUrl ? (
-                    <img src={designer.avatarUrl} alt={designer.name} className="w-full h-full object-cover" />
+                    <img src={designer.avatarUrl} alt={designer.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <UserCircleIcon className="w-10 h-10 text-gray-400" />
                   )}

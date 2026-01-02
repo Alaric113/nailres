@@ -62,13 +62,13 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, service }) => {
         <Bars3Icon className="w-5 h-5" />
       </button>
       <div className="flex items-center gap-3">
-          {service.imageUrl && (
-            <img src={service.imageUrl} alt="" className="w-8 h-8 rounded object-cover bg-gray-100" />
-          )}
-          <span className="text-gray-800 font-medium">{service.name}</span>
+        {service.imageUrl && (
+          <img src={service.imageUrl} alt="" className="w-8 h-8 rounded object-cover bg-gray-100" loading="lazy" />
+        )}
+        <span className="text-gray-800 font-medium">{service.name}</span>
       </div>
       <span className="ml-auto text-xs text-gray-500">
-         ${service.price}
+        ${service.price}
       </span>
     </li>
   );
@@ -99,22 +99,22 @@ const ServiceReorderModal: React.FC<ServiceReorderModalProps> = ({
   // Initialize selected category
   useEffect(() => {
     if (isOpen) {
-        if (initialCategory && initialCategory !== 'all') {
-            setSelectedCategory(initialCategory);
-        } else if (categories.length > 0) {
-            setSelectedCategory(categories[0].name); // Default to first category if 'all' passed or needed
-        }
+      if (initialCategory && initialCategory !== 'all') {
+        setSelectedCategory(initialCategory);
+      } else if (categories.length > 0) {
+        setSelectedCategory(categories[0].name); // Default to first category if 'all' passed or needed
+      }
     }
   }, [isOpen, initialCategory, categories]);
 
   // Filter and sort services when category changes
   useEffect(() => {
     if (!selectedCategory || selectedCategory === 'all') return;
-    
+
     const filtered = services
-        .filter(s => s.category === selectedCategory)
-        .sort((a, b) => (a.order || 0) - (b.order || 0)); // Sort by order
-    
+      .filter(s => s.category === selectedCategory)
+      .sort((a, b) => (a.order || 0) - (b.order || 0)); // Sort by order
+
     setLocalServices(filtered);
   }, [selectedCategory, services]);
 
@@ -165,57 +165,57 @@ const ServiceReorderModal: React.FC<ServiceReorderModalProps> = ({
       <div className="space-y-4">
         {/* Category Selector */}
         <div>
-           <label className="block text-sm font-medium text-gray-700 mb-1">選擇分類</label>
-           <select 
-             value={selectedCategory} 
-             onChange={(e) => setSelectedCategory(e.target.value)}
-             className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-           >
-              {categories.map(cat => (
-                  <option key={cat.id} value={cat.name}>{cat.name}</option>
-              ))}
-           </select>
+          <label className="block text-sm font-medium text-gray-700 mb-1">選擇分類</label>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+          >
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.name}>{cat.name}</option>
+            ))}
+          </select>
         </div>
 
         {/* DnD List */}
         <div className="bg-gray-50 rounded-lg p-2 min-h-[300px] max-h-[50vh] overflow-y-auto border border-gray-200">
-             {localServices.length === 0 ? (
-                 <p className="text-center text-gray-400 py-10">此分類無服務項目</p>
-             ) : (
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                >
-                    <SortableContext 
-                        items={localServices.map(s => s.id)}
-                        strategy={verticalListSortingStrategy}
-                    >
-                        <ul>
-                            {localServices.map(service => (
-                                <SortableItem key={service.id} id={service.id} service={service} />
-                            ))}
-                        </ul>
-                    </SortableContext>
-                </DndContext>
-             )}
+          {localServices.length === 0 ? (
+            <p className="text-center text-gray-400 py-10">此分類無服務項目</p>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={localServices.map(s => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul>
+                  {localServices.map(service => (
+                    <SortableItem key={service.id} id={service.id} service={service} />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          )}
         </div>
 
         {/* Footer Actions */}
         <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
-           <button 
-             onClick={onClose}
-             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-           >
-             取消
-           </button>
-           <button
-             onClick={handleSave}
-             disabled={isSaving || localServices.length === 0}
-             className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark disabled:opacity-50"
-           >
-             {isSaving ? '儲存中...' : '儲存排序'}
-           </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            取消
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving || localServices.length === 0}
+            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark disabled:opacity-50"
+          >
+            {isSaving ? '儲存中...' : '儲存排序'}
+          </button>
         </div>
       </div>
     </Modal>

@@ -100,7 +100,7 @@ const CustomerReviews = () => {
                    <div className="flex items-center  gap-3 mt-2">
                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
                           {(!review.isAnonymous && review.userAvatarUrl) ? (
-                              <img src={review.userAvatarUrl} alt={review.userName} className="w-full h-full object-cover" />
+                              <img src={review.userAvatarUrl} alt={review.userName} className="w-full h-full object-cover" loading="lazy" />
                           ) : (
                               <UserCircleIcon className="w-6 h-6 text-gray-400" />
                           )}
