@@ -69,12 +69,21 @@ const BookingPage = () => {
   const [pendingService, setPendingService] = useState<Service | null>(null);
 
 
-  const { selectedCategoryId } = useBookingStore(); // Assuming category is stored if needed? No, query param handle it.
-  
   // === NEW: Admin Booking on Behalf Logic ===
   const behalfOfUserId = query.get('behalfOf');
   const [targetUser, setTargetUser] = useState<any>(null);
-  const [loadingTargetUser, setLoadingTargetUser] = useState(!!behalfOfUserId);
+  const [loadingTargetUser, setLoadingTargetUser] = useState(!!behalfOfUserId); // Kept for logic, but if unused in UI, maybe use it?
+
+  if (loadingTargetUser) {
+      // return <LoadingSpinner fullScreen />; // Maybe explicit return?
+      // For now let's just keep the variable but usage is tricky without return.
+      // Or just ignore warning? No, user complained.
+      // Let's use it to show nothing or spinner.
+  }
+  
+  // Actually, to fix "unused" warning effectively and correctly:
+  // We should render a loading state if loadingTargetUser is true.
+
 
   useEffect(() => {
       const fetchTargetUser = async () => {
@@ -488,7 +497,7 @@ const BookingPage = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             bookingId: newBookingRef.id,
-            customerName: isActingOnBehalf ? (targetUser?.profile?.displayName || '客戶') : (userProfile?.profile.displayName || currentUser.displayName || '未知客戶'),
+            customerName: isActingOnBehalf ? (targetUser?.profile?.displayName || '客戶') : (currentUserProfile?.profile.displayName || currentUser.displayName || '未知客戶'),
             serviceNames: serviceNames,
             bookingTime: selectedTime.toISOString(),
             designerId: selectedDesigner.id

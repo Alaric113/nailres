@@ -26,7 +26,7 @@ export const useActivePass = (targetUser?: any): UseActivePassResult => {
         const allPasses = userProfile?.activePasses || [];
         const now = new Date();
         // Filter out expired passes by default
-        return allPasses.filter(pass => {
+        return allPasses.filter((pass: ActivePass) => {
             const expiry = pass.expiryDate?.toDate?.();
             return expiry ? expiry > now : false;
         });
@@ -39,7 +39,7 @@ export const useActivePass = (targetUser?: any): UseActivePassResult => {
      */
     const getValidPasses = (): ActivePass[] => {
         const now = new Date();
-        return activePasses.filter(pass => {
+        return activePasses.filter((pass: ActivePass) => {
             const expiry = pass.expiryDate.toDate();
             return expiry > now;
         });
@@ -49,7 +49,7 @@ export const useActivePass = (targetUser?: any): UseActivePassResult => {
      * Get remaining usage count for a specific content item
      */
     const getRemainingUsage = (passId: string, contentItemId: string): number => {
-        const pass = activePasses.find(p => p.passId === passId);
+        const pass = activePasses.find((p: ActivePass) => p.passId === passId);
         if (!pass) return 0;
         return pass.remainingUsages[contentItemId] || 0;
     };
