@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { CloudArrowUpIcon, XMarkIcon, PhotoIcon, SparklesIcon, TrashIcon } from '@heroicons/react/24/outline'; 
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { CloudArrowUpIcon, XMarkIcon, PhotoIcon, SparklesIcon } from '@heroicons/react/24/outline'; 
 import LoadingSpinner from '../common/LoadingSpinner';
 import { useToast } from '../../context/ToastContext';
 import { storage } from '../../lib/firebase';
@@ -28,7 +28,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
         const snapshot = await uploadBytes(imageRef, file);
         const url = await getDownloadURL(snapshot.ref);
         
-        const oldImageUrl = imageUrl;
         onImageUrlChange(url);
         setUrlInput(url);
 
