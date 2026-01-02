@@ -44,7 +44,7 @@ const UserCard: React.FC<UserCardProps> = ({
   };
 
   return (
-    <div className="relative rounded-xl shadow-md bg-red-500 overflow-hidden">
+    <div className="relative rounded-xl bg-red-500 overflow-hidden">
         {/* Background Layer (Delete Action) */}
         <div className="absolute inset-y-0 right-0 w-20 flex items-center justify-center">
             <button 

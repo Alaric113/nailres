@@ -295,7 +295,7 @@ const CustomerDetailPage: React.FC = () => {
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">忠誠點數</dt>
+                  <dt className="text-gray-500">點數</dt>
                   <dd className="font-medium">{user.loyaltyPoints || 0} 點</dd>
                 </div>
               </dl>
