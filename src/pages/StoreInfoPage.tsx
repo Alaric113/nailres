@@ -203,7 +203,7 @@ const StoreInfoPage: React.FC = () => {
                    </div>
                    <div className="text-left">
                       <h3 className="font-serif text-base text-[#2C2825] mb-1">Open Hours</h3>
-                      <p className="text-[#8A8175] text-sm">每日 10:00 - 19:00</p>
+                      <p className="text-[#8A8175] text-sm">每日 10:00 - 20:00</p>
                    </div>
                 </div>
              </div>
