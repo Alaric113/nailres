@@ -1,4 +1,4 @@
-import { doc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc,  serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 /**
