@@ -7,9 +7,10 @@ import { db } from '../../lib/firebase';
 
 interface LoyaltyCardProps {
   previewBackground?: string; // New prop for preview
+  onReady?: () => void; // Callback when card is ready (bg image loaded or no bg)
 }
 
-const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground }) => {
+const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady }) => {
   const { userProfile } = useAuthStore();
   const loyaltyPoints = userProfile?.loyaltyPoints || 0;
   const [backgroundImage, setBackgroundImage] = useState<string>('');
@@ -48,19 +49,26 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground }) => {
   // Preload background image
   useEffect(() => {
     if (!backgroundImage) {
-      setIsImageLoaded(false);
+      setIsImageLoaded(true); // No bg image needed, mark as ready
+      onReady?.();
       return;
     }
 
     const img = new Image();
-    img.onload = () => setIsImageLoaded(true);
-    img.onerror = () => setIsImageLoaded(false);
+    img.onload = () => {
+      setIsImageLoaded(true);
+      onReady?.();
+    };
+    img.onerror = () => {
+      setIsImageLoaded(true); // Still show card even if image fails
+      onReady?.();
+    };
     img.src = backgroundImage;
-  }, [backgroundImage]);
+  }, [backgroundImage, onReady]);
 
   return (
     <div
-      className={`relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col bg-center bg-no-repeat ${isImageLoaded ? 'transition-opacity duration-500' : ''}`}
+      className={`relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col bg-center bg-no-repeat ${!isImageLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
       style={isImageLoaded && backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: '100% 100%' } : {}}
     >
       {/* Overlay for readability if image is present */}
