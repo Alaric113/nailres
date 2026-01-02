@@ -200,6 +200,8 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
                                     if (activePass) {
                                         // Default: use service ID (fallback)
                                         remainingCount = activePass.remainingUsages?.[service.id];
+                                        console.log(service.id, service.name)
+                                        console.log(passContentItems)
                                        
                                         
                                         // If we have mapping, try to find specific item

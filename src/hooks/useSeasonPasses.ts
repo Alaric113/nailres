@@ -98,7 +98,7 @@ export const useSeasonPasses = () => {
                 // For countable services, setting initial quantity
                 if (item.category === '服務' && item.quantity) {
                     console.log(item.id)
-                    remainingUsages[item.serviceId] = item.quantity;
+                    remainingUsages[item.id] = item.quantity;
                 } else if (item.category === '權益') {
                     // -1 indicates "Active Benefit" without countdown
                     remainingUsages[item.id] = -1;
