@@ -201,25 +201,40 @@ const CustomerDetailPage: React.FC = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
         <div className="px-3 sm:px-4 py-3 sm:py-4 max-w-4xl mx-auto">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => navigate('/admin/customers')}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
-            >
-              <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
-            </button>
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-base sm:text-lg overflow-hidden flex-shrink-0">
-                {user.profile.avatarUrl ? (
-                  <img src={user.profile.avatarUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  (user.profile.displayName || '?')[0]
-                )}
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{user.profile.displayName || '未命名'}</h1>
-                <p className="text-xs sm:text-sm text-gray-500 truncate">{user.email || user.lineUserId?.slice(0, 10) + '...'}</p>
-              </div>
+          <div className="flex items-center justify-between gap-3">
+            {/* Left: Back & User Info */}
+            <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+                <button 
+                onClick={() => navigate('/admin/customers')}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+                >
+                <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+                </button>
+                <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-base sm:text-lg overflow-hidden flex-shrink-0">
+                    {user.profile.avatarUrl ? (
+                    <img src={user.profile.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                    (user.profile.displayName || '?')[0]
+                    )}
+                </div>
+                <div className="min-w-0">
+                    <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{user.profile.displayName || '未命名'}</h1>
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">{user.email || user.lineUserId?.slice(0, 10) + '...'}</p>
+                </div>
+                </div>
+            </div>
+            
+            {/* Right: Quick Actions */}
+            <div className="flex-shrink-0 ml-2">
+                <button
+                    onClick={() => navigate(`/booking?behalfOf=${userId}`)}
+                    className="px-3 sm:px-4 py-2 bg-[#9F9586] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#8a8174] transition-colors flex items-center gap-1 sm:gap-2 whitespace-nowrap"
+                >
+                    <CalendarDaysIcon className="w-4 h-4" />
+                    <span className="hidden xs:inline sm:inline">新增預約</span>
+                    <span className="xs:hidden sm:hidden">預約</span>
+                </button>
             </div>
           </div>
         </div>
@@ -592,9 +607,12 @@ const SwipeablePassCard = ({ pass, isExpired, expiry, onEdit, onDelete, getItemD
 
 // Sub-component for booking history
 const CustomerBookingHistory: React.FC<{ userId: string }> = ({ userId }) => {
-  const { bookings, isLoading } = useBookings();
+  const { bookings, isLoading } = useBookings(userId);
   
-  const userBookings = bookings.filter(b => b.userId === userId);
+  // Hook now filters by userId if provided, so we don't need manual filter here
+  // const userBookings = bookings.filter(b => b.userId === userId); 
+  const userBookings = bookings;
+ 
 
   if (isLoading) return <LoadingSpinner />;
 

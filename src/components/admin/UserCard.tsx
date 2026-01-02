@@ -102,7 +102,7 @@ const UserCard: React.FC<UserCardProps> = ({
                   {onOpenPassModal && (
                     <button 
                       onClick={onOpenPassModal}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium"
+                      className="flex hidden items-center gap-1 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium"
                     >
                       <TicketIcon className="w-4 h-4" /> 季卡
                     </button>

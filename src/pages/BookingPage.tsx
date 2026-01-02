@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useBookingStore } from '../store/bookingStore'; 
@@ -69,14 +69,44 @@ const BookingPage = () => {
   const [pendingService, setPendingService] = useState<Service | null>(null);
 
 
-  const { userProfile, currentUser } = useAuthStore();
+  const { selectedCategoryId } = useBookingStore(); // Assuming category is stored if needed? No, query param handle it.
+  
+  // === NEW: Admin Booking on Behalf Logic ===
+  const behalfOfUserId = query.get('behalfOf');
+  const [targetUser, setTargetUser] = useState<any>(null);
+  const [loadingTargetUser, setLoadingTargetUser] = useState(!!behalfOfUserId);
+
+  useEffect(() => {
+      const fetchTargetUser = async () => {
+          if (!behalfOfUserId) return;
+          try {
+              const userDoc = await (await import('firebase/firestore')).getDoc(doc(db, 'users', behalfOfUserId));
+              if (userDoc.exists()) {
+                  setTargetUser({ id: userDoc.id, ...userDoc.data() });
+              }
+          } catch (e) {
+              console.error("Failed to fetch target user", e);
+              showToast("無法讀取目標客戶資料", "error");
+          } finally {
+              setLoadingTargetUser(false);
+          }
+      };
+      fetchTargetUser();
+  }, [behalfOfUserId]);
+
+  const { userProfile: currentUserProfile, currentUser } = useAuthStore();
+  
+  // Decide which profile to use for logic (Pricing, Passes, etc.)
+  // If acting on behalf, use targetUser. Otherwise use logged-in user.
+  const actingUserProfile = behalfOfUserId ? targetUser : currentUserProfile;
+  const isActingOnBehalf = !!behalfOfUserId;
+
   const { settings: globalSettings } = useGlobalSettings(); // NEW HOOK
   const { services } = useServices(); // Fetch fresh services for pricing
   const { cart, clearCart } = useBookingStore(); // Use Booking Store
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  
   // Handle click on service card
   const handleServiceClick = (service: Service) => {
       // Check for notices first
@@ -121,13 +151,14 @@ const BookingPage = () => {
       window.scrollTo(0, 0);
   };
 
-  // Season Pass State
-  const { hasActivePass, activePasses } = useActivePass();
+  // Season Pass State (Pass actingUserProfile)
+  const { hasActivePass, activePasses } = useActivePass(actingUserProfile);
   const { passes: seasonPassDefinitions } = useSeasonPasses();
   const [selectedPass, setSelectedPass] = useState<ActivePass | null>(null);
 
   // Auto-select pass if available and not set
   useMemo(() => {
+      // Logic same, but depends on hasActivePass from updated hook
       if (hasActivePass && activePasses.length > 0 && !selectedPass) {
           setSelectedPass(activePasses[0]);
       }
@@ -190,7 +221,7 @@ const BookingPage = () => {
         let itemFinalPrice = itemBasePrice;
 
         // Check for Platinum Discount
-        if (userProfile?.role === 'platinum') {
+        if (actingUserProfile?.role === 'platinum') {
             // Find the service definition
             const serviceDef = services.find(s => s.id === item.service.id);
             
@@ -252,7 +283,7 @@ const BookingPage = () => {
         finalPrice: final, 
         discountAmount: totalDiscount 
     };
-  }, [cart, selectedCoupon, userProfile, services]);
+  }, [cart, selectedCoupon, actingUserProfile, services]);
 
   const allowedDesignerIds = useMemo(() => {
     const restrictionSets: string[][] = [];
@@ -299,9 +330,11 @@ const BookingPage = () => {
     // This logic holds regardless of the final price amount, unless price is 0?
     // User requirement: "Platinum users skip deposit".
     // So logic remains:
-    const initialStatus: BookingStatus = selectedPass 
-        ? 'pending_confirmation' 
-        : (userProfile?.role === 'platinum' ? 'pending_confirmation' : 'pending_payment');
+    const initialStatus: BookingStatus = (isActingOnBehalf) 
+        ? 'pending_confirmation' // Admin creating -> auto confirmed usually? Or just pending confirm. Let's use pending_confirmation.
+        : (selectedPass 
+            ? 'pending_confirmation' 
+            : (actingUserProfile?.role === 'platinum' ? 'pending_confirmation' : 'pending_payment'));
     
     
     try {
@@ -345,7 +378,9 @@ const BookingPage = () => {
 
       // 1. Create new booking document
       const bookingData: any = {
-        userId: currentUser.uid,
+        userId: isActingOnBehalf ? targetUser.id : currentUser.uid, // Use target ID if behalf
+        createdBy: isActingOnBehalf ? currentUser.uid : 'self', // Track who created it
+        customerName: isActingOnBehalf ? (targetUser?.profile?.displayName || '客戶') : (currentUser.displayName), // Ensure customer name is correct
         designerId: selectedDesigner.id,
         serviceIds,
         serviceNames,
@@ -453,7 +488,7 @@ const BookingPage = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             bookingId: newBookingRef.id,
-            customerName: userProfile?.profile.displayName || currentUser.displayName || '未知客戶',
+            customerName: isActingOnBehalf ? (targetUser?.profile?.displayName || '客戶') : (userProfile?.profile.displayName || currentUser.displayName || '未知客戶'),
             serviceNames: serviceNames,
             bookingTime: selectedTime.toISOString(),
             designerId: selectedDesigner.id

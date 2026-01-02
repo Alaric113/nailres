@@ -15,8 +15,12 @@ interface UseActivePassResult {
 /**
  * Hook for managing and querying user's active Season Passes
  */
-export const useActivePass = (): UseActivePassResult => {
-    const { userProfile } = useAuthStore();
+export const useActivePass = (targetUser?: any): UseActivePassResult => {
+    const { userProfile: currentUserProfile } = useAuthStore();
+
+    // If targetUser is provided (e.g. Admin booking for customer), use that.
+    // Otherwise fallback to logged-in user.
+    const userProfile = targetUser || currentUserProfile;
 
     const activePasses = useMemo(() => {
         const allPasses = userProfile?.activePasses || [];
