@@ -13,6 +13,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground }) => {
   const { userProfile } = useAuthStore();
   const loyaltyPoints = userProfile?.loyaltyPoints || 0;
   const [backgroundImage, setBackgroundImage] = useState<string>('');
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   // Default fallback avatar
   const defaultAvatar = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
@@ -25,6 +26,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground }) => {
     // If previewBackground is provided, use it directly and skip fetching
     if (previewBackground) {
       setBackgroundImage(previewBackground);
+      setIsImageLoaded(false); // Reset loading state for new image
       return;
     }
 
@@ -34,6 +36,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground }) => {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().loyaltyCardBackground) {
           setBackgroundImage(docSnap.data().loyaltyCardBackground);
+          setIsImageLoaded(false); // Reset for new image
         }
       } catch (e) {
         console.error(e);
@@ -42,10 +45,23 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground }) => {
     fetchBackground();
   }, [previewBackground]); // Re-run if previewBackground changes
 
+  // Preload background image
+  useEffect(() => {
+    if (!backgroundImage) {
+      setIsImageLoaded(false);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => setIsImageLoaded(true);
+    img.onerror = () => setIsImageLoaded(false);
+    img.src = backgroundImage;
+  }, [backgroundImage]);
+
   return (
     <div
-      className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col bg-center bg-no-repeat"
-      style={backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: '100% 100%' } : {}}
+      className={`relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col bg-center bg-no-repeat ${isImageLoaded ? 'transition-opacity duration-500' : ''}`}
+      style={isImageLoaded && backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: '100% 100%' } : {}}
     >
       {/* Overlay for readability if image is present */}
       {!backgroundImage && <div className="absolute inset-0 bg-black/40 z-0"></div>}
