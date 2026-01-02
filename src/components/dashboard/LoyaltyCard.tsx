@@ -58,9 +58,9 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground }) => {
         </>
       )}
       
-      <div className="relative z-10 flex flex-col justify-between h-full min-h-[160px]"> 
+      <div className="relative z-10 flex flex-col justify-between h-full px-3 min-h-[160px]"> 
         {/* Card Header: User Info & Tier */}
-        <div className="flex items-center justify-between mb-4"> 
+        <div className="flex items-center justify-between mb-4 "> 
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative">
               <img
@@ -90,21 +90,22 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground }) => {
         </div>
         
         {/* Card Body: Points & Description */}
-        <div className="flex items-end justify-between"> 
-          <div className="flex flex-col"> {/* New div to hold points AND description */}
+        <div className="flex flex-col items-end justify-between"> 
+          <div className="flex flex-col items-center w-full"> {/* New div to hold points AND description */}
             <div className="text-sm text-white font-medium mb-1">目前累積點數</div>
             {/* Description moved here */}
             <p className="text-white/80 font-light text-xs sm:text-xs  mt-1"> 
               每消費 $1,000 累積 1 點
             </p>
-            <div className="flex items-baseline gap-2">
+            
+            
+          </div>
+          <div className="flex items-baseline gap-2">
               <span className="text-5xl sm:text-6xl font-serif font-bold leading-none">
                 {loyaltyPoints}
               </span>
               <span className="text-lg opacity-80 font-medium">pt</span>
             </div>
-            
-          </div>
           
           <div className="flex items-end"> {/* Only "查看兌換紀錄" button here */}
             <button className="flex hidden items-center gap-1 text-white hover:text-white/80 transition-colors font-medium group text-xs">
