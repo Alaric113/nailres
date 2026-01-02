@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom'; // Added import
 import { format, addMinutes } from 'date-fns';
+import { zhTW } from 'date-fns/locale';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -17,11 +18,11 @@ import type { BookingStatus } from '../types/booking';
 import type { Designer } from '../types/designer'; // New type
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import BookingDetailModal from '../components/admin/BookingDetailModal';
-import { FunnelIcon, UserCircleIcon } from '@heroicons/react/24/outline'; // Added Icon
+import { FunnelIcon, UserCircleIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { updateBookingStatus } from '../utils/bookingActions';
 
 const useWindowSize = () => {
-    // ... existing implementation ...
+  // ... existing implementation ...
   const [size, setSize] = useState([window.innerWidth]);
   useEffect(() => {
     const handleResize = () => setSize([window.innerWidth]);
@@ -33,9 +34,9 @@ const useWindowSize = () => {
 
 const CalendarPage = () => {
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
-  
+
   const { userProfile } = useAuthStore();
-  
+
   // --- Designer Filtering Logic ---
   const { designer: currentDesigner } = useCurrentDesigner();
   const [allDesigners, setAllDesigners] = useState<Designer[]>([]);
@@ -44,30 +45,32 @@ const CalendarPage = () => {
   // Fetch all designers for admin selector
   useEffect(() => {
     if (userProfile?.role === 'admin' || userProfile?.role === 'manager') {
-        const fetchDesigners = async () => {
-            const q = query(collection(db, 'designers'), orderBy('name'));
-            const snapshot = await getDocs(q);
-            setAllDesigners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Designer)));
-        };
-        fetchDesigners();
+      const fetchDesigners = async () => {
+        const q = query(collection(db, 'designers'), orderBy('name'));
+        const snapshot = await getDocs(q);
+        setAllDesigners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Designer)));
+      };
+      fetchDesigners();
     }
   }, [userProfile?.role]);
 
   // Determine effective designer ID for querying
   const effectiveDesignerId = useMemo(() => {
     if (userProfile?.role === 'designer') {
-        return currentDesigner?.id || null; // Force designer's own ID
+      return currentDesigner?.id || null; // Force designer's own ID
     }
     return selectedDesignerFilter === 'all' ? null : selectedDesignerFilter;
   }, [userProfile?.role, currentDesigner, selectedDesignerFilter]);
 
   const { bookings, loading, error } = useAllBookings(dateRange, effectiveDesignerId); // Pass filter
-  
+
   const { closedDays } = useBusinessHoursSummary();
   const calendarRef = useRef<FullCalendar>(null);
-  const [selectedBooking, setSelectedBooking] = useState<EnrichedBooking | null>(null);  
+  const [selectedBooking, setSelectedBooking] = useState<EnrichedBooking | null>(null);
   const [width] = useWindowSize();
   const isMobile = width < 768;
+  const [isLegendOpen, setIsLegendOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   const getStatusColorClass = (status: BookingStatus) => {
     switch (status) {
@@ -99,19 +102,19 @@ const CalendarPage = () => {
 
   const handleUpdateBookingStatus = async (bookingId: string, newStatus: BookingStatus) => {
     try {
-        await updateBookingStatus(bookingId, newStatus);
-        
-        // Refresh data or let live listener handle it?
-        // useAllBookings uses onSnapshot internally? 
-        // Let's check useAllBookings. If it uses listener, it will auto-update.
-        // Assuming it does.
-        
+      await updateBookingStatus(bookingId, newStatus);
+
+      // Refresh data or let live listener handle it?
+      // useAllBookings uses onSnapshot internally? 
+      // Let's check useAllBookings. If it uses listener, it will auto-update.
+      // Assuming it does.
+
     } catch (error) {
-        console.error("Failed to update status from calendar:", error);
-        // showToast is not available here?
-        // CalendarPage doesn't use useToast?
-        // Ah, it doesn't seem to have useToast.
-        alert('更新失敗'); 
+      console.error("Failed to update status from calendar:", error);
+      // showToast is not available here?
+      // CalendarPage doesn't use useToast?
+      // Ah, it doesn't seem to have useToast.
+      alert('更新失敗');
     }
   };
 
@@ -132,57 +135,57 @@ const CalendarPage = () => {
 
   return (
     <div className="min-h-screen bg-secondary-light text-text-main">
-      
+
 
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        
+
         {/* Designer Filter Portals (Admin/Manager Only) */}
         {(userProfile?.role === 'admin' || userProfile?.role === 'manager') && (
-            <>
-                {/* Desktop: Portal to Header Actions */}
-                {document.getElementById('admin-header-actions') && createPortal(
-                    <div className="flex items-center gap-2">
-                        <UserCircleIcon className="w-5 h-5 text-gray-400" />
-                        <select
-                            value={selectedDesignerFilter}
-                            onChange={(e) => setSelectedDesignerFilter(e.target.value)}
-                            className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block p-2 outline-none"
-                        >
-                            <option value="all">所有設計師</option>
-                            {allDesigners.map(d => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
-                            ))}
-                        </select>
-                    </div>,
-                    document.getElementById('admin-header-actions')!
-                )}
+          <>
+            {/* Desktop: Portal to Header Actions */}
+            {document.getElementById('admin-header-actions') && createPortal(
+              <div className="flex items-center gap-2">
+                <UserCircleIcon className="w-5 h-5 text-gray-400" />
+                <select
+                  value={selectedDesignerFilter}
+                  onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                  className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block p-2 outline-none"
+                >
+                  <option value="all">所有設計師</option>
+                  {allDesigners.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>,
+              document.getElementById('admin-header-actions')!
+            )}
 
-                {/* Mobile: Portal to Header Title (Center) */}
-                {document.getElementById('admin-mobile-header-center') && createPortal(
-                     <div className="flex items-center justify-center pointer-events-auto bg-white w-full h-full">
-                        <div className="relative flex items-center justify-center">
-                            <select
-                                value={selectedDesignerFilter}
-                                onChange={(e) => setSelectedDesignerFilter(e.target.value)}
-                                className="appearance-none bg-transparent border-none text-base font-bold text-gray-900 focus:ring-0 p-0 text-center pr-6 cursor-pointer"
-                                style={{ textAlignLast: 'center' }}
-                            >
-                                <option value="all">行事曆 (全店)</option>
-                                {allDesigners.map(d => (
-                                    <option key={d.id} value={d.id}>{d.name}</option>
-                                ))}
-                            </select>
-                            {/* Custom Chevron for visual indication */}
-                            <div className="absolute right-0 pointer-events-none">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-gray-500">
-                                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>,
-                    document.getElementById('admin-mobile-header-center')!
-                )}
-            </>
+            {/* Mobile: Portal to Header Title (Center) */}
+            {document.getElementById('admin-mobile-header-center') && createPortal(
+              <div className="flex items-center justify-center pointer-events-auto bg-white w-full h-full">
+                <div className="relative flex items-center justify-center">
+                  <select
+                    value={selectedDesignerFilter}
+                    onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                    className="appearance-none bg-transparent border-none text-base font-bold text-gray-900 focus:ring-0 p-0 text-center pr-6 cursor-pointer"
+                    style={{ textAlignLast: 'center' }}
+                  >
+                    <option value="all">行事曆 (全店)</option>
+                    {allDesigners.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                  {/* Custom Chevron for visual indication */}
+                  <div className="absolute right-0 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-gray-500">
+                      <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>,
+              document.getElementById('admin-mobile-header-center')!
+            )}
+          </>
         )}
 
         {/* Error Alert */}
@@ -202,61 +205,70 @@ const CalendarPage = () => {
           </div>
         )}
 
-       
-        {/* View Toggle - Mobile */}
+
+        {/* View Toggle - Mobile (Simplified) */}
         {isMobile && (
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+          <div className="flex gap-2 mb-4">
             {[
-              { view: 'dayGridMonth', label: '月' },
-              { view: 'timeGridWeek', label: '週' },
-              { view: 'timeGridDay', label: '日' },
-              
-              
+              { view: 'dayGridMonth', label: '月曆' },
+              { view: 'timeGridDay', label: '日程' },
             ].map(({ view, label }) => (
               <button
                 key={view}
                 onClick={() => changeView(view)}
-                className="px-4 py-2 text-sm font-medium text-text-main bg-white border border-secondary-dark rounded-lg hover:bg-secondary-light transition-colors whitespace-nowrap"
+                className={`flex-1 px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${calendarRef.current?.getApi().view.type === view
+                  ? 'bg-[#9F9586] text-white shadow-md'
+                  : 'bg-white text-gray-600 border border-gray-200'
+                  }`}
               >
-                {label}視圖
+                {label}
               </button>
             ))}
           </div>
         )}
 
-        {/* Legend */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-secondary-dark/50">
-          <div className="flex items-center gap-2 mb-3">
-            <FunnelIcon className="h-5 w-5 text-text-light" />
-            <h3 className="text-sm font-serif font-semibold text-text-main">圖例</h3>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {(['pending_payment', 'pending_confirmation', 'confirmed', 'completed', 'cancelled'] as BookingStatus[]).map(status => (
-              <div key={status} className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded ${getStatusColorClass(status)}`}></div>
-                <span className="text-xs sm:text-sm text-text-light">{
-                  { pending_payment: '待付款', pending_confirmation: '待確認', confirmed: '已確認', completed: '已完成', cancelled: '已取消' }[status]
-                }</span>
-              </div>
-            ))}
+        {/* Legend - Collapsible on Mobile */}
+        <div className="bg-white rounded-xl shadow-sm mb-4 border border-gray-100 overflow-hidden">
+          <button
+            onClick={() => setIsLegendOpen(!isLegendOpen)}
+            className="w-full flex items-center justify-between p-3 md:hidden"
+          >
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded fc-event-conflicting"></div>
-              <span className="text-xs sm:text-sm text-text-light">時間衝突</span>
+              <FunnelIcon className="h-4 w-4 text-gray-400" />
+              <span className="text-sm font-medium text-gray-600">狀態圖例</span>
+            </div>
+            <ChevronDownIcon className={`h-4 w-4 text-gray-400 transition-transform ${isLegendOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          <div className={`${isMobile ? (isLegendOpen ? 'block' : 'hidden') : 'block'} p-3 pt-0 md:pt-3`}>
+            <div className="flex flex-wrap gap-2">
+              {(['pending_payment', 'pending_confirmation', 'confirmed', 'completed', 'cancelled'] as BookingStatus[]).map(status => (
+                <div key={status} className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded-full">
+                  <div className={`w-2.5 h-2.5 rounded-full ${status === 'pending_payment' ? 'bg-amber-400' :
+                    status === 'pending_confirmation' ? 'bg-blue-400' :
+                      status === 'confirmed' ? 'bg-green-400' :
+                        status === 'completed' ? 'bg-gray-400' : 'bg-red-400'
+                    }`}></div>
+                  <span className="text-xs text-gray-600">{
+                    { pending_payment: '待付款', pending_confirmation: '待確認', confirmed: '已確認', completed: '已完成', cancelled: '已取消' }[status]
+                  }</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Calendar */}
-        <div className="bg-white rounded-xl shadow-md border border-secondary-dark/50 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
           <div className="p-2 sm:p-4" style={{ minHeight: '70vh' }}>
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView={isMobile ? 'timeGridDay' : 'timeGridWeek'}
+              initialView={isMobile ? 'dayGridMonth' : 'timeGridWeek'}
               headerToolbar={{
-                left: isMobile ? 'prev,today,next' : 'prev,today,next',
+                left: isMobile ? 'prev,next' : 'prev,today,next',
                 center: 'title',
-                right: isMobile ? '' : 'dayGridMonth,timeGridWeek,timeGridDay'
+                right: isMobile ? 'today' : 'dayGridMonth,timeGridWeek,timeGridDay'
               }}
               events={[...events, ...backgroundEvents]}
               locale={zhTwLocale}
@@ -264,8 +276,26 @@ const CalendarPage = () => {
               slotMinTime="09:00:00"
               slotMaxTime="21:00:00"
               height="auto"
+              dayCellContent={(arg) => arg.dayNumberText.replace('日', '')}
+              dayMaxEvents={isMobile ? 3 : true}
               eventContent={(arg) => {
                 const booking = arg.event.extendedProps.booking as EnrichedBooking;
+                const isMonthView = calendarRef.current?.getApi().view.type === 'dayGridMonth';
+
+                // Compact view for month grid
+                if (isMonthView && isMobile) {
+                  return (
+                    <div className="flex items-center gap-1 px-1 py-0.5 w-full">
+                      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${booking?.status === 'confirmed' ? 'bg-green-500' :
+                        booking?.status === 'pending_payment' ? 'bg-amber-500' :
+                          booking?.status === 'pending_confirmation' ? 'bg-blue-500' :
+                            booking?.status === 'completed' ? 'bg-gray-400' : 'bg-red-400'
+                        }`}></div>
+                      <span className="text-[10px] truncate">{format(booking?.dateTime || new Date(), 'HH:mm')}</span>
+                    </div>
+                  );
+                }
+
                 return (
                   <div className="fc-event-main-custom p-1">
                     <div className="fc-event-time text-xs font-semibold">{arg.timeText}</div>
@@ -284,6 +314,11 @@ const CalendarPage = () => {
               }}
               eventClick={(info) => {
                 setSelectedBooking(info.event.extendedProps.booking as EnrichedBooking);
+              }}
+              dateClick={(info) => {
+                if (isMobile && calendarRef.current?.getApi().view.type === 'dayGridMonth') {
+                  setSelectedDay(info.date);
+                }
               }}
               datesSet={(arg) => {
                 setDateRange({ start: arg.start, end: arg.end });
@@ -315,6 +350,110 @@ const CalendarPage = () => {
           onClose={() => setSelectedBooking(null)}
           onUpdateStatus={handleUpdateBookingStatus}
         />
+      )}
+
+      {/* Day Detail Bottom Sheet (Mobile Only) */}
+      {selectedDay && isMobile && (
+        <div className="fixed inset-0 z-[2000]">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setSelectedDay(null)}
+          />
+
+          {/* Sheet */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[70vh] flex flex-col animate-slide-up">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {format(selectedDay, 'M月d日 EEEE', { locale: zhTW })}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {bookings.filter(b => format(b.dateTime, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd')).length} 筆預約
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedDay(null)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <XMarkIcon className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Booking List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {bookings
+                .filter(b => format(b.dateTime, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd'))
+                .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
+                .map(booking => (
+                  <button
+                    key={booking.id}
+                    onClick={() => {
+                      setSelectedBooking(booking);
+                      setSelectedDay(null);
+                    }}
+                    className="w-full p-3 bg-gray-50 rounded-xl flex items-center gap-3 text-left hover:bg-gray-100 transition-colors active:scale-[0.98]"
+                  >
+                    {/* Time */}
+                    <div className="text-center min-w-[50px]">
+                      <div className="text-sm font-bold text-gray-900">
+                        {format(booking.dateTime, 'HH:mm')}
+                      </div>
+                      <div className="text-[10px] text-gray-400">
+                        {booking.serviceDuration || 60}分鐘
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className={`w-1 h-10 rounded-full ${booking.status === 'confirmed' ? 'bg-green-400' :
+                      booking.status === 'pending_payment' ? 'bg-amber-400' :
+                        booking.status === 'pending_confirmation' ? 'bg-blue-400' :
+                          booking.status === 'completed' ? 'bg-gray-300' : 'bg-red-400'
+                      }`} />
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 truncate">{booking.serviceName}</div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {booking.userName}
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                      booking.status === 'pending_payment' ? 'bg-amber-100 text-amber-700' :
+                        booking.status === 'pending_confirmation' ? 'bg-blue-100 text-blue-700' :
+                          booking.status === 'completed' ? 'bg-gray-100 text-gray-600' : 'bg-red-100 text-red-700'
+                      }`}>
+                      {{ pending_payment: '待付款', pending_confirmation: '待確認', confirmed: '已確認', completed: '已完成', cancelled: '已取消' }[booking.status]}
+                    </span>
+                  </button>
+                ))
+              }
+
+              {bookings.filter(b => format(b.dateTime, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd')).length === 0 && (
+                <div className="text-center py-8 text-gray-400">
+                  <p>這天沒有預約</p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Action */}
+            <div className="p-4 border-t border-gray-100 pb-8">
+              <button
+                onClick={() => {
+                  calendarRef.current?.getApi().gotoDate(selectedDay);
+                  calendarRef.current?.getApi().changeView('timeGridDay');
+                  setSelectedDay(null);
+                }}
+                className="w-full py-3 bg-[#9F9586] text-white font-bold rounded-xl active:scale-[0.98] transition-transform"
+              >
+                查看日程詳情
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Custom Styles */}
@@ -445,19 +584,40 @@ const CalendarPage = () => {
 
         /* Mobile adjustments */
         @media (max-width: 767px) {
+          /* === TOOLBAR: 改為單行 === */
           .fc-toolbar {
-            flex-direction: column !important;
-            gap: 0.75rem;
+            flex-direction: row !important;  /* 改 column 為 row 可變單行 */
+            flex-wrap: nowrap !important;
+            gap: 0.5rem;
+            justify-content: space-between;
+            align-items: center;
           }
 
           .fc-toolbar-chunk {
             display: flex;
             justify-content: center;
           }
+          
+          /* 標題字體縮小以適應單行 */
+          .fc-toolbar-title {
+            font-size: 1rem !important;
+          }
 
           .fc-button {
-            font-size: 0.875rem !important;
+            font-size: 0.75rem !important;  /* 按鈕字體縮小 */
             padding: 0.25rem 0.5rem !important;
+          }
+
+          /* === 日期數字置於左上角 === */
+          .fc-daygrid-day-top {
+            justify-content: flex-start !important;  /* 改 center 為 flex-start */
+            padding: 2px 4px !important;
+          }
+          
+          .fc-daygrid-day-number {
+            font-size: 0.75rem !important;
+            font-weight: 600;
+            color: #5C5548;
           }
 
           .fc-timegrid-slot {
@@ -479,6 +639,35 @@ const CalendarPage = () => {
 
         .animate-fade-in {
           animation: fade-in 0.3s ease-out;
+        }
+
+        @keyframes slide-up {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
+
+        /* Mobile Month View Enhancements */
+        @media (max-width: 767px) {
+          .fc-daygrid-day-frame {
+            min-height: 50px !important;
+          }
+          
+          .fc-daygrid-event {
+            margin: 1px 2px !important;
+          }
+          
+          .fc-daygrid-more-link {
+            font-size: 10px !important;
+            color: #9F9586 !important;
+          }
         }
       `}</style>
     </div>
