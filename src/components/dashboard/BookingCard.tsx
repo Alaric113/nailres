@@ -12,6 +12,12 @@ interface BookingCardProps {
 
 const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, isPast }) => {
   const isCancellable = !isPast && !['completed', 'cancelled'].includes(booking.status);
+  
+  // Reschedule restriction: Cannot change within 3 days (72 hours) of start time
+  const now = new Date();
+  const diffInHours = (booking.dateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+  const isWithinRestrictionPeriod = diffInHours < 72;
+  const canReschedule = (!booking.rescheduleCount || booking.rescheduleCount < 1) && !isWithinRestrictionPeriod;
 
   return (
     <div className={`
@@ -65,14 +71,26 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, isPast }) 
              
              {isCancellable && (
                 <div className="flex gap-2">
-                   {/* Reschedule Button: Only if limit not reached */}
-                   {(!booking.rescheduleCount || booking.rescheduleCount < 1) && (
+                   {/* Reschedule Button: Only if limit not reached and not within 3 days */}
+                   {canReschedule ? (
                        <a
                          href={`/member/reschedule/${booking.id}`}
                          className="text-sm text-[#9F9586] hover:text-primary-dark font-medium px-3 py-1 rounded-md hover:bg-[#FAF9F6] transition-colors border border-[#9F9586]"
                        >
                          更改日期
                        </a>
+                   ) : (
+                      // Show restriction message if within period but count is OK? 
+                      // Or just show nothing? 
+                      // If count exhausted -> nothing/count label shows it.
+                      // If time restricted -> specific message?
+                      // The top label shows "Remaining count". 
+                      // Let's just hide the button for now, or show disabled?
+                      // User request was "unable to change".
+                      // I'll render nothing for the button effectively disabled it.
+                      // Maybe I should add a check to show WHY if user is curious?
+                      // For now, implementing the hide logic as requested.
+                      null
                    )}
 
                    {onCancel && (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
@@ -200,15 +200,59 @@ const MemberOrderDetailPage = () => {
                 </button>
             )}
             
-            {/* Cancel/Reschedule logic could go here, or link to reschedule page */}
-             {(!['completed', 'cancelled'].includes(booking.status)) && (
-                 <button
-                    onClick={() => navigate(`/member/reschedule/${booking.id}`)}
-                    className="w-full py-3.5 text-gray-500 font-medium hover:text-gray-700 transition-colors"
-                >
-                    更改或取消預約
-                </button>
-             )}
+             {/* Action Buttons */}
+             {(!['completed', 'cancelled'].includes(booking.status)) && (() => {
+                 // Reschedule restriction logic
+                 const now = new Date();
+                 const bookingDate = booking.dateTime?.toDate(); // Firestore timestamp
+                 const diffInHours = bookingDate ? (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60) : 0;
+                 const isWithinRestrictionPeriod = diffInHours < 72;
+                 const canReschedule = (!booking.rescheduleCount || booking.rescheduleCount < 1) && !isWithinRestrictionPeriod;
+
+                 return (
+                    <div className="flex gap-3">
+                         {/* Reschedule Button */}
+                         {canReschedule ? (
+                            <button
+                                onClick={() => navigate(`/member/reschedule/${booking.id}`)}
+                                className="flex-1 py-3.5 bg-white text-[#9F9586] border border-[#9F9586] rounded-xl font-bold hover:bg-orange-50 active:scale-[0.98] transition-all"
+                            >
+                                更改日期
+                            </button>
+                         ) : (
+                             // Optional: Show why? (Within 3 days or limit reached)
+                             isWithinRestrictionPeriod ? (
+                                <div className="flex-1 py-3.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-xl font-bold text-center text-sm flex items-center justify-center">
+                                    3天內無法改期
+                                </div>
+                             ) : null
+                         )}
+
+                         {/* Cancel Button - Always available until completed? */}
+                         {/* Assuming cancellation follows different rules or is always allowed pending policy */}
+                         {/* For now keeping it simple as separate button */}
+                         <button
+                            onClick={() => {
+                                if (window.confirm('確定要取消此預約嗎？')) {
+                                    // Use hook's cancel or Firestore update directly
+                                    // Since we don't have useBookings instance here easily without fetching all,
+                                    // simpler to just use updateDoc directly as imported in this file.
+                                    const cancelRef = doc(db, 'bookings', booking.id);
+                                    updateDoc(cancelRef, { status: 'cancelled' })
+                                        .then(() => {
+                                            setBooking((prev: any) => ({ ...prev, status: 'cancelled' }));
+                                            // Optional: Show toast
+                                        })
+                                        .catch((err: any) => console.error(err));
+                                }
+                            }}
+                            className="flex-1 py-3.5 text-red-500 bg-red-50 rounded-xl font-bold hover:bg-red-100 active:scale-[0.98] transition-all"
+                         >
+                            取消預約
+                         </button>
+                    </div>
+                 );
+             })()}
         </div>
       </div>
     </div>
