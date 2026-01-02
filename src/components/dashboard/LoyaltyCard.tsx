@@ -1,10 +1,18 @@
+import { useState, useEffect } from 'react';
 import { StarIcon } from '@heroicons/react/24/solid';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../../store/authStore';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
-const LoyaltyCard = () => {
+interface LoyaltyCardProps {
+    previewBackground?: string; // New prop for preview
+}
+
+const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground }) => {
   const { userProfile } = useAuthStore();
   const loyaltyPoints = userProfile?.loyaltyPoints || 0;
+  const [backgroundImage, setBackgroundImage] = useState<string>('');
   
   // Default fallback avatar
   const defaultAvatar = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
@@ -13,11 +21,42 @@ const LoyaltyCard = () => {
   const role = userProfile?.role;
   const tierName = role === 'platinum' ? '白金會員' : role === 'admin' ? '管理員' : role === 'manager' ? '管理設計師' : role === 'designer' ? '設計師' : '一般會員'; // could be dynamic based on points later
 
+  useEffect(() => {
+    // If previewBackground is provided, use it directly and skip fetching
+    if (previewBackground) {
+        setBackgroundImage(previewBackground);
+        return;
+    }
+
+    const fetchBackground = async () => {
+        try {
+            const docRef = doc(db, 'globals', 'homepageImages');
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists() && docSnap.data().loyaltyCardBackground) {
+                setBackgroundImage(docSnap.data().loyaltyCardBackground);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+    fetchBackground();
+  }, [previewBackground]); // Re-run if previewBackground changes
+
   return (
-    <div className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col">
-      {/* Decorative Background Elements */}
-      <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-white opacity-10 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 -ml-12 -mb-12 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
+    <div 
+      className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col bg-center bg-no-repeat"
+      style={backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: '100% 100%' } : {}}
+    >
+      {/* Overlay for readability if image is present */}
+      {!backgroundImage && <div className="absolute inset-0 bg-black/40 z-0"></div>}
+
+      {/* Decorative Background Elements (Only if no custom background) */}
+      {!backgroundImage && (
+        <>
+            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-white opacity-10 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 -ml-12 -mb-12 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
+        </>
+      )}
       
       <div className="relative z-10 flex flex-col justify-between h-full min-h-[160px]"> 
         {/* Card Header: User Info & Tier */}

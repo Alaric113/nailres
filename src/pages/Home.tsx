@@ -268,12 +268,13 @@ const Home = () => {
               className="w-full py-2" // Added py-2 for potential shadow clipping
             >
               {[...homepageImages.lashImages, ...homepageImages.nailImages, ...homepageImages.browImages]
+                .filter(image => !!image)
                 .slice(0, 8) 
                 .map((image, index) => (
                   <SwiperSlide key={index}>
                     <Link
                       to="/portfolio"
-                      className="block aspect-square rounded-xl overflow-hidden shadow-soft hover:shadow-medium transition-all active:scale-95 relative group"
+                      className={`block aspect-square rounded-xl overflow-hidden shadow-soft hover:shadow-medium transition-all active:scale-95 relative group`}
                     >
                        <img
                         src={image}

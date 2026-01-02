@@ -35,6 +35,7 @@ import CalendarPage from './pages/CalendarPage';
 import SettingsPage from './pages/SettingsPage';
 import StaffManagementPage from './pages/StaffManagementPage';
 import PromotionsPage from './pages/PromotionsPage';
+import ImageSettingsPage from './pages/admin/ImageSettingsPage'; // New Import
 
 import PortfolioManagementPage from './pages/PortfolioManagementPage';
 // Layout Components
@@ -150,6 +151,7 @@ const routes = [
               { path: 'calendar', element: <CalendarPage />, handle: { title: '行事曆' } },
               { path: 'settings', element: <SettingsPage />, handle: { title: '一般設定' } },
               { path: 'staff', element: <StaffManagementPage />, handle: { title: '設計師管理' } },
+              { path: 'settings/images', element: <ImageSettingsPage />, handle: { title: '首頁圖片' } }, // New Route
               { path: 'portfolio', element: <PortfolioManagementPage />, handle: { title: '作品集管理' } },
               { path: 'promotions', element: <PromotionsPage />, handle: { title: '優惠活動' } },
             ],

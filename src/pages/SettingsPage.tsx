@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import ImageManagementModal from '../components/admin/ImageManagementModal';
+// import ImageManagementModal from '../components/admin/ImageManagementModal'; // Removed
 import { 
   BellAlertIcon, 
   ClockIcon, 
@@ -29,7 +29,7 @@ const SettingsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentView = searchParams.get('view') || 'dashboard';
   const { userProfile } = useAuthStore();
-  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  // const [isImageModalOpen, setIsImageModalOpen] = useState(false); // Removed
 
   // Group Definitions
   const settingGroups = [
@@ -99,7 +99,7 @@ const SettingsPage: React.FC = () => {
               icon: HomeIcon, 
               color: "bg-orange-50 text-orange-600", 
               subtext: "輪播與封面",
-              onClick: () => setIsImageModalOpen(true),
+              linkTo: "/admin/settings/images",
               roles: ['admin', 'manager']
             },
             { 
@@ -204,10 +204,6 @@ const SettingsPage: React.FC = () => {
               );
           })}
        </div>
-
-       {isImageModalOpen && (
-        <ImageManagementModal onClose={() => setIsImageModalOpen(false)} />
-       )}
     </div>
   );
 };

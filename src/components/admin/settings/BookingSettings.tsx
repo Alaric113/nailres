@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ClipboardDocumentCheckIcon, BanknotesIcon, MegaphoneIcon, ChatBubbleLeftRightIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { useGlobalSettings, type SeasonPassPromo, type SeasonPassFlexSettings, type ServiceNotice } from '../../../hooks/useGlobalSettings';
 import { useServices } from '../../../hooks/useServices'; // Import services hook
+import ImageUploader from '../ImageUploader'; // Import ImageUploader
 
 const BookingSettings: React.FC = () => {
     const { services } = useServices(); // Fetch services for selection
@@ -472,6 +473,19 @@ const BookingSettings: React.FC = () => {
                                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                                 </label>
                                 <span className="text-sm font-medium text-gray-700">啟用推廣卡片</span>
+                            </div>
+                            
+                            {/* Promo Image */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">推廣圖片</label>
+                                <p className="text-xs text-gray-500 mb-2">上傳圖片將取代預設的星形圖示。</p>
+                                <ImageUploader
+                                    label="上傳圖片"
+                                    imageUrl={promo.imageUrl || ''}
+                                    onImageUrlChange={(url) => setPromo({...promo, imageUrl: url})}
+                                    storagePath="globals/promo"
+                                    compact
+                                />
                             </div>
 
                             {/* Title */}

@@ -150,9 +150,15 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
                             className="block bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50 rounded-2xl p-5 border border-rose-100/50 shadow-sm hover:shadow-md transition-all group"
                         >
                             <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 to-orange-400 flex items-center justify-center shrink-0">
-                                    <SparklesIcon className="w-6 h-6 text-white" />
-                                </div>
+                                {promo.imageUrl ? (
+                                    <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
+                                        <img src={promo.imageUrl} alt="Promo" className="w-full h-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 to-orange-400 flex items-center justify-center shrink-0">
+                                        <SparklesIcon className="w-6 h-6 text-white" />
+                                    </div>
+                                )}
                                 <div className="flex-1 min-w-0">
                                     <h3 className="text-lg font-bold text-gray-900 mb-1">
                                         {promo.title}

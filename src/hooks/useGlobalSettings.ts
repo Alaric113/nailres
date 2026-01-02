@@ -8,7 +8,7 @@ export interface SeasonPassPromo {
   description: string;
   ctaText: string;
   ctaLink: string;
-  imageUrl?: string;
+  imageUrl?: string; // New field for promo image
 }
 
 export interface SeasonPassFlexSettings {
