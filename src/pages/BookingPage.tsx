@@ -112,6 +112,18 @@ const BookingPage = () => {
 
   const { settings: globalSettings } = useGlobalSettings(); // NEW HOOK
   const { services } = useServices(); // Fetch fresh services for pricing
+
+  // If we are loading the target user, we shouldn't render yet to avoid wrong pricing/pass logic
+  if (loadingTargetUser) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-[#FAF9F6]">
+            <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-4 border-[#9F9586] border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-[#9F9586] font-medium">載入客戶資料中...</p>
+            </div>
+        </div>
+      );
+  }
   const { cart, clearCart } = useBookingStore(); // Use Booking Store
   const navigate = useNavigate();
   const { showToast } = useToast();
