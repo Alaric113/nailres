@@ -22,7 +22,20 @@ import {
   TrashIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
-import { zhTW } from 'date-fns/locale';
+// Keep for other uses if any? No, user said unused.
+// But wait, line 636 uses `locale: zhTW`.
+// So `zhTW` IS used in current file?
+// Checking file...
+// Line 636: `{format(booking.dateTime, 'yyyy-MM-dd HH:mm', { locale: zhTW })}`
+// Wait, that line was in the OLD `CustomerBookingHistory`.
+// I replaced `CustomerBookingHistory` implementation with `BookingOrderCard`.
+// `BookingOrderCard` has its own `format`.
+// So `zhTW` in `CustomerDetailPage` might indeed be unused now if I removed the old rendering.
+// Let's check imports.
+
+import BookingOrderCard from '../components/admin/BookingOrderCard';
+import { updateBookingStatus } from '../utils/bookingActions';
+import { useToast } from '../context/ToastContext';
 
 type TabKey = 'info' | 'bookings' | 'loyalty' | 'passes';
 
@@ -348,7 +361,7 @@ const CustomerDetailPage: React.FC = () => {
 
         {/* Tab: Bookings */}
         {activeTab === 'bookings' && (
-          <CustomerBookingHistory userId={userId || ''} />
+          <CustomerBookingHistory userId={userId || ''} userName={user.profile.displayName || ''} />
         )}
 
         {/* Tab: Loyalty */}
@@ -606,17 +619,29 @@ const SwipeablePassCard = ({ pass, isExpired, expiry, onEdit, onDelete, getItemD
 
 
 // Sub-component for booking history
-const CustomerBookingHistory: React.FC<{ userId: string }> = ({ userId }) => {
-  const { bookings, isLoading } = useBookings(userId);
-  
-  // Hook now filters by userId if provided, so we don't need manual filter here
-  // const userBookings = bookings.filter(b => b.userId === userId); 
-  const userBookings = bookings;
- 
+const CustomerBookingHistory: React.FC<{ userId: string; userName?: string }> = ({ userId, userName }) => {
+  const { bookings, isLoading, refetch } = useBookings(userId);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const { showToast } = useToast();
+
+  const handleUpdateStatus = async (booking: any, newStatus: any) => {
+      setUpdatingId(booking.id || '');
+      try {
+          await updateBookingStatus(booking.id, newStatus);
+          showToast(`訂單狀態已更新`, 'success');
+          // Optimistic update or refetch
+          if (refetch) refetch(); // Assuming useBookings has refetch, otherwise rely on realtime
+      } catch (error) {
+          console.error("Failed to update status:", error);
+          showToast('更新失敗', 'error');
+      } finally {
+          setUpdatingId(null);
+      }
+  };
 
   if (isLoading) return <LoadingSpinner />;
 
-  if (userBookings.length === 0) {
+  if (bookings.length === 0) {
     return (
       <div className="bg-white rounded-xl p-8 border border-gray-100 text-center text-gray-400">
         <CalendarDaysIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -627,28 +652,22 @@ const CustomerBookingHistory: React.FC<{ userId: string }> = ({ userId }) => {
 
   return (
     <div className="space-y-3">
-      {userBookings.map(booking => (
-        <div key={booking.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="font-medium text-gray-900">{booking.serviceNames.join(', ')}</p>
-              <p className="text-sm text-gray-500 mt-1">
-                {format(booking.dateTime, 'yyyy-MM-dd HH:mm', { locale: zhTW })}
-              </p>
-            </div>
-            <span className={`text-xs px-2 py-1 rounded-full ${
-              booking.status === 'completed' ? 'bg-green-100 text-green-700' :
-              booking.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-              'bg-amber-100 text-amber-700'
-            }`}>
-              {booking.status === 'completed' ? '已完成' :
-               booking.status === 'cancelled' ? '已取消' :
-               booking.status === 'confirmed' ? '已確認' : '待確認'}
-            </span>
-          </div>
-          <p className="text-sm text-primary font-medium mt-2">${booking.amount}</p>
-        </div>
-      ))}
+      {bookings.map(booking => {
+          // Enrich booking with user name if missing (since we are on customer page, we know who it is)
+          const enrichedBooking = {
+              ...booking,
+              userName: userName || '客戶'
+          };
+          
+          return (
+            <BookingOrderCard
+                key={booking.id}
+                booking={enrichedBooking as any} // Cast to compatible type
+                updatingId={updatingId}
+                onUpdateStatus={handleUpdateStatus}
+            />
+          );
+      })}
     </div>
   );
 };

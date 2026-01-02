@@ -31,6 +31,7 @@ export interface UserDocument {
   receivesPwaNotifications?: boolean; // Master switch for PWA
   pwaSubscriptions?: string[]; // 'all' or specific designer IDs
   activePasses?: ActivePass[]; // Active season passes
+  isPlatinumBlacklisted?: boolean; // If true, prevents upgrade to platinum (e.g. for no-show users)
 }
 
 // This represents the user document with its ID from the collection

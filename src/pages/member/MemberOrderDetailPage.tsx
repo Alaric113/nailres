@@ -246,7 +246,7 @@ const MemberOrderDetailPage = () => {
                                         .catch((err: any) => console.error(err));
                                 }
                             }}
-                            className="flex-1 py-3.5 text-red-500 bg-red-50 rounded-xl font-bold hover:bg-red-100 active:scale-[0.98] transition-all"
+                            className="flex-1 hidden py-3.5 text-red-500 bg-red-50 rounded-xl font-bold hover:bg-red-100 active:scale-[0.98] transition-all"
                          >
                             取消預約
                          </button>
