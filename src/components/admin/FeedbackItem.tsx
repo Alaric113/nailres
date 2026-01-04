@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    collection, 
-    addDoc, 
-    onSnapshot, 
-    query, 
-    orderBy, 
-    serverTimestamp, 
-    Timestamp 
+import {
+    collection,
+    addDoc,
+    onSnapshot,
+    query,
+    orderBy,
+    serverTimestamp,
+    Timestamp
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { Feedback, FeedbackComment } from '../../types/feedback';
+import { FEEDBACK_CATEGORIES } from '../../types/feedback';
 import { useAuthStore } from '../../store/authStore';
-import { 
-    TrashIcon, 
-    CheckCircleIcon, 
-    ChatBubbleLeftEllipsisIcon, 
+import {
+    TrashIcon,
+    CheckCircleIcon,
+    ChatBubbleLeftEllipsisIcon,
     PaperAirplaneIcon,
     UserCircleIcon
 } from '@heroicons/react/24/outline';
@@ -101,11 +102,24 @@ const FeedbackItem: React.FC<FeedbackItemProps> = ({ feedback, onToggleStatus, o
                         <span className={`text-lg transition-all break-words break-all ${feedback.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
                             {feedback.content}
                         </span>
-                        {feedback.createdAt && (
-                            <span className="text-xs text-gray-400 sm:hidden">
-                                {formatDate(feedback.createdAt)}
-                            </span>
-                        )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {feedback.category && (
+                                <span className={`
+                                    inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium
+                                    ${feedback.category === 'ui' ? 'bg-purple-100 text-purple-700' : ''}
+                                    ${feedback.category === 'logic' ? 'bg-blue-100 text-blue-700' : ''}
+                                    ${feedback.category === 'bug' ? 'bg-red-100 text-red-700' : ''}
+                                    ${feedback.category === 'other' ? 'bg-gray-100 text-gray-600' : ''}
+                                `}>
+                                    {FEEDBACK_CATEGORIES[feedback.category]}
+                                </span>
+                            )}
+                            {feedback.createdAt && (
+                                <span className="text-xs text-gray-400 sm:hidden">
+                                    {formatDate(feedback.createdAt)}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -115,14 +129,14 @@ const FeedbackItem: React.FC<FeedbackItemProps> = ({ feedback, onToggleStatus, o
                             {formatDate(feedback.createdAt)}
                         </span>
                     )}
-                    
+
                     {/* Comment Toggle */}
                     <button
                         onClick={() => setIsCommentsOpen(!isCommentsOpen)}
                         className={`
                             flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors
-                            ${isCommentsOpen || comments.length > 0 
-                                ? 'bg-primary/10 text-primary' 
+                            ${isCommentsOpen || comments.length > 0
+                                ? 'bg-primary/10 text-primary'
                                 : 'text-gray-400 hover:bg-gray-100'
                             }
                         `}
