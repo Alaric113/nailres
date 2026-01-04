@@ -319,6 +319,7 @@ const BookingPage = () => {
         : (actingUserProfile?.role === 'platinum' ? 'pending_confirmation' : 'pending_payment'));
 
 
+
     try {
       const batch = writeBatch(db);
       const newBookingRef = doc(collection(db, 'bookings'));
@@ -376,6 +377,7 @@ const BookingPage = () => {
         createdAt: serverTimestamp(),
         notes: notes,
       };
+
 
       // If using a pass, record pass usage
       if (selectedPass) {
@@ -453,7 +455,7 @@ const BookingPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentUser.uid,
+          userId: isActingOnBehalf ? targetUser.id : currentUser.uid,
           designerId: selectedDesigner.id,
           serviceNames: serviceNames,
           dateTime: selectedTime.toISOString(),
