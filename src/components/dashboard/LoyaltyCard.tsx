@@ -10,6 +10,32 @@ interface LoyaltyCardProps {
   onReady?: () => void; // Callback when card is ready (bg image loaded or no bg)
 }
 
+// Skeleton Component for Loyalty Card
+const LoyaltyCardSkeleton = () => (
+  <div className="relative overflow-hidden bg-gray-200 rounded-2xl shadow-xl p-6 sm:p-8 h-full min-h-[220px] flex flex-col animate-pulse">
+    <div className="flex items-center justify-between mb-4 px-3">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-300" />
+        <div>
+          <div className="h-5 bg-gray-300 rounded w-24 mb-2" />
+        </div>
+      </div>
+      <div className="w-20 h-6 bg-gray-300 rounded-full" />
+    </div>
+
+    <div className="flex flex-col items-end justify-between px-3 mt-auto">
+      <div className="flex flex-col items-center w-full">
+        <div className="h-4 bg-gray-300 rounded w-20 mb-2" />
+        <div className="h-3 bg-gray-300 rounded w-32 mt-1" />
+      </div>
+      <div className="flex items-baseline gap-2 mt-4">
+        <div className="h-12 bg-gray-300 rounded w-24" />
+        <div className="h-5 bg-gray-300 rounded w-6" />
+      </div>
+    </div>
+  </div>
+);
+
 const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady }) => {
   const { userProfile } = useAuthStore();
   const loyaltyPoints = userProfile?.loyaltyPoints || 0;
@@ -38,9 +64,15 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady })
         if (docSnap.exists() && docSnap.data().loyaltyCardBackground) {
           setBackgroundImage(docSnap.data().loyaltyCardBackground);
           setIsImageLoaded(false); // Reset for new image
+        } else {
+          // No background configured, mark as loaded
+          setIsImageLoaded(true);
+          onReady?.();
         }
       } catch (e) {
         console.error(e);
+        setIsImageLoaded(true);
+        onReady?.();
       }
     };
     fetchBackground();
@@ -66,10 +98,15 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady })
     img.src = backgroundImage;
   }, [backgroundImage, onReady]);
 
+  // Show skeleton while loading
+  if (!isImageLoaded) {
+    return <LoyaltyCardSkeleton />;
+  }
+
   return (
     <div
-      className={`relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col bg-center bg-no-repeat ${!isImageLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
-      style={isImageLoaded && backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: '100% 100%' } : {}}
+      className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col bg-center bg-no-repeat"
+      style={backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: '100% 100%' } : {}}
     >
       {/* Overlay for readability if image is present */}
       {!backgroundImage && <div className="absolute inset-0 bg-black/40 z-0"></div>}
@@ -145,3 +182,4 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady })
 };
 
 export default LoyaltyCard;
+

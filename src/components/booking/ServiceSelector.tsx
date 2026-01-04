@@ -14,6 +14,20 @@ import { SparklesIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 import type { PlanContentItem } from '../../types/seasonPass';
 
+// Skeleton Card Component
+const ServiceCardSkeleton = () => (
+    <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex gap-4 animate-pulse">
+        <div className="flex-1 min-w-0 flex flex-col justify-between">
+            <div>
+                <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-gray-100 rounded w-1/4 mb-2" />
+            </div>
+            <div className="h-5 bg-gray-200 rounded w-1/3" />
+        </div>
+        <div className="w-24 h-24 rounded-lg bg-gray-200 shrink-0" />
+    </div>
+);
+
 interface ServiceSelectorProps {
     initialCategory?: string | null;
     onNext: () => void;
@@ -33,6 +47,34 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
     const promo = settings.seasonPassPromo;
 
     const [activeCategory, setActiveCategory] = useState<string>('全部');
+    const [imagesLoaded, setImagesLoaded] = useState(false);
+
+    // Get all service images that need to be loaded
+    const serviceImages = services.filter(s => s.available && s.imageUrl).map(s => s.imageUrl!);
+    const totalImages = serviceImages.length;
+
+    // Preload all images
+    useEffect(() => {
+        if (totalImages === 0) {
+            setImagesLoaded(true);
+            return;
+        }
+
+        setImagesLoaded(false);
+
+        const imagePromises = serviceImages.map(src => {
+            return new Promise<void>((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve();
+                img.onerror = () => resolve(); // Still resolve on error to not block loading
+                img.src = src;
+            });
+        });
+
+        Promise.all(imagePromises).then(() => {
+            setImagesLoaded(true);
+        });
+    }, [services]);
 
     // Initialize active category from URL or Default
     useEffect(() => {
@@ -180,117 +222,136 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
                         </div>
                     )}
                     <div className="max-w-3xl mx-auto p-4 space-y-8">
-                        {categoriesToShow.map(category => {
-                            // Determine which services to show for this category
-                            const categoryServices = category === '季卡專屬'
-                                ? planOnlyServices
-                                : groupedServices[category] || [];
-
-                            if (categoryServices.length === 0) return null;
-
-                            return (
-                                <div
-                                    key={category}
-                                    className="pb-8 border-b border-gray-100 last:border-0"
-                                >
-                                    <div className="flex items-center gap-4 mb-6 px-2 w-f">
-                                        <h3 className="text-2xl font-sans font-bold text-primary-dark tracking-wide">
-                                            {category}
-                                        </h3>
-                                        <div className="h-px bg-primary/20 flex-1"></div>
+                        {/* Show skeletons while loading images */}
+                        {!imagesLoaded ? (
+                            <>
+                                {['skeleton-1', 'skeleton-2'].map(key => (
+                                    <div key={key} className="pb-8 border-b border-gray-100 last:border-0">
+                                        <div className="flex items-center gap-4 mb-6 px-2">
+                                            <div className="h-7 bg-gray-200 rounded w-24 animate-pulse" />
+                                            <div className="h-px bg-gray-100 flex-1" />
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {[1, 2, 3, 4].map(i => (
+                                                <ServiceCardSkeleton key={i} />
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {categoryServices.map((service: Service) => {
-                                            const { price, isPlatinum, originalPrice } = getPriceForUser(service);
+                                ))}
+                            </>
+                        ) : (
+                            categoriesToShow.map(category => {
+                                // Determine which services to show for this category
+                                const categoryServices = category === '季卡專屬'
+                                    ? planOnlyServices
+                                    : groupedServices[category] || [];
 
-                                            // Logic: Find the content item that maps to this service ID
-                                            let remainingCount = undefined;
-                                            if (activePass) {
-                                                // Default: use service ID (fallback)
-                                                remainingCount = activePass.remainingUsages?.[service.id];
-                                                console.log(service.id, service.name)
-                                                console.log(passContentItems)
+                                if (categoryServices.length === 0) return null;
+
+                                return (
+                                    <div
+                                        key={category}
+                                        className="pb-8 border-b border-gray-100 last:border-0"
+                                    >
+                                        <div className="flex items-center gap-4 mb-6 px-2 w-f">
+                                            <h3 className="text-2xl font-sans font-bold text-primary-dark tracking-wide">
+                                                {category}
+                                            </h3>
+                                            <div className="h-px bg-primary/20 flex-1"></div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {categoryServices.map((service: Service) => {
+                                                const { price, isPlatinum, originalPrice } = getPriceForUser(service);
+
+                                                // Logic: Find the content item that maps to this service ID
+                                                let remainingCount = undefined;
+                                                if (activePass) {
+                                                    // Default: use service ID (fallback)
+                                                    remainingCount = activePass.remainingUsages?.[service.id];
+                                                    console.log(service.id, service.name)
+                                                    console.log(passContentItems)
 
 
-                                                // If we have mapping, try to find specific item
-                                                if (passContentItems) {
-                                                    const contentItem = passContentItems.find(item => item.serviceId === service.id);
+                                                    // If we have mapping, try to find specific item
+                                                    if (passContentItems) {
+                                                        const contentItem = passContentItems.find(item => item.serviceId === service.id);
 
-                                                    if (contentItem) {
-                                                        remainingCount = activePass.remainingUsages?.[contentItem.id];
+                                                        if (contentItem) {
+                                                            remainingCount = activePass.remainingUsages?.[contentItem.id];
 
+                                                        }
                                                     }
                                                 }
-                                            }
 
-                                            const isDisabled = remainingCount === 0;
+                                                const isDisabled = remainingCount === 0;
 
-                                            return (
-                                                <div
-                                                    key={service.id}
-                                                    onClick={() => !isDisabled && onServiceClick(service)}
-                                                    className={`
+                                                return (
+                                                    <div
+                                                        key={service.id}
+                                                        onClick={() => !isDisabled && onServiceClick(service)}
+                                                        className={`
                                                 p-4 rounded-xl border shadow-sm transition-all flex gap-4 group relative
                                                 ${isDisabled
-                                                            ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed grayscale'
-                                                            : 'bg-white border-gray-100 hover:shadow-md cursor-pointer'
-                                                        }
+                                                                ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed grayscale'
+                                                                : 'bg-white border-gray-100 hover:shadow-md cursor-pointer'
+                                                            }
                                             `}
-                                                >
-                                                    {remainingCount !== undefined && (
-                                                        <div className="absolute top-2 right-2 z-10">
-                                                            {remainingCount === -1 ? (
-                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border shadow-sm bg-purple-100 text-purple-800 border-purple-200">
-                                                                    季卡權益
-                                                                </span>
-                                                            ) : remainingCount > 0 ? (
-                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border shadow-sm bg-amber-100 text-amber-800 border-amber-200">
-                                                                    剩餘 {remainingCount} 次
-                                                                </span>
-                                                            ) : (
-                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border shadow-sm bg-red-50 text-red-500 border-red-100">
-                                                                    已用完 (0次)
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                    {/* Text Content */}
-                                                    <div className="flex-1 min-w-0 flex flex-col justify-between">
-                                                        <div>
+                                                    >
+                                                        {remainingCount !== undefined && (
+                                                            <div className="absolute top-2 right-2 z-10">
+                                                                {remainingCount === -1 ? (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border shadow-sm bg-purple-100 text-purple-800 border-purple-200">
+                                                                        季卡權益
+                                                                    </span>
+                                                                ) : remainingCount > 0 ? (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border shadow-sm bg-amber-100 text-amber-800 border-amber-200">
+                                                                        剩餘 {remainingCount} 次
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border shadow-sm bg-red-50 text-red-500 border-red-100">
+                                                                        已用完 (0次)
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {/* Text Content */}
+                                                        <div className="flex-1 min-w-0 flex flex-col justify-between">
                                                             <div>
-                                                                <h4 className="font-bold text-text-main text-lg mb-1 group-hover:text-primary transition-colors">
-                                                                    {service.name}
-                                                                </h4>
-                                                                <p className="text-xs text-gray-400 line-clamp-2 mb-2">
-                                                                    {service.duration} 分鐘
-                                                                </p>
+                                                                <div>
+                                                                    <h4 className="font-bold text-text-main text-lg mb-1 group-hover:text-primary transition-colors">
+                                                                        {service.name}
+                                                                    </h4>
+                                                                    <p className="text-xs text-gray-400 line-clamp-2 mb-2">
+                                                                        {service.duration} 分鐘
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className={`flex items-baseline gap-2 ${price == 0 ? 'hidden' : ''}`}>
+                                                                <span className={`text-lg font-serif font-bold`}>
+                                                                    ${isPlatinum ? originalPrice : price}<span className={`text-xs `}> 起</span>
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                        <div className={`flex items-baseline gap-2 ${price == 0 ? 'hidden' : ''}`}>
-                                                            <span className={`text-lg font-serif font-bold`}>
-                                                                ${isPlatinum ? originalPrice : price}<span className={`text-xs `}> 起</span>
-                                                            </span>
-                                                        </div>
+
+                                                        {/* Image */}
+                                                        {service.imageUrl ? (
+                                                            <div className="w-24 h-24 rounded-lg bg-gray-100 overflow-hidden shrink-0">
+                                                                <img src={service.imageUrl} alt={service.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="w-24 h-24 rounded-lg  flex items-center justify-center text-gray-300 shrink-0">
+
+                                                            </div>
+                                                        )}
+
                                                     </div>
-
-                                                    {/* Image */}
-                                                    {service.imageUrl ? (
-                                                        <div className="w-24 h-24 rounded-lg bg-gray-100 overflow-hidden shrink-0">
-                                                            <img src={service.imageUrl} alt={service.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                                                        </div>
-                                                    ) : (
-                                                        <div className="w-24 h-24 rounded-lg  flex items-center justify-center text-gray-300 shrink-0">
-
-                                                        </div>
-                                                    )}
-
-                                                </div>
-                                            );
-                                        })}
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })
+                        )}
                     </div>
                 </div>
             </div>
