@@ -227,6 +227,29 @@ service cloud.firestore {
     }
 
     // =============================================
+    //           商品卡規則 (Gift Card Rules)
+    // =============================================
+
+    // 商品卡模板 (由管理員建立和管理)
+    match /gift_cards/{cardId} {
+      allow read: if true; // 所有人可讀取
+      allow write: if canAdminAllDesigners(); // 僅管理員/管理設計師可寫入
+    }
+
+    // 用戶的商品卡 (類似 user_coupons)
+    match /user_giftcards/{docId} {
+      // 員工查看所有；用戶查看自己的
+      allow list: if isStaff() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow get: if isStaff() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      
+      // 用戶兌換時建立商品卡；或員工發放
+      allow create: if isStaff() || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
+      
+      // 用戶可更新狀態 (例如使用商品卡)；員工也可更新
+      allow update: if isStaff() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    // =============================================
     //           季卡訂單規則 (Season Pass Orders)
     // =============================================
     match /orders/{orderId} {

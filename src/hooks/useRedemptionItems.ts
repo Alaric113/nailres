@@ -8,7 +8,9 @@ export interface RedemptionItem {
     points: number;
     colorTheme: 'orange' | 'blue' | 'green' | 'pink' | 'gray';
     isActive: boolean;
-    linkedCouponId?: string;
+    redemptionType: 'coupon' | 'giftcard';
+    linkedCouponId?: string; // Used when redemptionType is 'coupon'
+    linkedGiftCardId?: string; // Used when redemptionType is 'giftcard'
     createdAt?: Timestamp;
 }
 

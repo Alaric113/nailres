@@ -9,6 +9,7 @@ import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 import type { RedemptionItem } from './useRedemptionItems';
 import type { Coupon } from '../types/coupon';
+import type { GiftCard } from '../types/giftcard';
 
 export const useRedemption = () => {
     const { currentUser } = useAuthStore();
@@ -40,11 +41,21 @@ export const useRedemption = () => {
 
                 // 2. If reward is linked to a coupon, fetch coupon template
                 let couponData: Coupon | null = null;
-                if (reward.linkedCouponId) {
+                if (reward.redemptionType === 'coupon' && reward.linkedCouponId) {
                     const couponRef = doc(db, 'coupons', reward.linkedCouponId);
                     const couponDoc = await transaction.get(couponRef);
                     if (couponDoc.exists()) {
                         couponData = { id: couponDoc.id, ...couponDoc.data() } as Coupon;
+                    }
+                }
+
+                // 2b. If reward is linked to a gift card, fetch gift card template
+                let giftCardData: GiftCard | null = null;
+                if (reward.redemptionType === 'giftcard' && reward.linkedGiftCardId) {
+                    const giftCardRef = doc(db, 'gift_cards', reward.linkedGiftCardId);
+                    const giftCardDoc = await transaction.get(giftCardRef);
+                    if (giftCardDoc.exists()) {
+                        giftCardData = { id: giftCardDoc.id, ...giftCardDoc.data() } as GiftCard;
                     }
                 }
 
@@ -53,7 +64,7 @@ export const useRedemption = () => {
                     loyaltyPoints: currentPoints - reward.points
                 });
 
-                // 4. Create Point Transaction Record (Optional but recommended)
+                // 4. Create Point Transaction Record
                 const pointTxRef = doc(collection(db, 'point_transactions'));
                 transaction.set(pointTxRef, {
                     userId: currentUser.uid,
@@ -78,7 +89,7 @@ export const useRedemption = () => {
                     transaction.set(userCouponRef, {
                         userId: currentUser.uid,
                         couponId: couponData.id,
-                        code: userCouponCode, // Unique code for this user instance
+                        code: userCouponCode,
                         title: couponData.title,
                         status: 'active',
                         createdAt: Timestamp.now(),
@@ -90,7 +101,22 @@ export const useRedemption = () => {
                         scopeType: couponData.scopeType || 'all',
                         scopeIds: couponData.scopeIds || [],
                         details: couponData.details || '',
-                        redemptionSource: reward.title // Track source
+                        redemptionSource: reward.title
+                    });
+                }
+
+                // 6. Issue Gift Card if applicable
+                if (giftCardData) {
+                    const userGiftCardRef = doc(collection(db, 'user_giftcards'));
+                    transaction.set(userGiftCardRef, {
+                        userId: currentUser.uid,
+                        giftCardId: giftCardData.id,
+                        name: giftCardData.name,
+                        description: giftCardData.description || '',
+                        imageUrl: giftCardData.imageUrl || null,
+                        status: 'active',
+                        createdAt: Timestamp.now(),
+                        redemptionSource: reward.title
                     });
                 }
             });
@@ -107,3 +133,4 @@ export const useRedemption = () => {
 
     return { redeemReward, isRedeeming, error };
 };
+

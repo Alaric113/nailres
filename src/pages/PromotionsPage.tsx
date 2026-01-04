@@ -5,14 +5,16 @@ import LoyaltySettings from '../components/admin/LoyaltySettings';
 import CouponDistribution from '../components/admin/CouponDistribution';
 import CouponCard from '../components/admin/CouponCard';
 import RedemptionSettings from '../components/admin/RedemptionSettings';
+import GiftCardSettings from '../components/admin/GiftCardSettings';
 import { useCoupons } from '../hooks/useCoupons';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import type { Coupon } from '../types/coupon';
 
-type Tab = 'coupons' | 'distribution' | 'loyalty' | 'redemption';
+type Tab = 'coupons' | 'distribution' | 'loyalty' | 'giftcards' | 'redemption';
 
 const tabs: { key: Tab; label: string }[] = [
   { key: 'coupons', label: '優惠券' },
+  { key: 'giftcards', label: '商品卡' },
   { key: 'distribution', label: '發送' },
   { key: 'loyalty', label: '集點卡' },
   { key: 'redemption', label: '兌換' },
@@ -54,7 +56,7 @@ const PromotionsPage = () => {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`
-                  flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all
+                  flex-shrink-0 px-3 py-2 rounded-full text-sm font-medium transition-all
                   sm:rounded-none sm:px-3 sm:py-3 sm:border-b-2
                   ${activeTab === tab.key
                     ? 'bg-[#9F9586] text-white sm:bg-transparent sm:text-[#9F9586] sm:border-[#9F9586] font-bold'
@@ -103,6 +105,12 @@ const PromotionsPage = () => {
         {activeTab === 'loyalty' && (
           <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
             <LoyaltySettings />
+          </div>
+        )}
+
+        {activeTab === 'giftcards' && (
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
+            <GiftCardSettings />
           </div>
         )}
 
