@@ -616,7 +616,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     // 4. Send message to Customer
     if (customerLineUserId) {
       const flexMessage = createBookingConfirmationFlex(customerName, serviceNames, formattedDateTime, amount, status || 'confirmed', bookingId);
-      const altText = `您好，${customerName}！您的預約已${status === 'completed' ? '完成' : '成功建立'}`;
+      const altText = `您好，${customerName}！您的預約已${status === 'completed' ? '完成' :status === 'cancelled' ? '取消' : '成功建立'}：${serviceNames.join('、')} at ${formattedDateTime}`;
       messagePromises.push(sendLineMessage(customerLineUserId, flexMessage, altText));
     }
 
