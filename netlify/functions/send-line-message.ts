@@ -607,7 +607,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
     // 3. Send message to Admin
     if (adminLineUserIds.length > 0 && status !== 'completed') {
-      const adminMessage = `🔔 新預約通知 🔔\n\n客戶：${customerName}\n服務：${serviceNames.join('、')}}`;
+      const adminMessage = `🔔 新預約通知 🔔\n\n客戶：${customerName}\n服務：${serviceNames.join('、')}`;
       for (const adminId of adminLineUserIds) {
         messagePromises.push(sendLineMessage(adminId, { type: 'text', text: adminMessage }, adminMessage));
       }
