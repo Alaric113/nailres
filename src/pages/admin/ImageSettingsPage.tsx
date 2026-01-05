@@ -16,6 +16,7 @@ interface CustomImages {
   nailImages: string[];
   browImages: string[];
   loyaltyCardBackground?: string;
+  loyaltyCardTextColor?: string;
 }
 
 const ImageSettingsPage: React.FC = () => {
@@ -27,6 +28,7 @@ const ImageSettingsPage: React.FC = () => {
     nailImages: [],
     browImages: [],
     loyaltyCardBackground: '',
+    loyaltyCardTextColor: '#FAF9F6',
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -46,6 +48,7 @@ const ImageSettingsPage: React.FC = () => {
             nailImages: data.nailImages || [],
             browImages: data.browImages || [],
             loyaltyCardBackground: data.loyaltyCardBackground || '',
+            loyaltyCardTextColor: data.loyaltyCardTextColor || '#FFFFFF',
           });
         }
       } catch (e) {
@@ -129,25 +132,56 @@ const ImageSettingsPage: React.FC = () => {
           <div className="space-y-4">
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <p className="text-sm text-gray-500 mb-4">設定會員集點卡的背景圖片（建議直式圖片）</p>
-              <ImageUploader
-                label="背景圖片"
-                imageUrl={images.loyaltyCardBackground || ''}
-                onImageUrlChange={(url) => handleImageChange('loyaltyCardBackground', url)}
-                storagePath="homepage/loyalty"
-                compact={true}
-              />
               
+              <div className="space-y-4">
+                  <ImageUploader
+                    label="背景圖片"
+                    imageUrl={images.loyaltyCardBackground || ''}
+                    onImageUrlChange={(url) => handleImageChange('loyaltyCardBackground', url)}
+                    storagePath="homepage/loyalty"
+                    compact={true}
+                  />
 
-                      {/* Content Area */}
-                      <div className="w-full h-full bg-[#FAF9F6] pt-12 px-4 relative flex items-center justify-center">
-                          <div className="w-full aspect-[1.586/1]">
-                             <LoyaltyCard previewBackground={images.loyaltyCardBackground} />
+                  {/* Text Color Setting */}
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <label className="text-sm font-bold text-gray-700">字體顏色</label>
+                      <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <input 
+                                type="text" 
+                                value={images.loyaltyCardTextColor || '#FAF9F6'}
+                                onChange={(e) => handleImageChange('loyaltyCardTextColor', e.target.value)}
+                                className="w-24 px-2 py-1 text-xs font-mono border border-gray-300 rounded focus:ring-primary focus:border-primary uppercase"
+                                placeholder="#FAF9F6"
+                            />
+                          </div>
+                          <div className="relative w-8 h-8 rounded border border-gray-300 overflow-hidden shrink-0">
+                            <input 
+                                type="color" 
+                                value={/^#[0-9A-F]{6}$/i.test(images.loyaltyCardTextColor || '') ? images.loyaltyCardTextColor : '#FAF9F6'}
+                                onChange={(e) => handleImageChange('loyaltyCardTextColor', e.target.value)}
+                                className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] p-0 cursor-pointer border-0"
+                            />
                           </div>
                       </div>
+                  </div>
+              </div>
 
-                      {/* Home Indicator */}
-                      
-                
+              
+
+                          {/* Content Area */}
+                          <div className="w-full h-full bg-[#FAF9F6] mt-2  relative flex items-center justify-center">
+                              <div className="w-full aspect-[1.586/1]">
+                                  <LoyaltyCard 
+                                      previewBackground={images.loyaltyCardBackground} 
+                                      previewTextColor={images.loyaltyCardTextColor}
+                                  />
+                              </div>
+                          </div>
+
+                          {/* Home Indicator */}
+                          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full"></div>
+                     
             </div>
           </div>
         );

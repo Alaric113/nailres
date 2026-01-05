@@ -7,6 +7,7 @@ import { db } from '../../lib/firebase';
 
 interface LoyaltyCardProps {
   previewBackground?: string; // New prop for preview
+  previewTextColor?: string; // New prop for preview text color
   onReady?: () => void; // Callback when card is ready (bg image loaded or no bg)
 }
 
@@ -36,10 +37,11 @@ const LoyaltyCardSkeleton = () => (
   </div>
 );
 
-const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady }) => {
+const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTextColor, onReady }) => {
   const { userProfile } = useAuthStore();
   const loyaltyPoints = userProfile?.loyaltyPoints || 0;
   const [backgroundImage, setBackgroundImage] = useState<string>('');
+  const [textColor, setTextColor] = useState<string>('#FAF9F6'); // Default off-white
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   // Default fallback avatar
@@ -50,19 +52,27 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady })
   const tierName = role === 'platinum' ? '白金會員' : role === 'admin' ? '管理員' : role === 'manager' ? '管理設計師' : role === 'designer' ? '設計師' : '一般會員'; // could be dynamic based on points later
 
   useEffect(() => {
-    // If previewBackground is provided, use it directly and skip fetching
-    if (previewBackground) {
-      setBackgroundImage(previewBackground);
+    // If preview props are provided, use them directly
+    if (previewBackground !== undefined || previewTextColor !== undefined) {
+      if (previewBackground !== undefined) setBackgroundImage(previewBackground);
+      if (previewTextColor !== undefined) setTextColor(previewTextColor);
+      
       setIsImageLoaded(false); // Reset loading state for new image
       return;
     }
 
-    const fetchBackground = async () => {
+    const fetchSettings = async () => {
       try {
         const docRef = doc(db, 'globals', 'homepageImages');
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().loyaltyCardBackground) {
-          setBackgroundImage(docSnap.data().loyaltyCardBackground);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.loyaltyCardBackground) {
+                setBackgroundImage(data.loyaltyCardBackground);
+            }
+            if (data.loyaltyCardTextColor) {
+                setTextColor(data.loyaltyCardTextColor);
+            }
           setIsImageLoaded(false); // Reset for new image
         } else {
           // No background configured, mark as loaded
@@ -75,8 +85,32 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady })
         onReady?.();
       }
     };
-    fetchBackground();
-  }, [previewBackground]); // Re-run if previewBackground changes
+    fetchSettings();
+  }, [previewBackground, previewTextColor]); 
+
+  const getAdvancedContrastHex = ({ useColor }: { useColor: string }): string => {
+  // 1. 清理 Hex 並轉為 RGB
+  const hex = useColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  // 2. 使用感知亮度公式 (Perceptive Luminance)
+  // 人眼對綠色最敏感，藍色最弱
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+
+  // 3. 根據背景亮度，回傳「柔和色」而非「純色」
+  if (luminance > 0.6) {
+    // 背景很亮（如淺粉、珍珠白）：回傳「深咖啡灰色」比純黑柔和
+    return '#2D2926'; 
+  } else if (luminance > 0.4) {
+    // 背景中等（如奶茶色、莫蘭迪色）：回傳「極深色」確保可讀性
+    return '#1A1A1A';
+  } else {
+    // 背景很深（如深藍、酒紅）：回傳「米白色」比死白更高級
+    return '#FAF9F6';
+  }
+};
 
   // Preload background image
   useEffect(() => {
@@ -105,8 +139,12 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady })
 
   return (
     <div
-      className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col bg-center bg-no-repeat"
-      style={backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: '100% 100%' } : {}}
+      className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col bg-center bg-no-repeat"
+      style={{ 
+          backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined, 
+          backgroundSize: '100% 100%',
+          color: textColor // Apply dynamic text color
+      }}
     >
       {/* Overlay for readability if image is present */}
       {!backgroundImage && <div className="absolute inset-0 bg-black/40 z-0"></div>}
@@ -130,9 +168,9 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady })
                 crossOrigin="anonymous"
                 referrerPolicy="no-referrer"
                 loading='lazy'
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-white/30 shadow-sm"
+                className="w-16 h-16 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-white/30 shadow-sm"
               />
-              <div className="absolute -bottom-1 -right-1 bg-white text-[#9F9586] rounded-full p-0.5 shadow-sm">
+              <div className="absolute bottom-0 right-0 bg-white text-[#9F9586] rounded-full p-0.5 shadow-sm">
                 <StarIcon className="w-3 h-3" />
               </div>
             </div>
@@ -145,7 +183,14 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady })
           </div>
 
           <div>
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm border border-white/20 text-xs font-medium tracking-wide">
+            <span 
+                className="inline-flex items-center px-3 py-1 rounded-full backdrop-blur-sm border text-xs font-medium tracking-wide"
+                style={{ 
+                    backgroundColor: textColor, 
+                    borderColor: textColor,
+                    color: getAdvancedContrastHex({useColor:textColor}) // Ensure badge text inherits color
+                }}
+            >
               {tierName}
             </span>
           </div>
@@ -154,9 +199,9 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady })
         {/* Card Body: Points & Description */}
         <div className="flex flex-col items-end justify-between">
           <div className="flex flex-col items-center w-full"> {/* New div to hold points AND description */}
-            <div className="text-sm text-white font-medium mb-1">目前累積點數</div>
+            <div className="text-sm font-medium mb-1" style={{ opacity: 0.9 }}>目前累積點數</div>
             {/* Description moved here */}
-            <p className="text-white/80 font-light text-xs sm:text-xs  mt-1">
+            <p className="font-light text-xs sm:text-xs mt-1" style={{ opacity: 0.8 }}>
               每消費 $1,000 累積 1 點
             </p>
 
@@ -170,7 +215,10 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, onReady })
           </div>
 
           <div className="flex items-end"> {/* Only "查看兌換紀錄" button here */}
-            <button className="flex hidden items-center gap-1 text-white hover:text-white/80 transition-colors font-medium group text-xs">
+            <button 
+                className="flex hidden items-center gap-1 hover:opacity-80 transition-opacity font-medium group text-xs"
+                style={{ color: textColor }}
+            >
               查看兌換紀錄
               <ChevronRightIcon className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </button>
