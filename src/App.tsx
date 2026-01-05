@@ -1,43 +1,43 @@
 import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useAuthStore } from './store/authStore';
-
-// import LandingPage from './pages/LandingPage'; // Removed, used in RootRedirect
-import Home from './pages/Home';
-import { Login } from './components/auth/Login';
-import Register from './pages/Register';
-import PortfolioGalleryPage from './pages/PortfolioGalleryPage';
-import LiffEntry from './pages/liff/LiffEntry';
+import { Suspense, lazy } from 'react';
+// Lazy Load Pages
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./components/auth/Login').then(module => ({ default: module.Login })));
+const Register = lazy(() => import('./pages/Register'));
+const PortfolioGalleryPage = lazy(() => import('./pages/PortfolioGalleryPage'));
+const LiffEntry = lazy(() => import('./pages/liff/LiffEntry'));
 
 // Page Components
-import BookingPage from './pages/BookingPage';
-import BookingPaymentPage from './pages/booking/BookingPaymentPage'; // New Import
-import StoreInfoPage from './pages/StoreInfoPage';
-import UserMemberPage from './pages/UserMemberPage';
-import MemberHistoryPage from './pages/member/MemberHistoryPage';
-import MemberOrderDetailPage from './pages/member/MemberOrderDetailPage'; // New Import
-import ReschedulePage from './pages/member/ReschedulePage';
-import MemberRewardsPage from './pages/member/MemberRewardsPage';
-import MemberPassPage from './pages/member/MemberPassPage';
-import MemberCouponsPage from './pages/member/MemberCouponsPage';
-import PurchasePassPage from './pages/member/PurchasePassPage';
-import AdminDashboard from './pages/AdminDashboard';
-import ServiceManagement from './pages/ServiceManagement';
-import CustomerListPage from './pages/CustomerListPage';
-import CustomerDetailPage from './pages/CustomerDetailPage';
-import HoursSettingsPage from './pages/HoursSettingsPage';
-import OrderManagementPage from './pages/OrderManagementPage';
-import PassOrderManagementPage from './pages/admin/PassOrderManagementPage';
-import OrderEditPage from './pages/OrderEditPage';
-import OrderFeedbackPage from './pages/OrderFeedbackPage'; // New Import
-import FeedbackPage from './pages/FeedbackPage';
-import CalendarPage from './pages/CalendarPage';
-import SettingsPage from './pages/SettingsPage';
-import StaffManagementPage from './pages/StaffManagementPage';
-import PromotionsPage from './pages/PromotionsPage';
-import ImageSettingsPage from './pages/admin/ImageSettingsPage'; // New Import
+const BookingPage = lazy(() => import('./pages/BookingPage'));
+const BookingPaymentPage = lazy(() => import('./pages/booking/BookingPaymentPage'));
+const StoreInfoPage = lazy(() => import('./pages/StoreInfoPage'));
+const UserMemberPage = lazy(() => import('./pages/UserMemberPage'));
+const MemberHistoryPage = lazy(() => import('./pages/member/MemberHistoryPage'));
+const MemberOrderDetailPage = lazy(() => import('./pages/member/MemberOrderDetailPage'));
+const ReschedulePage = lazy(() => import('./pages/member/ReschedulePage'));
+const MemberRewardsPage = lazy(() => import('./pages/member/MemberRewardsPage'));
+const MemberPassPage = lazy(() => import('./pages/member/MemberPassPage'));
+const MemberCouponsPage = lazy(() => import('./pages/member/MemberCouponsPage'));
+const PurchasePassPage = lazy(() => import('./pages/member/PurchasePassPage'));
 
-import PortfolioManagementPage from './pages/PortfolioManagementPage';
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const ServiceManagement = lazy(() => import('./pages/ServiceManagement'));
+const CustomerListPage = lazy(() => import('./pages/CustomerListPage'));
+const CustomerDetailPage = lazy(() => import('./pages/CustomerDetailPage'));
+const HoursSettingsPage = lazy(() => import('./pages/HoursSettingsPage'));
+const OrderManagementPage = lazy(() => import('./pages/OrderManagementPage'));
+const PassOrderManagementPage = lazy(() => import('./pages/admin/PassOrderManagementPage'));
+const OrderEditPage = lazy(() => import('./pages/OrderEditPage'));
+const OrderFeedbackPage = lazy(() => import('./pages/OrderFeedbackPage'));
+const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const StaffManagementPage = lazy(() => import('./pages/StaffManagementPage'));
+const PromotionsPage = lazy(() => import('./pages/PromotionsPage'));
+const ImageSettingsPage = lazy(() => import('./pages/admin/ImageSettingsPage'));
+const PortfolioManagementPage = lazy(() => import('./pages/PortfolioManagementPage'));
 // Layout Components
 import LoadingSpinner from './components/common/LoadingSpinner';
 import AdminLayout from './components/admin/AdminLayout';
@@ -68,7 +68,9 @@ function RootLayout() {
     <ToastProvider>
       <PwaUpdatePrompt />
       <ScrollToTop />
-      <Outlet /> {/* This Outlet will render the current route's element */}
+      <Suspense fallback={<LoadingSpinner size='lg' fullScreen />}>
+        <Outlet />
+      </Suspense>
     </ToastProvider>
   );
 }

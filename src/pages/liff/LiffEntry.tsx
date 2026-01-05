@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { initializeLiff } from '../../lib/liff';
-import { signInWithCustomToken } from 'firebase/auth';
+import { signInWithCustomToken, signInAnonymously } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { generateState, generateNonce } from '../../utils/lineAuth';
@@ -92,6 +92,14 @@ const LiffEntry = () => {
                      const idToken = liff.getIDToken();
                      if (!idToken) {
                          throw new Error('LIFF ID Token is missing');
+                     }
+
+                     // Mock Token Handling
+                     if (idToken === 'mock_id_token') {
+                        console.log('⚠️ Mock Token detected. Signing in anonymously...');
+                        await signInAnonymously(auth);
+                        // Profile creation will be handled by useAuth hook automatically
+                        return;
                      }
 
                      let profile = null;
