@@ -6,6 +6,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; 
 import { db } from '../../lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
+import imageCompression from 'browser-image-compression';
 
 interface PlanFormProps {
     plan?: SeasonPass | null;
@@ -93,9 +94,19 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
 
         setUploading(true);
         try {
+            const options = {
+              maxSizeMB: 0.8,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true,
+              fileType: 'image/webp',
+              initialQuality: 0.8,
+            };
+
+            const compressedFile = await imageCompression(file, options);
+
             const storage = getStorage();
-            const storageRef = ref(storage, `plans/${uuidv4()}_${file.name}`);
-            await uploadBytes(storageRef, file);
+            const storageRef = ref(storage, `plans/${uuidv4()}`);
+            await uploadBytes(storageRef, compressedFile);
             const url = await getDownloadURL(storageRef);
             setImageUrl(url);
         } catch (error) {

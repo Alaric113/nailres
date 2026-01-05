@@ -4,6 +4,7 @@ import { doc, getDoc, updateDoc, Timestamp, serverTimestamp } from 'firebase/fir
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
+import imageCompression from 'browser-image-compression';
 import type { BookingDocument } from '../types/booking';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useToast } from '../context/ToastContext';
@@ -25,9 +26,18 @@ const FeedbackImageUploader = ({ onUpload, onDelete, existingImages }: {
         if (!file) return;
 
         setUploading(true);
-        const imageRef = ref(storage, `feedback_photos/${uuidv4()}`);
         try {
-            const snapshot = await uploadBytes(imageRef, file);
+            const options = {
+              maxSizeMB: 0.8,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true,
+              fileType: 'image/webp',
+              initialQuality: 0.8,
+            };
+
+            const compressedFile = await imageCompression(file, options);
+            const imageRef = ref(storage, `feedback_photos/${uuidv4()}`);
+            const snapshot = await uploadBytes(imageRef, compressedFile);
             const url = await getDownloadURL(snapshot.ref);
             onUpload(url);
         } catch (error) {

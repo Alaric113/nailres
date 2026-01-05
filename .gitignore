@@ -24,3 +24,5 @@
 
 # Local Netlify folder
 .netlify
+/scripts
+serviceAccountKey.json

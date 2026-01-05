@@ -5,6 +5,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import { useToast } from '../../context/ToastContext';
 import { storage } from '../../lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
+import imageCompression from 'browser-image-compression';
 import PortfolioImageSelector from './PortfolioImageSelector';
 
 interface ImageUploaderProps {
@@ -24,8 +25,18 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
   const handleHandleUpload = async (file: File) => {
       setIsUploading(true);
       try {
+        const options = {
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+          fileType: 'image/webp',
+          initialQuality: 0.8,
+        };
+
+        const compressedFile = await imageCompression(file, options);
+        
         const imageRef = ref(storage, `${storagePath}/${uuidv4()}`);
-        const snapshot = await uploadBytes(imageRef, file);
+        const snapshot = await uploadBytes(imageRef, compressedFile);
         const url = await getDownloadURL(snapshot.ref);
         
         onImageUrlChange(url);
