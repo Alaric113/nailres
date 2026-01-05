@@ -15,6 +15,7 @@ export interface Feedback {
     status: 'pending' | 'done';
     category: FeedbackCategory;
     createdAt: Timestamp;
+    who?: string;
 }
 
 export interface FeedbackComment {

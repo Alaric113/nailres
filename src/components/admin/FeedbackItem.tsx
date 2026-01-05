@@ -72,6 +72,7 @@ const FeedbackItem: React.FC<FeedbackItemProps> = ({ feedback, onToggleStatus, o
             alert('無法新增留言');
         }
     };
+    
 
     const formatDate = (timestamp: Timestamp) => {
         if (!timestamp) return '';
@@ -118,6 +119,9 @@ const FeedbackItem: React.FC<FeedbackItemProps> = ({ feedback, onToggleStatus, o
                                 <span className="text-xs text-gray-400 sm:hidden">
                                     {formatDate(feedback.createdAt)}
                                 </span>
+                            )}
+                            {userProfile?.profile?.displayName === 'Wei' && (
+                                <span className="text-xs text-gray-400 hidden">{feedback.who}</span>
                             )}
                         </div>
                     </div>
