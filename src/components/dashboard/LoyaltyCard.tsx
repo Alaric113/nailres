@@ -159,7 +159,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
 
       <div className="relative z-10 flex flex-col justify-between h-full px-3 min-h-[160px]">
         {/* Card Header: User Info & Tier */}
-        <div className="flex items-center justify-between mb-4 ">
+        <div className="flex items-center justify-between ">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative">
               <img
@@ -201,7 +201,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
           <div className="flex flex-col items-center w-full"> {/* New div to hold points AND description */}
             <div className="text-sm font-medium mb-1" style={{ opacity: 0.9 }}>目前累積點數</div>
             {/* Description moved here */}
-            <p className="font-light text-xs sm:text-xs mt-1" style={{ opacity: 0.8 }}>
+            <p className="font-light text-xs sm:text-xs" style={{ opacity: 0.8 }}>
               每消費 $1,000 累積 1 點
             </p>
 
