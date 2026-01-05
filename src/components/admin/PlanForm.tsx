@@ -546,7 +546,8 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                                                             >
                                                                 <option value="standalone">獨立使用</option>
                                                                 <option value="upgrade">附加升級</option>
-                                                                <option value="discount">折扣券</option>
+                                                                <option value="discount">優惠券</option>
+                                                                <option value="giftcard">商品卡</option>
                                                             </select>
                                                         </div>
                                                     </div>
