@@ -137,7 +137,7 @@ const CalendarPage = () => {
     <div className="min-h-screen bg-secondary-light text-text-main">
 
 
-      <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="container mx-auto sm:p-6 lg:p-8">
 
         {/* Designer Filter Portals (Admin/Manager Only) */}
         {(userProfile?.role === 'admin' || userProfile?.role === 'manager') && (
@@ -208,7 +208,7 @@ const CalendarPage = () => {
 
         {/* View Toggle - Mobile (Simplified) */}
         {isMobile && (
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-4 m-2">
             {[
               { view: 'dayGridMonth', label: '月曆' },
               { view: 'timeGridDay', label: '日程' },
@@ -228,7 +228,7 @@ const CalendarPage = () => {
         )}
 
         {/* Legend - Collapsible on Mobile */}
-        <div className="bg-white rounded-xl shadow-sm mb-4 border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm mb-4 mx-2 border border-gray-100 overflow-hidden">
           <button
             onClick={() => setIsLegendOpen(!isLegendOpen)}
             className="w-full flex items-center justify-between p-3 md:hidden"
@@ -285,19 +285,16 @@ const CalendarPage = () => {
                 // Compact view for month grid
                 if (isMonthView && isMobile) {
                   return (
-                    <div className="flex items-center gap-1 px-1 py-0.5 w-full">
-                      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${booking?.status === 'confirmed' ? 'bg-green-500' :
-                        booking?.status === 'pending_payment' ? 'bg-amber-500' :
-                          booking?.status === 'pending_confirmation' ? 'bg-blue-500' :
-                            booking?.status === 'completed' ? 'bg-gray-400' : 'bg-red-400'
-                        }`}></div>
+                    <div className="flex flex-col items-center gap-1 px-1 py-0.5 w-full">
+                      
                       <span className="text-[10px] truncate">{format(booking?.dateTime || new Date(), 'HH:mm')}</span>
+                      <span className="text-[10px] truncate">{arg.event.title}</span>
                     </div>
                   );
                 }
 
                 return (
-                  <div className="fc-event-main-custom p-1">
+                  <div className="fc-event-main-custom p-1 text-black">
                     <div className="fc-event-time text-xs font-semibold">{arg.timeText}</div>
                     <div className="fc-event-title-container">
                       <div className="fc-event-title-line text-xs font-medium truncate">
