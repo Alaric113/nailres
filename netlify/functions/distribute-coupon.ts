@@ -49,28 +49,28 @@ const handler: Handler = async (event: HandlerEvent) => {
   }
 
   try {
-    // 1. 驗證使用者是否為管理員 (此為簡化版，正式環境應使用 ID Token 驗證)
-    // const { uid } = await verifyIdToken(event);
-    // const userDoc = await db.collection('users').doc(uid).get();
-    // if (!userDoc.exists || userDoc.data()?.role !== 'admin') {
-    //   return { statusCode: 403, body: JSON.stringify({ message: 'Forbidden: Not an admin.' }) };
-    // }
-
     const { couponId, targets } = JSON.parse(event.body || '{}');
 
     if (!couponId || !targets || !Array.isArray(targets) || targets.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ message: 'Missing couponId or targets.' }) };
     }
 
+    // 1. Fetch source coupon details
+    const couponDoc = await db.collection('coupons').doc(couponId).get();
+    if (!couponDoc.exists) {
+      return { statusCode: 404, body: JSON.stringify({ message: 'Coupon not found.' }) };
+    }
+    const couponData = couponDoc.data()!;
+
     const allUserIds = new Set<string>();
 
-    // 2. 根據發送類型獲取目標使用者 ID，並合併
+    // 2. Get target user IDs
     for (const target of targets) {
       switch (target.type) {
         case 'all': {
           const usersSnapshot = await db.collection('users').select().get();
           usersSnapshot.docs.forEach(doc => allUserIds.add(doc.id));
-          break; // If 'all' is present, we can stop processing other targets
+          break;
         }
         case 'new': {
           const sevenDaysAgo = new Date();
@@ -93,7 +93,6 @@ const handler: Handler = async (event: HandlerEvent) => {
           break;
         }
       }
-      // If 'all' was one of the targets, no need to process further.
       if (target.type === 'all') break;
     }
 
@@ -103,7 +102,7 @@ const handler: Handler = async (event: HandlerEvent) => {
       return { statusCode: 200, body: JSON.stringify({ message: 'No users found for the specified target.', distributedCount: 0 }) };
     }
 
-    // 3. 使用批次寫入來發送優惠券
+    // 3. Batch write to user_coupons (Root Collection)
     const MAX_BATCH_SIZE = 500;
     const batches = [];
 
@@ -111,11 +110,23 @@ const handler: Handler = async (event: HandlerEvent) => {
       const batch = db.batch();
       const chunk = userIds.slice(i, i + MAX_BATCH_SIZE);
       for (const userId of chunk) {
-        const userCouponRef = db.collection('users').doc(userId).collection('userCoupons').doc(couponId);
+        const userCouponRef = db.collection('user_coupons').doc(); // Auto-ID
         batch.set(userCouponRef, {
+          userId: userId,
           couponId: couponId,
-          isUsed: false,
-          receivedAt: new Date(),
+          code: couponData.code, // Use template code. If unique instance code is needed, append hash.
+          title: couponData.title,
+          status: 'active',
+          value: couponData.value,
+          type: couponData.type,
+          minSpend: couponData.minSpend || 0,
+          scopeType: couponData.scopeType || 'all',
+          scopeIds: couponData.scopeIds || [],
+          details: couponData.details || '',
+          validFrom: couponData.validFrom,
+          validUntil: couponData.validUntil,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          isUsed: false, // Legacy field, kept for safety
         });
       }
       batches.push(batch.commit());
