@@ -1,8 +1,125 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Playfair+Display:wght@400;600;700&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-primary: #9F9586;
+  --color-primary-light: #B7AD9E;
+  --color-primary-dark: #8A8173;
+
+  --color-secondary: #EFECE5;
+  --color-secondary-light: #FDFBF7;
+  --color-secondary-dark: #DCD8CF;
+
+  --color-text-main: #5C5548;
+  --color-text-light: #9F9586;
+  --color-text-inverse: #FDFBF7;
+
+  --color-accent: #A67C52;
+  --color-accent-hover: #8C6842;
+
+  /* Fonts */
+  --font-sans: "Noto Sans TC", sans-serif;
+  --font-serif: "Playfair Display", serif;
+
+  /* Spacing */
+  --spacing-18: 4.5rem;
+  --spacing-88: 22rem;
+  --spacing-100: 25rem;
+  --spacing-128: 32rem;
+
+  /* Shadows */
+  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-soft: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+  --shadow-medium: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
+  --shadow-strong: 0 8px 24px 0 rgba(0, 0, 0, 0.16);
+  --shadow-glow: 0 0 20px rgba(159, 149, 134, 0.3);
+
+  /* Z-index */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+
+  /* Animations */
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-fade-in-up: fade-in-up 0.4s ease-out;
+  --animate-slide-in-right: slide-in-right 0.3s ease-out;
+  --animate-slide-in-left: slide-in-left 0.3s ease-out;
+  --animate-scale-in: scale-in 0.2s ease-out;
+  --animate-shimmer: shimmer 2s infinite linear;
+
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in-up {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in-right {
+    0% {
+      transform: translateX(100%);
+    }
+
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slide-in-left {
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scale-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+}
+
 
 @layer base {
 
@@ -18,7 +135,11 @@
   }
 
   body {
-    @apply bg-secondary-light text-text-main font-sans antialiased;
+    background-color: var(--color-secondary-light);
+    color: var(--color-text-main);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     overscroll-behavior-y: none;
     touch-action: pan-y;
     /* improvements for touch handling */
@@ -112,26 +233,7 @@
   }
 }
 
-/* Safe area insets for iOS */
-@supports (padding: max(0px)) {
-  .pb-safe-area {
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
-  }
 
-  .pt-safe-area {
-    padding-top: max(1rem, env(safe-area-inset-top));
-  }
-
-  .px-safe-area {
-    padding-left: max(1rem, env(safe-area-inset-left));
-    padding-right: max(1rem, env(safe-area-inset-right));
-  }
-
-  /* Safe area bottom for fixed elements (BottomNav, FABs) */
-  .mb-safe-area {
-    margin-bottom: env(safe-area-inset-bottom);
-  }
-}
 
 /* ========================================
    Mobile-First Container System
