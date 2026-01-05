@@ -134,21 +134,9 @@ const ImageSettingsPage: React.FC = () => {
                 imageUrl={images.loyaltyCardBackground || ''}
                 onImageUrlChange={(url) => handleImageChange('loyaltyCardBackground', url)}
                 storagePath="homepage/loyalty"
+                compact={true}
               />
-              {/* Preview */}
-              <div className="mt-8 flex flex-col items-center">
-                <p className="text-xs text-gray-500 mb-2 font-medium">預覽效果 (實際效果依手機螢幕為主)</p>
-                <div className="w-full max-w-sm transform scale-90 sm:scale-100 origin-top transition-transform">
-                   <div className="rounded-3xl shadow-2xl border-4 border-gray-900 bg-gray-900 overflow-hidden relative mx-auto" style={{ width: '320px', height: '600px' }}>
-                      {/* Fake Status Bar */}
-                      <div className="absolute top-0 w-full h-6 bg-transparent z-20 flex justify-between px-4 items-center">
-                          <span className="text-[10px] text-white font-bold">9:41</span>
-                          <div className="flex gap-1">
-                             <div className="w-3 h-3 bg-white rounded-full opacity-0"></div> 
-                             {/* Just spacing, keep it simple */}
-                             <span className="text-[10px] text-white">lll</span>
-                          </div>
-                      </div>
+              
 
                       {/* Content Area */}
                       <div className="w-full h-full bg-[#FAF9F6] pt-12 px-4 relative flex items-center justify-center">
@@ -158,10 +146,8 @@ const ImageSettingsPage: React.FC = () => {
                       </div>
 
                       {/* Home Indicator */}
-                      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full"></div>
-                   </div>
-                </div>
-              </div>
+                      
+                
             </div>
           </div>
         );

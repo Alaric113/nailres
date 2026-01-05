@@ -18,9 +18,9 @@ interface ImageUploaderProps {
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageUrlChange, storagePath, compact }) => {
   const [isUploading, setIsUploading] = useState(false);
-  const [urlInput, setUrlInput] = useState(imageUrl);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false); 
   const { showToast } = useToast();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleHandleUpload = async (file: File) => {
       setIsUploading(true);
@@ -40,10 +40,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
         const url = await getDownloadURL(snapshot.ref);
         
         onImageUrlChange(url);
-        setUrlInput(url);
-
-        // Optional: clean up old image logic if needed, but risky if shared.
-        // For now we skip auto-delete of old image unless we are sure.
         
         showToast('圖片上傳成功！', 'success');
       } catch (error) {
@@ -61,13 +57,15 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
 
   const handlePortfolioSelect = (url: string) => {
       onImageUrlChange(url);
-      setUrlInput(url);
       setIsSelectorOpen(false);
   };
 
   const handleDelete = () => {
     onImageUrlChange('');
-    setUrlInput('');
+  };
+
+  const handleTriggerUpload = () => {
+    fileInputRef.current?.click();
   };
 
   // Compact Render Logic
@@ -86,7 +84,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
           )}
           <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" disabled={isUploading} />
         </label>
-        
         
         {/* Portfolio Select Link for Compact Mode */}
          <button 
@@ -107,69 +104,96 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ label, imageUrl, onImageU
     );
   }
 
-  // Standard Render Logic
+  // Standard Render Logic - New simplified version
   return (
-    <div className="video-recorder p-4 mb-4 bg-gray-50 rounded-lg border border-gray-200">
+    <div className="p-4 mb-4 bg-gray-50 rounded-lg border border-gray-200">
       {label && <label className="block text-gray-700 text-sm font-bold mb-2">{label}</label>}
       
-      <div className="flex flex-col sm:flex-row items-center gap-4">
-        {imageUrl && (
-          <div className="relative shrink-0 group">
-            <img src={imageUrl} alt="Uploaded" className="w-24 h-24 object-cover rounded-md border bg-white" />
-            <button
-              onClick={handleDelete}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-              title="移除圖片"
-            >
-              <XMarkIcon className="h-3 w-3" />
-            </button>
+      {imageUrl ? (
+          // Has Image State
+          <div className="flex flex-col sm:flex-row gap-4 items-start">
+              <div className="relative group shrink-0">
+                  <img 
+                    src={imageUrl} 
+                    alt="Uploaded" 
+                    className="w-full sm:w-64 h-40 object-cover rounded-lg border bg-white shadow-sm transition-all group-hover:brightness-95" 
+                  />
+                  <button
+                      onClick={handleDelete}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 focus:outline-none shadow-md"
+                      title="移除圖片"
+                  >
+                      <XMarkIcon className="h-4 w-4" />
+                  </button>
+              </div>
+              
+              <div className="flex flex-col gap-2 w-full sm:w-auto">
+                  <button 
+                      type="button"
+                      onClick={handleTriggerUpload}
+                      disabled={isUploading}
+                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2"
+                  >
+                      {isUploading ? <LoadingSpinner size="sm"/> : <PhotoIcon className="w-4 h-4 text-gray-500" />}
+                      {isUploading ? '處理中...' : '更換圖片'}
+                  </button>
+                  
+                  <button 
+                      type="button"
+                      onClick={() => setIsSelectorOpen(true)}
+                      className="px-4 py-2 bg-amber-50 border border-amber-200/50 rounded-lg text-sm font-bold text-amber-700 hover:bg-amber-100 transition-colors shadow-sm flex items-center justify-center gap-2"
+                  >
+                      <SparklesIcon className="w-4 h-4 text-amber-600" />
+                      從作品集選取
+                  </button>
+              </div>
           </div>
-        )}
-
-        <div className="flex-1 w-full">
-          {!imageUrl && (
-            <div className="flex items-center justify-center w-full">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition-colors group">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    {isUploading ? (
-                    <LoadingSpinner size="sm"/>
-                    ) : (
+      ) : (
+          // No Image State - Big Upload Area
+          <div className="flex flex-col gap-3">
+            <div 
+                onClick={handleTriggerUpload}
+                className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition-all group"
+            >
+                {isUploading ? (
+                    <LoadingSpinner size="md"/>
+                ) : (
                     <>
-                        <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-colors">
-                            <CloudArrowUpIcon className="w-5 h-5 text-primary" />
+                        <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <CloudArrowUpIcon className="w-6 h-6 text-primary" />
                         </div>
-                        <p className="mb-1 text-sm text-gray-500"><span className="font-semibold text-gray-700">點擊上傳</span> 或拖放</p>
-                        <p className="text-xs text-gray-400">PNG, JPG (MAX. 2MB)</p>
+                        <p className="mb-1 text-sm font-semibold text-gray-700">點擊上傳圖片</p>
+                        <p className="text-xs text-gray-400">支援 JPG, PNG, WEBP (最大 2MB)</p>
                     </>
-                    )}
-                </div>
-                <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" disabled={isUploading} />
-                </label>
+                )}
             </div>
-          )}
-          
-          <div className="mt-3 relative flex gap-2">
-            <input
-              type="text"
-              className="flex-1 shadow-sm appearance-none border border-gray-300 rounded-lg py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
-              placeholder="或是輸入圖片 URL"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              onBlur={() => { if(urlInput) onImageUrlChange(urlInput) }}
-            />
-             <button 
+
+            <div className="flex items-center gap-3">
+                <div className="h-px bg-gray-200 flex-1"></div>
+                <span className="text-xs text-gray-400 font-medium">或</span>
+                <div className="h-px bg-gray-200 flex-1"></div>
+            </div>
+
+            <button 
                 type="button"
                 onClick={() => setIsSelectorOpen(true)}
-                className="px-4 py-2 bg-amber-50 border border-amber-200/50 rounded-lg text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap shadow-sm"
-                title="從作品集選取"
+                className="w-full py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-sm font-bold text-amber-700 hover:bg-amber-100 transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
                 <SparklesIcon className="w-4 h-4 text-amber-600" />
-                <span className="hidden sm:inline">從作品集選取</span>
-                <span className="sm:hidden">選取</span>
+                從作品集選取
             </button>
           </div>
-        </div>
-      </div>
+      )}
+
+      {/* Hidden File Input */}
+      <input 
+          ref={fileInputRef}
+          type="file" 
+          className="hidden" 
+          onChange={handleFileChange} 
+          accept="image/*" 
+          disabled={isUploading} 
+      />
 
       <PortfolioImageSelector 
         isOpen={isSelectorOpen}
