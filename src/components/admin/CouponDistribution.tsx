@@ -271,7 +271,7 @@ import { TicketIcon, CreditCardIcon, PaperAirplaneIcon, UsersIcon, UserGroupIcon
                 { type: 'all' as TargetType, label: '全體會員', icon: UsersIcon, desc: '發送給所有人' },
                 { type: 'new' as TargetType, label: '新會員', icon: UserPlusIcon, desc: '過去7天註冊' },
                 { type: 'role' as TargetType, label: '依等級', icon: UserGroupIcon, desc: '選擇會員等級' },
-                { type: 'pass' as TargetType, label: '依 Pass', icon: TicketIcon, desc: '持有特定 Pass' },
+                { type: 'pass' as TargetType, label: '依季卡', icon: TicketIcon, desc: '持有特定季卡' },
                 { type: 'specific' as TargetType, label: '指定會員', icon: UserIcon, desc: '搜尋選擇' },
               ].map(({ type, label, icon: Icon, desc }) => (
                 <button
