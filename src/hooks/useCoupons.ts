@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { Coupon } from '../types/coupon';
 
@@ -11,7 +11,7 @@ export const useCoupons = () => {
   useEffect(() => {
     const q = query(collection(db, 'coupons'), orderBy('createdAt', 'desc'));
 
-    const unsubscribe = onSnapshot(q, 
+    const unsubscribe = onSnapshot(q,
       (querySnapshot) => {
         const couponsData: Coupon[] = [];
         querySnapshot.forEach((doc) => {
@@ -19,7 +19,7 @@ export const useCoupons = () => {
         });
         setCoupons(couponsData);
         setIsLoading(false);
-      }, 
+      },
       (err) => {
         console.error("Error fetching coupons:", err);
         setError('讀取優惠券資料失敗。');
@@ -31,5 +31,15 @@ export const useCoupons = () => {
     return () => unsubscribe();
   }, []);
 
-  return { coupons, isLoading, error };
+  const deleteCoupon = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'coupons', id));
+      return true;
+    } catch (err) {
+      console.error("Error deleting coupon:", err);
+      throw err;
+    }
+  };
+
+  return { coupons, isLoading, error, deleteCoupon };
 };

@@ -32,7 +32,13 @@ const ServiceMobileAccordionCard: React.FC<ServiceMobileAccordionCardProps> = ({
       >
         <div className="flex items-center flex-1 min-w-0 pr-2">
           <div className="flex-shrink-0 h-12 w-12 mr-3">
-            <img className="h-12 w-12 rounded-md object-cover border border-secondary-dark/20" src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.name} />
+            {service.imageUrl ? (
+              <img className="h-12 w-12 rounded-md object-cover border border-secondary-dark/20" src={service.imageUrl} alt={service.name} />
+            ) : (
+              <div className="h-12 w-12 rounded-md bg-secondary-dark/20 flex items-center justify-center">
+                <span className="text-text-light text-xs font-medium">無圖片</span>
+              </div>
+            )}
           </div>
           <h3 className="font-bold text-lg text-text-main break-words font-serif text-left min-w-0">{service.name}</h3>
         </div>

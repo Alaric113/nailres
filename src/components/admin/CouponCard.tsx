@@ -1,23 +1,63 @@
 import React from 'react';
 import type { Coupon } from '../../types/coupon';
 import { format } from 'date-fns';
-import { PencilIcon, TagIcon, ClockIcon, CurrencyDollarIcon, UserIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TagIcon, ClockIcon, CurrencyDollarIcon, UserIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { motion, useAnimation, type PanInfo } from 'framer-motion';
 
 interface CouponCardProps {
   coupon: Coupon;
   onEdit: (coupon: Coupon) => void;
+  onDelete?: (coupon: Coupon) => void;
 }
 
-const CouponCard: React.FC<CouponCardProps> = ({ coupon, onEdit }) => {
+const CouponCard: React.FC<CouponCardProps> = ({ coupon, onEdit, onDelete }) => {
   const isActive = coupon.isActive;
   const isFixedDiscount = coupon.type === 'fixed';
   const discountValue = isFixedDiscount ? `NT$ ${coupon.value}` : `${coupon.value}%`;
   const validUntilDate = coupon.validUntil.toDate();
   const isExpired = new Date() > validUntilDate;
 
+  const controls = useAnimation();
+
+  const handleDragEnd = async (_: any, info: PanInfo) => {
+    if (info.offset.x < -60) {
+      // Swiped left enough: Reveal button (snap to -80px)
+      controls.start({ x: -80 });
+    } else {
+      // Snap back to closed
+      controls.start({ x: 0 });
+    }
+  };
+
+  const handleDeleteClick = () => {
+    if (onDelete && window.confirm('確定要刪除此優惠券嗎？')) {
+      onDelete(coupon);
+      controls.start({ x: 0 }); // Reset after delete
+    }
+  };
+
   return (
-    <div className={`bg-white rounded-xl shadow-sm border ${isActive && !isExpired ? 'border-gray-200' : 'border-gray-300 bg-gray-50 opacity-80'} overflow-hidden relative`}>
-      <div className="p-5">
+    <div className="relative rounded-xl overflow-hidden shadow-sm border border-gray-200 bg-red-500">
+      {/* Delete Background Button */}
+      <button 
+        onClick={handleDeleteClick}
+        className="absolute inset-y-0 right-0 w-20 flex flex-col items-center justify-center text-white z-0 hover:bg-red-600 transition-colors"
+      >
+        <TrashIcon className="h-6 w-6" />
+        <span className="text-xs font-bold mt-1">刪除</span>
+      </button>
+
+      {/* Swipeable Foreground */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -80, right: 0 }}
+        dragElastic={0.1}
+        onDragEnd={handleDragEnd}
+        animate={controls}
+        className={`bg-white p-5 border-l-4 ${isActive && !isExpired ? 'border-l-green-400' : 'border-l-gray-300'} relative z-10 h-full`}
+        whileTap={{ cursor: "grabbing" }}
+        style={{ cursor: "grab" }}
+      >
         {/* Header & Edit Button */}
         <div className="flex justify-between items-start mb-3">
           <div>
@@ -25,8 +65,12 @@ const CouponCard: React.FC<CouponCardProps> = ({ coupon, onEdit }) => {
             <p className="text-sm font-mono text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md inline-block mt-1">{coupon.code}</p>
           </div>
           <button 
-            onClick={() => onEdit(coupon)}
-            className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            onClick={(e) => {
+                e.stopPropagation();
+                onEdit(coupon);
+            }}
+            onPointerDown={(e) => e.stopPropagation()} // Prevent drag conflict
+            className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors z-20 relative"
             title="編輯優惠券"
           >
             <PencilIcon className="h-5 w-5" />
@@ -64,7 +108,7 @@ const CouponCard: React.FC<CouponCardProps> = ({ coupon, onEdit }) => {
           </div>
           <div className="text-right text-gray-800">{coupon.usageCount} / {coupon.usageLimit === -1 ? '無限制' : coupon.usageLimit}</div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

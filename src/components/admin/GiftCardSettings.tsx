@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useGiftCards } from '../../hooks/useGiftCards';
 import type { GiftCard } from '../../types/giftcard';
 import LoadingSpinner from '../common/LoadingSpinner';
-import { CreditCardIcon, TrashIcon, PencilSquareIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import Modal from '../common/Modal';
 import ImageUploader from './ImageUploader';
+
+import GiftCardItem from './GiftCardItem';
 
 const GiftCardSettings = () => {
     const { giftCards, isLoading, addGiftCard, updateGiftCard, deleteGiftCard } = useGiftCards();
@@ -33,12 +35,6 @@ const GiftCardSettings = () => {
         setImageUrl(card.imageUrl || '');
         setIsActive(card.isActive);
         setIsModalOpen(true);
-    };
-
-    const handleDelete = async (id: string) => {
-        if (window.confirm('確定要刪除此商品卡嗎？')) {
-            await deleteGiftCard(id);
-        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -74,47 +70,12 @@ const GiftCardSettings = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {giftCards.map(card => (
-                    <div key={card.id} className={`rounded-xl border-2 overflow-hidden relative group ${card.isActive ? 'bg-white border-gray-100' : 'bg-gray-50 border-dashed border-gray-200 opacity-60'}`}>
-                        {/* Image */}
-                        {card.imageUrl ? (
-                            <div className="aspect-video w-full bg-gray-100">
-                                <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover" />
-                            </div>
-                        ) : (
-                            <div className="aspect-video w-full bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center">
-                                <CreditCardIcon className="w-12 h-12 text-purple-300" />
-                            </div>
-                        )}
-
-                        {/* Content */}
-                        <div className="p-4">
-                            <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-gray-900 truncate">{card.name}</h4>
-                                    <p className="text-sm text-gray-500 line-clamp-2 mt-1">{card.description}</p>
-                                </div>
-                                {!card.isActive && (
-                                    <span className="text-[10px] text-red-500 font-bold border border-red-200 px-1 rounded shrink-0">已停用</span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Hover Actions */}
-                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                                onClick={() => handleOpenEdit(card)}
-                                className="p-2 bg-white/90 backdrop-blur text-gray-600 hover:text-[#9F9586] rounded-lg shadow-sm"
-                            >
-                                <PencilSquareIcon className="w-4 h-4" />
-                            </button>
-                            <button
-                                onClick={() => handleDelete(card.id)}
-                                className="p-2 bg-white/90 backdrop-blur text-gray-600 hover:text-red-500 rounded-lg shadow-sm"
-                            >
-                                <TrashIcon className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
+                    <GiftCardItem 
+                        key={card.id} 
+                        card={card} 
+                        onEdit={handleOpenEdit} 
+                        onDelete={deleteGiftCard}
+                    />
                 ))}
 
                 {giftCards.length === 0 && (

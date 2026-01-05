@@ -26,11 +26,22 @@ const PromotionsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
 
-  const { coupons, isLoading, error } = useCoupons();
+  const { coupons, isLoading, error, deleteCoupon } = useCoupons();
 
   const handleEditCoupon = (coupon: Coupon) => {
     setEditingCoupon(coupon);
     setIsModalOpen(true);
+  };
+
+  const handleCouponDelete = async (coupon: Coupon) => {
+    try {
+      if (deleteCoupon) {
+        await deleteCoupon(coupon.id);
+      }
+    } catch (err) {
+      console.error("Error deleting coupon:", err);
+      alert("無法刪除優惠券");
+    }
   };
 
   if (isLoading) {
@@ -89,7 +100,7 @@ const PromotionsPage = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {coupons.map(coupon => (
-                  <CouponCard key={coupon.id} coupon={coupon} onEdit={handleEditCoupon} />
+                  <CouponCard key={coupon.id} coupon={coupon} onEdit={handleEditCoupon} onDelete={handleCouponDelete} />
                 ))}
               </div>
             )}

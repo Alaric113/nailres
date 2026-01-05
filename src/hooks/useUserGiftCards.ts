@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 import type { UserGiftCard } from '../types/giftcard';
@@ -49,5 +49,19 @@ export const useUserGiftCards = () => {
     return () => unsubscribe();
   }, [currentUser]);
 
-  return { userGiftCards, isLoading, error };
+  const redeemGiftCard = async (giftCardId: string) => {
+    try {
+      const cardRef = doc(db, 'user_giftcards', giftCardId);
+      await updateDoc(cardRef, {
+        status: 'redeemed',
+        redeemedAt: serverTimestamp()
+      });
+      return true;
+    } catch (err) {
+      console.error("Error redeeming gift card:", err);
+      throw err;
+    }
+  };
+
+  return { userGiftCards, isLoading, error, redeemGiftCard };
 };
