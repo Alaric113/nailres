@@ -128,9 +128,79 @@ const CustomerDetailPage: React.FC = () => {
   // Handle pass activation
   const handleActivatePass = async (pass: ActivePass) => {
     if (!userId) return;
-    await updateDoc(doc(db, 'users', userId), {
-      activePasses: arrayUnion(pass)
-    });
+
+    // 1. Activate Pass
+    try {
+        await updateDoc(doc(db, 'users', userId), {
+            activePasses: arrayUnion(pass)
+        });
+    } catch (error) {
+        console.error("Error activating pass:", error);
+        alert("開通方案失敗");
+        return;
+    }
+    
+    // 2. Distribute Rewards (Coupons / GiftCards)
+    const originalPass = allSeasonPasses.find(p => p.id === pass.passId);
+    if (originalPass) {
+        let rewardsSent = 0;
+        const promises = [];
+
+        for (const item of originalPass.contentItems) {
+            // Check for Coupon
+            if (item.benefitType === 'discount' && item.couponId) {
+                const quantity = item.quantity || 1;
+                // Distribute N times? Usually we distribute 1 coupon with quantity logic, OR distribute N distinct coupons.
+                // Our distribution API distributes ONE instance per call (or batch of users).
+                // If we want to give 2 coupons, we should call it twice or support quantity in API.
+                // For safety and simplicity, let's loop.
+                for (let i = 0; i < quantity; i++) {
+                     promises.push(
+                        fetch('/.netlify/functions/distribute-coupon', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                couponId: item.couponId,
+                                targets: [{ type: 'specific', ids: [userId] }]
+                            })
+                        })
+                     );
+                }
+                rewardsSent += quantity;
+            } 
+            // Check for Gift Card
+            else if (item.benefitType === 'giftcard' && item.giftCardId) {
+                const quantity = item.quantity || 1;
+                for (let i = 0; i < quantity; i++) {
+                    promises.push(
+                        fetch('/.netlify/functions/distribute-giftcard', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                giftCardId: item.giftCardId,
+                                targets: [{ type: 'specific', ids: [userId] }]
+                            })
+                        })
+                    );
+                }
+                 rewardsSent += quantity;
+            }
+        }
+
+        if (promises.length > 0) {
+            try {
+                // Run in background / parallel
+                await Promise.all(promises);
+                // We rely on toast or just silent success. Since it's automatic, maybe just a console log or minor notification.
+                // showToast(`已自動發送 ${rewardsSent} 個獎勵`, 'success'); 
+                // Note: showToast is not directly available here unless I passed it or use context. 
+                // Context is available via useToast hook likely.
+                console.log(`Successfully distributed ${rewardsSent} rewards.`);
+            } catch (err) {
+                console.error("Error distributing rewards:", err);
+                alert("方案開通成功，但部分獎勵發送失敗，請手動補發。");
+            }
+        }
+    }
+
     // Refresh user data
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (userDoc.exists()) {

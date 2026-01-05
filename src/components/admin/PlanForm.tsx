@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import type { SeasonPass, SeasonPassVariant, PlanContentItem } from '../../types/seasonPass';
 import { useServices } from '../../hooks/useServices';
 import { PlusIcon, TrashIcon, PhotoIcon, BoltIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import { useCoupons } from '../../hooks/useCoupons';
+import { useGiftCards } from '../../hooks/useGiftCards';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; 
 import { db } from '../../lib/firebase';
@@ -15,7 +17,9 @@ interface PlanFormProps {
 }
 
 const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
-    const { services } = useServices(); // To link content items to services
+    const { services } = useServices(); 
+    const { coupons } = useCoupons();
+    const { giftCards } = useGiftCards();
     const [isLoading, setIsLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
 
@@ -624,16 +628,42 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                                                     )}
 
                                                     {item.benefitType === 'discount' && (
-                                                        <div className="text-xs text-gray-400 italic py-2 px-3 bg-gray-50 rounded-lg">
-                                                            優惠券連結功能開發中...
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-500 mb-1">選擇優惠券</label>
+                                                            <select
+                                                                value={item.couponId || ''}
+                                                                onChange={(e) => updateContentItem(idx, 'couponId', e.target.value)}
+                                                                className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3 focus:ring-primary focus:border-primary"
+                                                            >
+                                                                <option value="">請選擇優惠券...</option>
+                                                                {coupons.filter(c => c.isActive).map(c => (
+                                                                    <option key={c.id} value={c.id}>{c.title} ({c.code})</option>
+                                                                ))}
+                                                            </select>
                                                         </div>
                                                     )}
 
-                                                    {/* Quantity & Monthly Limit (For Standalone Services) */}
-                                                    {item.category === '服務' && item.benefitType === 'standalone' && (
+                                                    {item.benefitType === 'giftcard' && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-500 mb-1">選擇商品卡</label>
+                                                            <select
+                                                                value={item.giftCardId || ''}
+                                                                onChange={(e) => updateContentItem(idx, 'giftCardId', e.target.value)}
+                                                                className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3 focus:ring-primary focus:border-primary"
+                                                            >
+                                                                <option value="">請選擇商品卡...</option>
+                                                                {giftCards.filter(g => g.isActive).map(g => (
+                                                                    <option key={g.id} value={g.id}>{g.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Quantity & Monthly Limit (For Standalone Services, Coupons, GiftCards) */}
+                                                    {((item.category === '服務' && item.benefitType === 'standalone') || item.benefitType === 'discount' || item.benefitType === 'giftcard') && (
                                                         <div className="grid grid-cols-2 gap-3">
                                                             <div>
-                                                                <label className="block text-xs font-medium text-gray-500 mb-1">總次數</label>
+                                                                <label className="block text-xs font-medium text-gray-500 mb-1">由{item.benefitType === 'standalone' ? '總次數' : '發送數量'}</label>
                                                                 <input 
                                                                     type="number" 
                                                                     placeholder="1"
@@ -643,18 +673,20 @@ const PlanForm: React.FC<PlanFormProps> = ({ plan, onClose, onSave }) => {
                                                                     className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3 text-center"
                                                                 />
                                                             </div>
-                                                            <div>
-                                                                <label className="block text-xs font-medium text-gray-500 mb-1">每月限制 (選填)</label>
-                                                                <input 
-                                                                    type="number" 
-                                                                    placeholder="無限制"
-                                                                    value={item.monthlyLimit || ''}
-                                                                    min={0}
-                                                                    onChange={(e) => updateContentItem(idx, 'monthlyLimit', e.target.value ? Number(e.target.value) : undefined)}
-                                                                    className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3 text-center"
-                                                                    title="每月使用限制 (空=無限制)"
-                                                                />
-                                                            </div>
+                                                            {item.benefitType === 'standalone' && (
+                                                                <div>
+                                                                    <label className="block text-xs font-medium text-gray-500 mb-1">每月限制 (選填)</label>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        placeholder="無限制"
+                                                                        value={item.monthlyLimit || ''}
+                                                                        min={0}
+                                                                        onChange={(e) => updateContentItem(idx, 'monthlyLimit', e.target.value ? Number(e.target.value) : undefined)}
+                                                                        className="w-full rounded-lg border-gray-300 text-sm py-2.5 px-3 text-center"
+                                                                        title="每月使用限制 (空=無限制)"
+                                                                    />
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>

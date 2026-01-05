@@ -20,7 +20,8 @@ export interface PlanContentItem {
     // standalone: Use service directly
     // upgrade: Apply discount to service add-on
     // discount: Link to coupon
-    benefitType?: 'standalone' | 'upgrade' | 'discount';
+    // giftcard: Link to gift card
+    benefitType?: 'standalone' | 'upgrade' | 'discount' | 'giftcard';
 
     // === For upgrade (附加減價/免費) ===
     appliesTo?: string;       // Service ID this applies to
@@ -29,6 +30,9 @@ export interface PlanContentItem {
 
     // === For discount (折扣券) ===
     couponId?: string; // Link to coupon template
+
+    // === For giftcard (商品卡) ===
+    giftCardId?: string; // Link to gift card template
 }
 
 export interface SeasonPass {
