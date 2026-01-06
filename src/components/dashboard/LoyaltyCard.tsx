@@ -56,7 +56,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
     if (previewBackground !== undefined || previewTextColor !== undefined) {
       if (previewBackground !== undefined) setBackgroundImage(previewBackground);
       if (previewTextColor !== undefined) setTextColor(previewTextColor);
-      
+
       setIsImageLoaded(false); // Reset loading state for new image
       return;
     }
@@ -66,13 +66,13 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
         const docRef = doc(db, 'globals', 'homepageImages');
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.loyaltyCardBackground) {
-                setBackgroundImage(data.loyaltyCardBackground);
-            }
-            if (data.loyaltyCardTextColor) {
-                setTextColor(data.loyaltyCardTextColor);
-            }
+          const data = docSnap.data();
+          if (data.loyaltyCardBackground) {
+            setBackgroundImage(data.loyaltyCardBackground);
+          }
+          if (data.loyaltyCardTextColor) {
+            setTextColor(data.loyaltyCardTextColor);
+          }
           setIsImageLoaded(false); // Reset for new image
         } else {
           // No background configured, mark as loaded
@@ -86,31 +86,31 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
       }
     };
     fetchSettings();
-  }, [previewBackground, previewTextColor]); 
+  }, [previewBackground, previewTextColor]);
 
   const getAdvancedContrastHex = ({ useColor }: { useColor: string }): string => {
-  // 1. 清理 Hex 並轉為 RGB
-  const hex = useColor.replace('#', '');
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
+    // 1. 清理 Hex 並轉為 RGB
+    const hex = useColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
 
-  // 2. 使用感知亮度公式 (Perceptive Luminance)
-  // 人眼對綠色最敏感，藍色最弱
-  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    // 2. 使用感知亮度公式 (Perceptive Luminance)
+    // 人眼對綠色最敏感，藍色最弱
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 
-  // 3. 根據背景亮度，回傳「柔和色」而非「純色」
-  if (luminance > 0.6) {
-    // 背景很亮（如淺粉、珍珠白）：回傳「深咖啡灰色」比純黑柔和
-    return '#2D2926'; 
-  } else if (luminance > 0.4) {
-    // 背景中等（如奶茶色、莫蘭迪色）：回傳「極深色」確保可讀性
-    return '#1A1A1A';
-  } else {
-    // 背景很深（如深藍、酒紅）：回傳「米白色」比死白更高級
-    return '#FAF9F6';
-  }
-};
+    // 3. 根據背景亮度，回傳「柔和色」而非「純色」
+    if (luminance > 0.6) {
+      // 背景很亮（如淺粉、珍珠白）：回傳「深咖啡灰色」比純黑柔和
+      return '#2D2926';
+    } else if (luminance > 0.4) {
+      // 背景中等（如奶茶色、莫蘭迪色）：回傳「極深色」確保可讀性
+      return '#faf9f6';
+    } else {
+      // 背景很深（如深藍、酒紅）：回傳「米白色」比死白更高級
+      return '#FAF9F6';
+    }
+  };
 
   // Preload background image
   useEffect(() => {
@@ -140,10 +140,10 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
   return (
     <div
       className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col bg-center bg-no-repeat"
-      style={{ 
-          backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined, 
-          backgroundSize: '100% 100%',
-          color: textColor // Apply dynamic text color
+      style={{
+        backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+        backgroundSize: '100% 100%',
+        color: textColor // Apply dynamic text color
       }}
     >
       {/* Overlay for readability if image is present */}
@@ -183,13 +183,13 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
           </div>
 
           <div>
-            <span 
-                className="inline-flex items-center px-3 py-1 rounded-full backdrop-blur-sm border text-xs font-medium tracking-wide"
-                style={{ 
-                    backgroundColor: textColor, 
-                    borderColor: textColor,
-                    color: getAdvancedContrastHex({useColor:textColor}) // Ensure badge text inherits color
-                }}
+            <span
+              className="inline-flex items-center px-3 py-1 rounded-full backdrop-blur-sm border text-xs font-medium tracking-wide"
+              style={{
+                backgroundColor: textColor,
+                borderColor: textColor,
+                color: getAdvancedContrastHex({ useColor: textColor }) // Ensure badge text inherits color
+              }}
             >
               {tierName}
             </span>
@@ -215,9 +215,9 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
           </div>
 
           <div className="flex items-end"> {/* Only "查看兌換紀錄" button here */}
-            <button 
-                className="flex hidden items-center gap-1 hover:opacity-80 transition-opacity font-medium group text-xs"
-                style={{ color: textColor }}
+            <button
+              className="flex hidden items-center gap-1 hover:opacity-80 transition-opacity font-medium group text-xs"
+              style={{ color: textColor }}
             >
               查看兌換紀錄
               <ChevronRightIcon className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
