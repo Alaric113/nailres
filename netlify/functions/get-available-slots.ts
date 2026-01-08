@@ -154,9 +154,10 @@ const handler: Handler = async (event: HandlerEvent) => {
             // If slot.end < slot.start (e.g. 02:00 next day), we'd need to handle date rollover.
             // Basic assumption: Business hours within single day.
             const slotEnd = parseISO(`${date}T${slot.end}:00+08:00`);
+            
 
             while (true) {
-                const potentialSlotEnd = addMinutes(currentSlotStart, serviceDuration);
+                const potentialSlotEnd = currentSlotStart;
 
                 // Check bounds
                 if (isAfter(potentialSlotEnd, slotEnd)) {
