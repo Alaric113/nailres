@@ -107,7 +107,7 @@ const SeasonPassCard: React.FC<SeasonPassCardProps> = ({ pass, previewBackground
   const cardStyle: React.CSSProperties = backgroundUrl
     ? {
       backgroundImage: `url(${backgroundUrl})`,
-      backgroundSize: 'cover',
+      backgroundSize: '100% 100%',
       backgroundPosition: 'center',
       color: textColor
     }
@@ -115,7 +115,7 @@ const SeasonPassCard: React.FC<SeasonPassCardProps> = ({ pass, previewBackground
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl shadow-xl text-white p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col"
+      className="relative overflow-hidden rounded-2xl shadow-xl text-white p-4 pb-2 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col"
       style={cardStyle}
     >
       {/* Decorative Background Elements */}
@@ -125,13 +125,13 @@ const SeasonPassCard: React.FC<SeasonPassCardProps> = ({ pass, previewBackground
       <div className="relative z-10 flex flex-col h-full justify-between">
 
         {/* Header */}
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex flex-row">
+        <div className="flex justify-between items-start h-1/2">
+          <div className="flex flex-col flex-1 justify-center h-full ml-1 items-center">
             <h2 className="text-2xl font-serif font-bold tracking-wide">
               {pass.passName}
             </h2>
             {pass.variantName && (
-              <span className="flex items-center rounded-full ml-2 mt-1 px-2 py-0.5 text-xs bg-white/20 backdrop-blur-sm border border-white/10">
+              <span className="flex items-center rounded-full  text-sm   border border-white/10">
                 {pass.variantName}
               </span>
             )}
@@ -142,8 +142,8 @@ const SeasonPassCard: React.FC<SeasonPassCardProps> = ({ pass, previewBackground
         </div>
 
         {/* Content Usages */}
-        <div className="flex-1 overflow-y-auto mb-4 custom-scrollbar pr-2">
-          <div className="space-y-2">
+        <div className="flex-1 overflow-y-auto mb-1 pt-1 border-t border-black/10 custom-scrollbar pr-2">
+          <div className="">
             {Object.entries(pass.remainingUsages).map(([itemId, remaining]) => {
               const itemDef = originalPass?.contentItems.find(i => i.id === itemId);
               const itemName = itemDef?.name || '未知項目';
