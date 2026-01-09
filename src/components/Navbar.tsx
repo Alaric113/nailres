@@ -20,18 +20,17 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   }, []);
 
   return (
-    <nav 
-      className={`fixed top-0 left-0 right-0 h-16 md:h-[64px] flex items-center justify-between px-4 sm:px-6 lg:px-8 z-[9999] transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-secondary-light backdrop-blur-md shadow-soft border-b border-secondary-dark/50' 
-          : 'bg-secondary-light border-b border-secondary-dark'
-      }`}
+    <nav
+      className={`fixed top-0 left-0 right-0 h-16 md:h-[64px] flex items-center justify-between px-4 sm:px-6 lg:px-8 z-[9999] transition-all duration-300 ${isScrolled
+        ? 'bg-secondary-light backdrop-blur-md shadow-soft border-b border-secondary-dark/50'
+        : 'bg-secondary-light border-b border-secondary-dark'
+        }`}
     >
       {/* Left: Menu Button */}
       <div className="flex-1 flex justify-start">
         <button
           onClick={onMenuClick}
-          className="hidden md:flex touch-target p-2 rounded-lg text-text-main hover:bg-secondary hover:text-primary-dark focus-ring transition-all tap-highlight-none"
+          className="hidden md:block touch-target p-2 rounded-lg text-text-main hover:bg-secondary hover:text-primary-dark focus-ring transition-all tap-highlight-none"
           aria-label="開啟選單"
         >
           <Bars3Icon className="h-6 w-6" />
@@ -40,8 +39,8 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
 
       {/* Center: Logo */}
       <div className="flex-1 flex justify-center">
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="text-xl sm:text-2xl font-bold tracking-wide text-primary font-serif hover:text-primary-dark focus-ring transition-all tap-highlight-none px-2 py-1 rounded-lg"
         >
           TREERING
@@ -52,10 +51,10 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
       <div className="flex-1 flex justify-end">
         <button
           // onClick={() => { /* 之後實作搜尋功能 */ }}
-          className="hidden md:flex touch-target p-2 rounded-lg text-text-main hover:bg-secondary hover:text-primary-dark focus-ring transition-all tap-highlight-none"
+          className="hidden touch-target p-2 rounded-lg text-text-main hover:bg-secondary hover:text-primary-dark focus-ring transition-all tap-highlight-none"
           aria-label="搜尋"
         >
-          <MagnifyingGlassIcon className="h-6 w-6" />
+          <MagnifyingGlassIcon className="h-6 w-6 " />
         </button>
       </div>
     </nav>

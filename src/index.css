@@ -190,13 +190,16 @@
    Global Utility Classes
    ======================================== */
 
-/* Touch optimization - minimum 44x44px tap targets */
-.touch-target {
-  min-width: 44px;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+@layer components {
+
+  /* Touch optimization - minimum 44x44px tap targets */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 /* Remove tap highlight on mobile */

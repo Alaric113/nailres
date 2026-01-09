@@ -134,54 +134,56 @@ const handler: Handler = async (event: HandlerEvent) => {
             }
         });
 
-
         // 3. Calculate Slots
-        const slots: string[] = []; // Return ISO strings
-
-        // Parse date as TW time (UTC+8) logic
-        // We assume input `date` is YYYY-MM-DD.
-        // We assume `slot.start` is HH:mm.
-        // We construct "YYYY-MM-DDTHH:mm:00+08:00" to ensure consistent absolute time regardless of server TZ.
-
+        const slots: string[] = [];
         const timeSlots = businessData.timeSlots || [];
-        console.log(serviceDuration)
+
+        // 確保日期解析正確
+        const [year, month, day] = date.split('-').map(Number);
 
         timeSlots.forEach((slot: any) => {
-            // Force +08:00 timezone
-            let currentSlotStart = parseISO(`${date}T${slot.start}:00+08:00`);
-            // slot.end might be smaller than start if overnight? Assuming same day for now as per simple logic
-            // But usually slot.end is just time string.
-            // If slot.end < slot.start (e.g. 02:00 next day), we'd need to handle date rollover.
-            // Basic assumption: Business hours within single day.
-            const slotEnd = parseISO(`${date}T${slot.end}:00+08:00`);
-            
+            // 解析營業時間 (假設資料庫現在已改回正確的 "10:00")
+            const [startH, startM] = slot.start.split(':').map(Number);
+            const [endH, endM] = slot.end.split(':').map(Number);
 
-            while (true) {
-                const potentialSlotEnd = currentSlotStart;
+            // 建立 UTC 時間點（台灣時間 10:00 = UTC 02:00）
+            const currentSlotStartUTC = new Date(Date.UTC(year, month - 1, day, startH - 8, startM));
+            const slotEndUTC = new Date(Date.UTC(year, month - 1, day, endH - 8, endM));
 
-                // Check bounds
-                if (isAfter(potentialSlotEnd, slotEnd)) {
-                    break;
-                }
+            console.log(`[DEBUG] 處理時段: ${slot.start} ~ ${slot.end}`);
+            console.log(`[DEBUG] 起始 UTC: ${currentSlotStartUTC.toISOString()}`);
 
-                // Check collision
+            let cursor = new Date(currentSlotStartUTC);
+
+            // 迴圈生成 Slot
+            // 使用 cursor <= slotEndUTC 確保「最後一個起點」可以是營業結束時間
+            while (cursor.getTime() <= slotEndUTC.getTime()) {
+
+                // 預計服務結束時間 (用於碰撞檢查)
+                const potentialSlotEnd = addMinutes(cursor, serviceDuration);
+
+                // 碰撞檢查 (與現有預約 + BUFFER_TIME 比對)
                 let isConflict = false;
                 for (const booking of existingBookings) {
-                    if (isBefore(currentSlotStart, booking.end) && isAfter(potentialSlotEnd, booking.start)) {
+                    // 邏輯：新預約開始 < 舊預約結束 且 新預約結束 > 舊預約開始
+                    if (isBefore(cursor, booking.end) && isAfter(potentialSlotEnd, booking.start)) {
                         isConflict = true;
                         break;
                     }
                 }
 
                 if (!isConflict) {
-                    slots.push(currentSlotStart.toISOString());
+                    // 存入 ISO 字串供前端使用
+                    slots.push(cursor.toISOString());
                 }
 
-                currentSlotStart = addMinutes(currentSlotStart, SLOT_INTERVAL);
+                // 往下移動一個間隔 (30分鐘)
+                cursor = addMinutes(cursor, SLOT_INTERVAL);
+
+                // 安全機制：避免無限迴圈
+                if (isAfter(cursor, addMinutes(slotEndUTC, SLOT_INTERVAL))) break;
             }
         });
-
-
         return {
             statusCode: 200,
             body: JSON.stringify({ slots })
