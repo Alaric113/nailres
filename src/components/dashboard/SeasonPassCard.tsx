@@ -126,6 +126,9 @@ const SeasonPassCard: React.FC<SeasonPassCardProps> = ({ pass, previewBackground
 
         {/* Header */}
         <div className="flex justify-between items-start h-1/2">
+          <div className='w-1/4'>
+
+          </div>
           <div className="flex flex-col flex-1 justify-center h-full ml-1 items-center">
             <h2 className="text-2xl font-serif font-bold tracking-wide">
               {pass.passName}
@@ -136,13 +139,13 @@ const SeasonPassCard: React.FC<SeasonPassCardProps> = ({ pass, previewBackground
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 opacity-75">
+          <div className="flex flex-col items-center justify-end h-full gap-2 opacity-75">
             <span>有效: {expiryDate}</span>
           </div>
         </div>
 
         {/* Content Usages */}
-        <div className="flex-1 overflow-y-auto mb-1 pt-1 border-t border-black/10 custom-scrollbar pr-2">
+        <div className="flex-1 overflow-y-auto mt-2 mb-1 pt-1 border-t border-black/10 custom-scrollbar pr-2">
           <div className="">
             {Object.entries(pass.remainingUsages).map(([itemId, remaining]) => {
               const itemDef = originalPass?.contentItems.find(i => i.id === itemId);
