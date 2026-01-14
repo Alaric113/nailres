@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { isSameMonth } from 'date-fns';
 
-import { doc, getDoc, writeBatch, collection, getDocs, orderBy, query, where, limit, serverTimestamp } from 'firebase/firestore'; // Added imports
+import { doc, getDoc, writeBatch, collection, getDocs, orderBy, query, where, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
 import { useCurrentDesigner } from '../hooks/useCurrentDesigner'; // New hook
@@ -12,18 +12,19 @@ import type { BookingStatus } from '../types/booking';
 import type { Designer } from '../types/designer'; // New type
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useToast } from '../context/ToastContext';
-import { 
-  BanknotesIcon, 
-  ClockIcon, 
-  CheckCircleIcon, 
+import {
+  BanknotesIcon,
+  ClockIcon,
+  CheckCircleIcon,
 
   FunnelIcon,
- 
+
   UserCircleIcon // New Icon
 } from '@heroicons/react/24/outline';
 
 import OrderTypeTabs from '../components/admin/OrderTypeTabs';
 import { updateBookingStatus } from '../utils/bookingActions';
+import { issueFollowUpEligibility } from '../utils/userActions';
 import BookingOrderCard from '../components/admin/BookingOrderCard';
 
 // Stats Card Component
@@ -44,10 +45,10 @@ const OrderManagementPage = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const [activeTab, setActiveTab] = useState<BookingStatus | 'all'>((queryParams.get('status') as BookingStatus) || 'all');
-  
+
   const { showToast } = useToast();
   const { userProfile } = useAuthStore();
-  
+
   // --- Designer Filtering Logic ---
   const { designer: currentDesigner } = useCurrentDesigner();
   const [allDesigners, setAllDesigners] = useState<Designer[]>([]);
@@ -56,19 +57,19 @@ const OrderManagementPage = () => {
   // Fetch all designers for admin selector
   useEffect(() => {
     if (userProfile?.role === 'admin' || userProfile?.role === 'manager') {
-        const fetchDesigners = async () => {
-            const q = query(collection(db, 'designers'), orderBy('name'));
-            const snapshot = await getDocs(q);
-            setAllDesigners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Designer)));
-        };
-        fetchDesigners();
+      const fetchDesigners = async () => {
+        const q = query(collection(db, 'designers'), orderBy('name'));
+        const snapshot = await getDocs(q);
+        setAllDesigners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Designer)));
+      };
+      fetchDesigners();
     }
   }, [userProfile?.role]);
 
   // Determine effective designer ID for querying
   const effectiveDesignerId = useMemo(() => {
     if (userProfile?.role === 'designer') {
-        return currentDesigner?.id || null; // Force designer's own ID
+      return currentDesigner?.id || null; // Force designer's own ID
     }
     return selectedDesignerFilter === 'all' ? null : selectedDesignerFilter;
   }, [userProfile?.role, currentDesigner, selectedDesignerFilter]);
@@ -78,12 +79,12 @@ const OrderManagementPage = () => {
   // --- Stats Calculation ---
   const stats = useMemo(() => {
     const now = new Date();
-    
+
     // Monthly Revenue (This Month)
     const monthlyRevenue = bookings
       .filter(b => isSameMonth(b.dateTime, now) && b.status === 'completed')
       .reduce((acc, curr) => acc + curr.amount, 0);
-    
+
     const pendingCount = bookings.filter(b => b.status === 'pending_confirmation' || b.status === 'pending_payment').length;
     // Monthly Completed Count (This Month)
     const completedCount = bookings.filter(b => b.status === 'completed' && isSameMonth(b.dateTime, now)).length;
@@ -97,11 +98,11 @@ const OrderManagementPage = () => {
     if (activeTab !== 'all') {
       result = result.filter(b => b.status === activeTab);
     }
-    
+
     return result.sort((a, b) => {
-        if (a.status.includes('pending') && !b.status.includes('pending')) return -1;
-        if (!a.status.includes('pending') && b.status.includes('pending')) return 1;
-        return b.dateTime.getTime() - a.dateTime.getTime();
+      if (a.status.includes('pending') && !b.status.includes('pending')) return -1;
+      if (!a.status.includes('pending') && b.status.includes('pending')) return 1;
+      return b.dateTime.getTime() - a.dateTime.getTime();
     });
   }, [bookings, activeTab]);
 
@@ -109,59 +110,59 @@ const OrderManagementPage = () => {
   const grantLoyaltyPoints = async (batch: ReturnType<typeof writeBatch>, booking: EnrichedBooking) => {
     if (!booking.userId || booking.amount <= 0) return;
     try {
-        // 1. Check if points already granted for this booking
-        const historyRef = collection(db, 'point_history');
-        const q = query(
-            historyRef, 
-            where('refId', '==', booking.id),
-            where('type', '==', 'earned'),
-            limit(1)
-        );
-        const historySnap = await getDocs(q);
-        
-        if (!historySnap.empty) {
-            console.log(`Points already granted for booking ${booking.id}, skipping.`);
-            return;
-        }
+      // 1. Check if points already granted for this booking
+      const historyRef = collection(db, 'point_history');
+      const q = query(
+        historyRef,
+        where('refId', '==', booking.id),
+        where('type', '==', 'earned'),
+        limit(1)
+      );
+      const historySnap = await getDocs(q);
 
-        const settingsRef = doc(db, 'globals', 'settings');
-        const settingsSnap = await getDoc(settingsRef);
-        const loyaltySettings = settingsSnap.data()?.loyaltySettings;
+      if (!historySnap.empty) {
+        console.log(`Points already granted for booking ${booking.id}, skipping.`);
+        return;
+      }
 
-        if (loyaltySettings && loyaltySettings.pointsPerAmount > 0) {
+      const settingsRef = doc(db, 'globals', 'settings');
+      const settingsSnap = await getDoc(settingsRef);
+      const loyaltySettings = settingsSnap.data()?.loyaltySettings;
+
+      if (loyaltySettings && loyaltySettings.pointsPerAmount > 0) {
         const pointsEarned = Math.floor(booking.amount / loyaltySettings.pointsPerAmount);
 
         if (pointsEarned > 0) {
-            const userRef = doc(db, 'users', booking.userId);
-            const userSnap = await getDoc(userRef);
-            const currentPoints = userSnap.data()?.loyaltyPoints || 0;
-            batch.update(userRef, { loyaltyPoints: currentPoints + pointsEarned });
+          const userRef = doc(db, 'users', booking.userId);
+          const userSnap = await getDoc(userRef);
+          const currentPoints = userSnap.data()?.loyaltyPoints || 0;
+          batch.update(userRef, { loyaltyPoints: currentPoints + pointsEarned });
 
-            // Create record in point_history
-            // Use set on a custom ID or addDoc. 
-            // Using addDoc for consistent history
-            const newHistoryRef = doc(collection(db, 'point_history')); 
-            batch.set(newHistoryRef, {
-                userId: booking.userId,
-                amount: pointsEarned,
-                type: 'earned',
-                reason: `完成預約 #${booking.id.substring(0, 6)}`,
-                refId: booking.id,
-                createdAt: serverTimestamp(), // Use serverTimestamp for consistency
-            });
-            
-            // Legacy Log (Optional: Keep it if other parts use it, or deprecate)
-            const logRef = doc(db, 'loyaltyPointLogs', `${booking.id}_${Date.now()}`);
-            batch.set(logRef, {
-                userId: booking.userId,
-                pointsChange: pointsEarned,
-                reason: `完成預約 #${booking.id.substring(0, 6)}`,
-                createdAt: new Date(),
-            });
+          // Create record in point_history
+          // Use set on a custom ID or addDoc. 
+          // Using addDoc for consistent history
+          const newHistoryRef = doc(collection(db, 'point_history'));
+          batch.set(newHistoryRef, {
+            userId: booking.userId,
+            amount: pointsEarned,
+            type: 'earned',
+            reason: `完成預約 #${booking.id.substring(0, 6)}`,
+            refId: booking.id,
+            createdAt: serverTimestamp(), // Use serverTimestamp for consistency
+          });
+
+          // Legacy Log (Optional: Keep it if other parts use it, or deprecate)
+          const logRef = doc(db, 'loyaltyPointLogs', `${booking.id}_${Date.now()}`);
+          batch.set(logRef, {
+            userId: booking.userId,
+            pointsChange: pointsEarned,
+            reason: `完成預約 #${booking.id.substring(0, 6)}`,
+            createdAt: new Date(),
+          });
         }
-        }
+      }
     } catch (e) {
-        console.error("Error granting points:", e);
+      console.error("Error granting points:", e);
     }
   };
 
@@ -193,10 +194,28 @@ const OrderManagementPage = () => {
         const batch = writeBatch(db);
         await grantLoyaltyPoints(batch, booking);
         await batch.commit();
+
+        // Issue follow-up service eligibility
+        try {
+          const issuedCount = await issueFollowUpEligibility({
+            id: booking.id,
+            userId: booking.userId,
+            serviceIds: booking.serviceIds,
+            dateTime: Timestamp.fromDate(booking.dateTime),
+            amount: booking.amount,
+            items: booking.items // Include items with actual prices (including options)
+          });
+          if (issuedCount > 0) {
+            console.log(`Issued ${issuedCount} follow-up eligibilities for booking ${booking.id}`);
+          }
+        } catch (fuError) {
+          console.error('Error issuing follow-up eligibility:', fuError);
+          // Don't fail the whole operation for follow-up errors
+        }
       }
 
       showToast(`訂單已更新：${getStatusLabel(newStatus)}`, 'success');
-      
+
       if (['confirmed', 'completed', 'cancelled'].includes(newStatus)) {
         sendLineNotification(booking, newStatus);
       }
@@ -210,25 +229,25 @@ const OrderManagementPage = () => {
   };
 
   const getStatusLabel = (status: string) => {
-      switch(status) {
-          case 'pending_confirmation': return '待確認';
-          case 'pending_payment': return '待付款';
-          case 'confirmed': return '已確認';
-          case 'completed': return '已完成';
-          case 'cancelled': return '已取消';
-          default: return status;
-      }
+    switch (status) {
+      case 'pending_confirmation': return '待確認';
+      case 'pending_payment': return '待付款';
+      case 'confirmed': return '已確認';
+      case 'completed': return '已完成';
+      case 'cancelled': return '已取消';
+      default: return status;
+    }
   };
 
-  
+
 
   const tabs = [
-      { id: 'all', label: '全部' },
-      { id: 'pending_confirmation', label: '待確認' },
-      { id: 'pending_payment', label: '待付款' },
-      { id: 'confirmed', label: '已確認' },
-      { id: 'completed', label: '已完成' },
-      { id: 'cancelled', label: '已取消' },
+    { id: 'all', label: '全部' },
+    { id: 'pending_confirmation', label: '待確認' },
+    { id: 'pending_payment', label: '待付款' },
+    { id: 'confirmed', label: '已確認' },
+    { id: 'completed', label: '已完成' },
+    { id: 'cancelled', label: '已取消' },
   ];
 
   if (loading) return <div className="flex justify-center items-center h-full min-h-[50vh] bg-[#FAF9F6]"><LoadingSpinner /></div>;
@@ -237,113 +256,112 @@ const OrderManagementPage = () => {
   return (
     <div className="min-h-full bg-[#FAF9F6] pb-24 md:pb-12 pt-4 md:pt-8 w-full">
       <main className="container mx-auto px-4 max-w-3xl space-y-3">
-        
+
         <OrderTypeTabs />
 
         {/* 1. Header & Stats (Horizontal Scroll on Mobile) */}
         <div className="">
-            <div className="flex justify-between items-center">
-                
-                
-                {/* Designer Filter (Admin/Manager Only) */}
-                {(userProfile?.role === 'admin' || userProfile?.role === 'manager') && (
-                    <>
-                        {/* Mobile: Portal to Mobile Header */}
-                        {document.getElementById('admin-mobile-header-actions') && createPortal(
-                             <div className="flex items-center">
-                                <UserCircleIcon className="w-5 h-5 text-gray-400  pointer-events-none" />
-                                <select
-                                    value={selectedDesignerFilter}
-                                    onChange={(e) => setSelectedDesignerFilter(e.target.value)}
-                                    // Remove background/border to blend with header, or keep minimal
-                                    className="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 p-0 pr-2 dir-ltr"
-                                    style={{ direction: 'ltr' }} // Trick to align text if needed, or just keep standard
-                                >
-                                    <option value="all">全店</option>
-                                    {allDesigners.map(d => (
-                                        <option key={d.id} value={d.id}>{d.name}</option>
-                                    ))}
-                                </select>
-                                
-                            </div>,
-                            document.getElementById('admin-mobile-header-actions')!
-                        )}
+          <div className="flex justify-between items-center">
 
-                        {/* Desktop: Portal to Header */}
-                        {document.getElementById('admin-header-actions') && createPortal(
-                            <div className="flex items-center gap-2">
-                                <UserCircleIcon className="w-5 h-5 text-gray-400" />
-                                <select
-                                    value={selectedDesignerFilter}
-                                    onChange={(e) => setSelectedDesignerFilter(e.target.value)}
-                                    className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block min-w-[150px]"
-                                >
-                                    <option value="all">所有設計師</option>
-                                    {allDesigners.map(d => (
-                                        <option key={d.id} value={d.id}>{d.name}</option>
-                                    ))}
-                                </select>
-                            </div>,
-                            document.getElementById('admin-header-actions')!
-                        )}
-                    </>
+
+            {/* Designer Filter (Admin/Manager Only) */}
+            {(userProfile?.role === 'admin' || userProfile?.role === 'manager') && (
+              <>
+                {/* Mobile: Portal to Mobile Header */}
+                {document.getElementById('admin-mobile-header-actions') && createPortal(
+                  <div className="flex items-center">
+                    <UserCircleIcon className="w-5 h-5 text-gray-400  pointer-events-none" />
+                    <select
+                      value={selectedDesignerFilter}
+                      onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                      // Remove background/border to blend with header, or keep minimal
+                      className="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 p-0 pr-2 dir-ltr"
+                      style={{ direction: 'ltr' }} // Trick to align text if needed, or just keep standard
+                    >
+                      <option value="all">全店</option>
+                      {allDesigners.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+
+                  </div>,
+                  document.getElementById('admin-mobile-header-actions')!
                 )}
+
+                {/* Desktop: Portal to Header */}
+                {document.getElementById('admin-header-actions') && createPortal(
+                  <div className="flex items-center gap-2">
+                    <UserCircleIcon className="w-5 h-5 text-gray-400" />
+                    <select
+                      value={selectedDesignerFilter}
+                      onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                      className="bg-white border border-gray-200 text-sm rounded-lg focus:ring-[#9F9586] focus:border-[#9F9586] block min-w-[150px]"
+                    >
+                      <option value="all">所有設計師</option>
+                      {allDesigners.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>,
+                  document.getElementById('admin-header-actions')!
+                )}
+              </>
+            )}
+          </div>
+
+          <section className=" overflow-x-auto snap-x snap-mandatory gap-2 pb-2 -mx-4 px-4 hide-scrollbar grid grid-cols-2 md:grid-cols-4 sm:gap-4 sm:pb-0 sm:mx-0 sm:px-0">
+            <div className="snap-center col-span-2 shrink-0 w-[85vw] sm:w-auto">
+              <StatCard title="本月營收" value={`$${stats.monthlyRevenue.toLocaleString()}`} icon={BanknotesIcon} bgColor="bg-green-50" color="text-green-600" />
             </div>
-            
-            <section className=" overflow-x-auto snap-x snap-mandatory gap-2 pb-2 -mx-4 px-4 hide-scrollbar grid grid-cols-2 md:grid-cols-4 sm:gap-4 sm:pb-0 sm:mx-0 sm:px-0">
-                <div className="snap-center col-span-2 shrink-0 w-[85vw] sm:w-auto">
-                    <StatCard title="本月營收" value={`$${stats.monthlyRevenue.toLocaleString()}`} icon={BanknotesIcon} bgColor="bg-green-50" color="text-green-600" />
-                </div>
-                <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
-                    <StatCard title="待處理" value={stats.pendingCount} icon={ClockIcon} bgColor="bg-orange-50" color="text-orange-600" />
-                </div>
-                
-                <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
-                    <StatCard title="本月完成" value={stats.completedCount} icon={CheckCircleIcon} bgColor="bg-indigo-50" color="text-indigo-600" />
-                </div>
-            </section>
+            <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
+              <StatCard title="待處理" value={stats.pendingCount} icon={ClockIcon} bgColor="bg-orange-50" color="text-orange-600" />
+            </div>
+
+            <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
+              <StatCard title="本月完成" value={stats.completedCount} icon={CheckCircleIcon} bgColor="bg-indigo-50" color="text-indigo-600" />
+            </div>
+          </section>
         </div>
 
         {/* 2. Main Content Area */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100/50 overflow-hidden flex flex-col min-h-[60vh]">
-            {/* Sticky Tabs Header */}
-            <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-100 flex overflow-x-auto hide-scrollbar p-1">
-                {tabs.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex-shrink-0 px-4 py-3 text-sm font-bold transition-all relative ${
-                            activeTab === tab.id 
-                            ? 'text-[#9F9586]' 
-                            : 'text-gray-400 hover:text-gray-600'
-                        }`}
-                    >
-                        {tab.label}
-                        {activeTab === tab.id && (
-                            <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-[#9F9586] rounded-t-full" />
-                        )}
-                    </button>
-                ))}
-            </div>
-
-            {/* Order List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50/30 p-4 space-y-3">
-                {filteredBookings.length > 0 ? (
-                    filteredBookings.map(booking => (
-                        <BookingOrderCard
-                            key={booking.id}
-                            booking={booking}
-                            updatingId={updatingId}
-                            onUpdateStatus={handleUpdateStatus}
-                        />
-                    ))
-                ) : (
-                    <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">
-                        <FunnelIcon className="w-12 h-12 text-gray-300 mb-2" />
-                        <p className="text-sm text-gray-500">此分類無訂單</p>
-                    </div>
+          {/* Sticky Tabs Header */}
+          <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-100 flex overflow-x-auto hide-scrollbar p-1">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex-shrink-0 px-4 py-3 text-sm font-bold transition-all relative ${activeTab === tab.id
+                  ? 'text-[#9F9586]'
+                  : 'text-gray-400 hover:text-gray-600'
+                  }`}
+              >
+                {tab.label}
+                {activeTab === tab.id && (
+                  <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-[#9F9586] rounded-t-full" />
                 )}
-            </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Order List */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50/30 p-4 space-y-3">
+            {filteredBookings.length > 0 ? (
+              filteredBookings.map(booking => (
+                <BookingOrderCard
+                  key={booking.id}
+                  booking={booking}
+                  updatingId={updatingId}
+                  onUpdateStatus={handleUpdateStatus}
+                />
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">
+                <FunnelIcon className="w-12 h-12 text-gray-300 mb-2" />
+                <p className="text-sm text-gray-500">此分類無訂單</p>
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

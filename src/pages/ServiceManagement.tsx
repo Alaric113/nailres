@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc} from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useServices } from '../hooks/useServices';
 import { useServiceCategories } from '../hooks/useServiceCategories';
 import Modal from '../components/common/Modal';
 import CategoryManagementModal from '../components/admin/CategoryManagementModal'; // 引入分類管理 Modal
-import type { Service, ServiceOption } from '../types/service'; // Import ServiceOption
+import type { Service, ServiceOption, FollowUpConfig } from '../types/service';
 import ImageUploader from '../components/admin/ImageUploader'; // 引入圖片上傳元件
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ServiceMobileAccordionCard from '../components/admin/ServiceMobileAccordionCard'; // Import the new component
@@ -28,8 +28,15 @@ const ServiceManagement = () => {
     options: ServiceOption[];
     supportedDesigners: string[];
     isPlanOnly: boolean;
-  }>({ name: '', price: '', duration: '', category: '', platinumDiscount: { type: 'none', value: 0 }, imageUrl: '', description: '', options: [], supportedDesigners: [], isPlanOnly: false });
-  
+    followUpConfig: FollowUpConfig;
+  }>({
+    name: '', price: '', duration: '', category: '',
+    platinumDiscount: { type: 'none', value: 0 },
+    imageUrl: '', description: '', options: [], supportedDesigners: [],
+    isPlanOnly: false,
+    followUpConfig: { enabled: false, name: '', validDays: 21, pricingTiers: [] }
+  });
+
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -40,10 +47,10 @@ const ServiceManagement = () => {
   const [isToggling, setIsToggling] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<'basic' | 'image' | 'options' | 'designers'>('basic'); // Tab state
+  const [activeTab, setActiveTab] = useState<'basic' | 'image' | 'options' | 'designers' | 'followUp'>('basic');
   // Fetch existing services
   const { services, isLoading: servicesLoading, error: servicesError } = useServices();
-  
+
   // Fetch service categories
   const { categories, isLoading: categoriesLoading, error: categoriesError } = useServiceCategories();
   const { showToast } = useToast();
@@ -55,20 +62,21 @@ const ServiceManagement = () => {
         price: String(editingService.price),
         duration: String(editingService.duration),
         category: editingService.category,
-        platinumDiscount: editingService.platinumDiscount 
-             ? { ...editingService.platinumDiscount, type: editingService.platinumDiscount.type as any } 
-             : { type: 'none', value: 0 },
+        platinumDiscount: editingService.platinumDiscount
+          ? { ...editingService.platinumDiscount, type: editingService.platinumDiscount.type as any }
+          : { type: 'none', value: 0 },
         imageUrl: editingService.imageUrl || '',
         description: editingService.description || '',
         options: editingService.options || [],
         supportedDesigners: editingService.supportedDesigners || [],
         isPlanOnly: editingService.isPlanOnly || false,
+        followUpConfig: editingService.followUpConfig || { enabled: false, name: '', validDays: 21, pricingTiers: [] },
       });
     } else {
       resetForm();
     }
     // Reset tab to basic when opening/editing
-     if (isServiceModalOpen) setActiveTab('basic');
+    if (isServiceModalOpen) setActiveTab('basic');
   }, [editingService, isServiceModalOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,10 +93,10 @@ const ServiceManagement = () => {
     // If type is 'none', we save null or omit it
     let savePlatinumDiscount = null;
     if (formData.platinumDiscount && formData.platinumDiscount.type !== 'none') {
-        savePlatinumDiscount = {
-            type: formData.platinumDiscount.type,
-            value: formData.platinumDiscount.value
-        };
+      savePlatinumDiscount = {
+        type: formData.platinumDiscount.type,
+        value: formData.platinumDiscount.value
+      };
     }
 
     setIsSubmitting(true);
@@ -107,26 +115,28 @@ const ServiceManagement = () => {
           options: formData.options,
           supportedDesigners: formData.supportedDesigners,
           isPlanOnly: formData.isPlanOnly,
+          followUpConfig: formData.followUpConfig.enabled ? formData.followUpConfig : null,
         });
         setSuccess(`服務項目 "${formData.name}" 已成功更新！`);
         setEditingService(null);
         setIsServiceModalOpen(false); // 更新成功後關閉 Modal
       } else {
         // Add new service
-         // Create default order (e.g. at the end or 999)
+        // Create default order (e.g. at the end or 999)
         await addDoc(collection(db, 'services'), {
           name: formData.name,
           price: Number(formData.price),
           duration: Number(formData.duration),
           category: formData.category,
           platinumDiscount: savePlatinumDiscount, // Saved new format
-          available: true, 
+          available: true,
           imageUrl: formData.imageUrl,
-          description: formData.description, 
+          description: formData.description,
           createdAt: serverTimestamp(),
-          options: formData.options, 
+          options: formData.options,
           supportedDesigners: formData.supportedDesigners,
           isPlanOnly: formData.isPlanOnly,
+          followUpConfig: formData.followUpConfig.enabled ? formData.followUpConfig : null,
           order: 9999,
         });
         setSuccess(`服務項目 "${formData.name}" 已成功新增！`);
@@ -161,7 +171,13 @@ const ServiceManagement = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', price: '', duration: '', category: '', platinumDiscount: { type: 'none', value: 0 }, imageUrl: '', description: '', options: [], supportedDesigners: [], isPlanOnly: false });
+    setFormData({
+      name: '', price: '', duration: '', category: '',
+      platinumDiscount: { type: 'none', value: 0 },
+      imageUrl: '', description: '', options: [], supportedDesigners: [],
+      isPlanOnly: false,
+      followUpConfig: { enabled: false, name: '', validDays: 21, pricingTiers: [] }
+    });
     setFormError(null);
   };
 
@@ -245,59 +261,65 @@ const ServiceManagement = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab('basic')}
-                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'basic'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${activeTab === 'basic'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 基本資訊
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('image')}
-                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'image'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${activeTab === 'image'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 服務圖片
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('options')}
-                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'options'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${activeTab === 'options'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 附加選項
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('designers')}
-                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'designers'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${activeTab === 'designers'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 設計師
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('followUp')}
+                className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${activeTab === 'followUp'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+              >
+                售後服務
               </button>
             </div>
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto px-1">
-              
+
               {/* Basic Info Tab */}
               <div className={activeTab === 'basic' ? 'space-y-6' : 'hidden'}>
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-text-main">服務名稱</label>
                   <input type="text" id="name" value={formData.name} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="price" className="block text-sm font-medium text-text-main">一般價格 (NT$)</label>
@@ -305,7 +327,7 @@ const ServiceManagement = () => {
                   </div>
                   <div>
                     <label htmlFor="category" className="block text-sm font-medium text-text-main">分類</label>
-                     <select
+                    <select
                       id="category"
                       value={formData.category}
                       onChange={handleFieldChange}
@@ -324,59 +346,59 @@ const ServiceManagement = () => {
                   </div>
                 </div>
 
-                 {/* Platinum Discount Section */}
+                {/* Platinum Discount Section */}
                 <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
-                    <div className="flex items-center gap-2 mb-3">
-                        <span className="text-lg">💎</span>
-                        <h3 className="text-sm font-bold text-purple-900">白金會員優惠設定</h3>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">💎</span>
+                    <h3 className="text-sm font-bold text-purple-900">白金會員優惠設定</h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-purple-800 mb-1">折扣類型</label>
+                      <select
+                        value={formData.platinumDiscount?.type || 'percentage'}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          platinumDiscount: {
+                            type: e.target.value as 'percentage' | 'fixed',
+                            value: prev.platinumDiscount?.value || 0
+                          }
+                        }))}
+                        className="block w-full px-3 py-2 border border-purple-200 rounded-md text-sm focus:ring-purple-500 focus:border-purple-500"
+                      >
+                        <option value="percentage">打折 (Percentage)</option>
+                        <option value="fixed">折抵金額 (Fixed)</option>
+                        <option value="none">無折扣</option>
+                      </select>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-purple-800 mb-1">折扣類型</label>
-                            <select
-                                value={formData.platinumDiscount?.type || 'percentage'}
-                                onChange={(e) => setFormData(prev => ({
-                                    ...prev,
-                                    platinumDiscount: {
-                                        type: e.target.value as 'percentage' | 'fixed',
-                                        value: prev.platinumDiscount?.value || 0
-                                    }
-                                }))}
-                                className="block w-full px-3 py-2 border border-purple-200 rounded-md text-sm focus:ring-purple-500 focus:border-purple-500"
-                            >
-                                <option value="percentage">打折 (Percentage)</option>
-                                <option value="fixed">折抵金額 (Fixed)</option>
-                                <option value="none">無折扣</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-purple-800 mb-1">
-                                {formData.platinumDiscount?.type === 'percentage' ? '折數 (例如 90 = 9折)' : '折抵金額'}
-                            </label>
-                            <input
-                                type="number"
-                                value={formData.platinumDiscount?.value || ''}
-                                onChange={(e) => {
-                                    const val = parseFloat(e.target.value);
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        platinumDiscount: {
-                                            type: prev.platinumDiscount?.type || 'percentage',
-                                            value: isNaN(val) ? 0 : val
-                                        }
-                                    }));
-                                }}
-                                disabled={!formData.platinumDiscount || (formData.platinumDiscount as any).type === 'none'} 
-                                className="block w-full px-3 py-2 border border-purple-200 rounded-md text-sm focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:text-gray-400"
-                            />
-                        </div>
+                    <div>
+                      <label className="block text-xs font-medium text-purple-800 mb-1">
+                        {formData.platinumDiscount?.type === 'percentage' ? '折數 (例如 90 = 9折)' : '折抵金額'}
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.platinumDiscount?.value || ''}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setFormData(prev => ({
+                            ...prev,
+                            platinumDiscount: {
+                              type: prev.platinumDiscount?.type || 'percentage',
+                              value: isNaN(val) ? 0 : val
+                            }
+                          }));
+                        }}
+                        disabled={!formData.platinumDiscount || (formData.platinumDiscount as any).type === 'none'}
+                        className="block w-full px-3 py-2 border border-purple-200 rounded-md text-sm focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:text-gray-400"
+                      />
                     </div>
-                    {formData.platinumDiscount && formData.platinumDiscount.type !== 'none' as any && (
-                        <p className="text-xs text-purple-600 mt-2">
-                            * 此折扣將應用於「服務單價 + 附加選項」的總和。
-                        </p>
-                    )}
+                  </div>
+                  {formData.platinumDiscount && formData.platinumDiscount.type !== 'none' as any && (
+                    <p className="text-xs text-purple-600 mt-2">
+                      * 此折扣將應用於「服務單價 + 附加選項」的總和。
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -384,26 +406,26 @@ const ServiceManagement = () => {
                     <label htmlFor="duration" className="block text-sm font-medium text-text-main">服務時長 (分鐘)</label>
                     <input type="number" id="duration" value={formData.duration} onChange={handleFieldChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
                   </div>
-                   {/* Removed duplicate category select */}
+                  {/* Removed duplicate category select */}
                 </div>
 
                 {/* Plan Only Toggle */}
                 <div className="flex items-center gap-2 mt-4 bg-yellow-50 p-3 rounded-lg border border-yellow-100">
-                    <input 
-                        type="checkbox"
-                        id="isPlanOnly"
-                        checked={formData.isPlanOnly}
-                        onChange={(e) => setFormData(prev => ({ ...prev, isPlanOnly: e.target.checked }))}
-                        className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                    />
-                    <div>
-                        <label htmlFor="isPlanOnly" className="block text-sm font-bold text-yellow-800">
-                            僅限方案使用 (Hidden Service)
-                        </label>
-                        <p className="text-xs text-yellow-700">勾選後，此服務將不會顯示在一般預約頁面中，僅能透過購買方案/後台添加。</p>
-                    </div>
+                  <input
+                    type="checkbox"
+                    id="isPlanOnly"
+                    checked={formData.isPlanOnly}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isPlanOnly: e.target.checked }))}
+                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                  />
+                  <div>
+                    <label htmlFor="isPlanOnly" className="block text-sm font-bold text-yellow-800">
+                      僅限方案使用 (Hidden Service)
+                    </label>
+                    <p className="text-xs text-yellow-700">勾選後，此服務將不會顯示在一般預約頁面中，僅能透過購買方案/後台添加。</p>
+                  </div>
                 </div>
-                
+
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-text-main">服務描述 / 注意事項 (選填)</label>
                   <textarea
@@ -431,7 +453,7 @@ const ServiceManagement = () => {
               {/* Options Tab */}
               <div className={activeTab === 'options' ? 'py-2' : 'hidden'}>
                 <div className="mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
-                   <p className="text-sm text-blue-800">在此設定加購項目或變體（例如：卸甲、延甲、顏色選擇等）。</p>
+                  <p className="text-sm text-blue-800">在此設定加購項目或變體（例如：卸甲、延甲、顏色選擇等）。</p>
                 </div>
                 <ServiceOptionEditor
                   options={formData.options}
@@ -445,6 +467,153 @@ const ServiceManagement = () => {
                   selectedDesignerIds={formData.supportedDesigners}
                   onChange={(ids) => setFormData(prev => ({ ...prev, supportedDesigners: ids }))}
                 />
+              </div>
+
+              {/* Follow-Up Service Tab */}
+              <div className={activeTab === 'followUp' ? 'py-2 space-y-4' : 'hidden'}>
+                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">🔄</span>
+                    <h3 className="text-sm font-bold text-amber-900">售後服務設定</h3>
+                  </div>
+                  <p className="text-xs text-amber-700 mb-4">
+                    售後服務是指客戶完成此服務後，可在指定期限內以優惠價格回來補做的服務（例如：美睫後的補睫毛）。
+                  </p>
+
+                  {/* Enable Toggle */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <input
+                      type="checkbox"
+                      id="followUpEnabled"
+                      checked={formData.followUpConfig.enabled}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        followUpConfig: { ...prev.followUpConfig, enabled: e.target.checked }
+                      }))}
+                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                    />
+                    <label htmlFor="followUpEnabled" className="text-sm font-medium text-amber-800">
+                      啟用售後服務
+                    </label>
+                  </div>
+
+                  {formData.followUpConfig.enabled && (
+                    <div className="space-y-4 pt-2 border-t border-amber-200">
+                      {/* Service Name */}
+                      <div>
+                        <label className="block text-xs font-medium text-amber-800 mb-1">售後服務名稱</label>
+                        <input
+                          type="text"
+                          value={formData.followUpConfig.name}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            followUpConfig: { ...prev.followUpConfig, name: e.target.value }
+                          }))}
+                          placeholder="例如：補睫毛"
+                          className="block w-full px-3 py-2 border border-amber-200 rounded-md text-sm focus:ring-amber-500 focus:border-amber-500"
+                        />
+                      </div>
+
+                      {/* Valid Days */}
+                      <div>
+                        <label className="block text-xs font-medium text-amber-800 mb-1">有效天數（最後一個梯度結束日）</label>
+                        <input
+                          type="number"
+                          value={formData.followUpConfig.validDays}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            followUpConfig: { ...prev.followUpConfig, validDays: parseInt(e.target.value) || 21 }
+                          }))}
+                          className="block w-32 px-3 py-2 border border-amber-200 rounded-md text-sm focus:ring-amber-500 focus:border-amber-500"
+                        />
+                      </div>
+
+                      {/* Pricing Tiers */}
+                      <div>
+                        <label className="block text-xs font-medium text-amber-800 mb-2">價格梯度</label>
+                        <div className="space-y-2">
+                          {formData.followUpConfig.pricingTiers.map((tier, index) => (
+                            <div key={index} className="flex items-center gap-2 bg-white p-2 rounded border border-amber-100">
+                              <input
+                                type="number"
+                                value={tier.withinDays}
+                                onChange={(e) => {
+                                  const newTiers = [...formData.followUpConfig.pricingTiers];
+                                  newTiers[index] = { ...tier, withinDays: parseInt(e.target.value) || 0 };
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    followUpConfig: { ...prev.followUpConfig, pricingTiers: newTiers }
+                                  }));
+                                }}
+                                className="w-16 px-2 py-1 border border-gray-200 rounded text-sm"
+                                placeholder="天數"
+                              />
+                              <span className="text-xs text-gray-500">天內</span>
+                              <input
+                                type="number"
+                                value={tier.discountRate * 100}
+                                onChange={(e) => {
+                                  const newTiers = [...formData.followUpConfig.pricingTiers];
+                                  newTiers[index] = { ...tier, discountRate: (parseFloat(e.target.value) || 0) / 100 };
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    followUpConfig: { ...prev.followUpConfig, pricingTiers: newTiers }
+                                  }));
+                                }}
+                                className="w-16 px-2 py-1 border border-gray-200 rounded text-sm"
+                                placeholder="%"
+                              />
+                              <span className="text-xs text-gray-500">% 原價</span>
+                              <input
+                                type="text"
+                                value={tier.label || ''}
+                                onChange={(e) => {
+                                  const newTiers = [...formData.followUpConfig.pricingTiers];
+                                  newTiers[index] = { ...tier, label: e.target.value };
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    followUpConfig: { ...prev.followUpConfig, pricingTiers: newTiers }
+                                  }));
+                                }}
+                                className="flex-1 px-2 py-1 border border-gray-200 rounded text-sm"
+                                placeholder="標籤（選填）"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newTiers = formData.followUpConfig.pricingTiers.filter((_, i) => i !== index);
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    followUpConfig: { ...prev.followUpConfig, pricingTiers: newTiers }
+                                  }));
+                                }}
+                                className="text-red-500 hover:text-red-700 p-1"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newTiers = [...formData.followUpConfig.pricingTiers, { withinDays: 14, discountRate: 0.5, label: '' }];
+                              setFormData(prev => ({
+                                ...prev,
+                                followUpConfig: { ...prev.followUpConfig, pricingTiers: newTiers }
+                              }));
+                            }}
+                            className="w-full py-2 border-2 border-dashed border-amber-300 rounded-md text-sm text-amber-600 hover:border-amber-400 hover:text-amber-700 transition-colors"
+                          >
+                            + 新增價格梯度
+                          </button>
+                        </div>
+                        <p className="text-xs text-amber-600 mt-2">
+                          例如：14 天內 50% → 客戶在服務完成後 14 天內回來可享原價 50%
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
             </div>
@@ -497,23 +666,23 @@ const ServiceManagement = () => {
               <h2 className="text-2xl font-bold text-gray-800 font-serif">現有服務列表</h2>
               <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2">
                 {categoriesError && <p className="text-xs text-red-500">分類載入失敗</p>}
-                
-                <button 
-                  onClick={() => setIsReorderModalOpen(true)} 
+
+                <button
+                  onClick={() => setIsReorderModalOpen(true)}
                   className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed w-full sm:w-auto"
                   disabled={servicesLoading}>
                   <ArrowsUpDownIcon className="h-4 w-4" /> 調整排序
                 </button>
 
-                <button 
-                  onClick={() => setIsCategoryModalOpen(true)} 
+                <button
+                  onClick={() => setIsCategoryModalOpen(true)}
                   className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed w-full sm:w-auto"
                   disabled={!!categoriesError || categoriesLoading}>
                   <PencilSquareIcon className="h-4 w-4" /> 編輯分類
                 </button>
               </div>
             </div>
-            
+
             {/* Category Tabs */}
             <div className="mb-6">
               <div className="border-b border-secondary-dark/30">
@@ -522,11 +691,10 @@ const ServiceManagement = () => {
                     <button
                       key={tabName}
                       onClick={() => setActiveCategoryTab(tabName)}
-                      className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                        activeCategoryTab === tabName 
-                          ? 'border-primary text-primary font-bold' 
-                          : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'
-                      }`}
+                      className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeCategoryTab === tabName
+                        ? 'border-primary text-primary font-bold'
+                        : 'border-transparent text-text-light hover:text-text-main hover:border-secondary-dark'
+                        }`}
                     >
                       {tabName === 'all' ? '全部' : tabName}
                     </button>
@@ -565,11 +733,11 @@ const ServiceManagement = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">
                             ${service.price}
                             {service.platinumDiscount ? (
-                                <span className="ml-2 text-purple-600 font-bold text-xs bg-purple-50 px-2 py-1 rounded-full">
-                                    {service.platinumDiscount.type === 'percentage' 
-                                        ? `會員${service.platinumDiscount.value < 10 ? service.platinumDiscount.value * 10 : service.platinumDiscount.value}折` 
-                                        : `折$${service.platinumDiscount.value}`}
-                                </span>
+                              <span className="ml-2 text-purple-600 font-bold text-xs bg-purple-50 px-2 py-1 rounded-full">
+                                {service.platinumDiscount.type === 'percentage'
+                                  ? `會員${service.platinumDiscount.value < 10 ? service.platinumDiscount.value * 10 : service.platinumDiscount.value}折`
+                                  : `折$${service.platinumDiscount.value}`}
+                              </span>
                             ) : service.platinumPrice ? (
                               <span className="ml-2 text-accent font-bold">${service.platinumPrice}</span>
                             ) : null}
@@ -578,7 +746,7 @@ const ServiceManagement = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">{service.category}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <button onClick={() => handleToggleAvailability(service)} disabled={isToggling === service.id} className={`px-3 py-1 text-xs font-semibold rounded-full ${service.available ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} disabled:opacity-50`}
-                            aria-label={service.available ? '下架服務' : '上架服務'}>
+                              aria-label={service.available ? '下架服務' : '上架服務'}>
                               {isToggling === service.id ? '...' : (service.available ? <EyeIcon className="h-4 w-4 inline-block mr-1" /> : <EyeSlashIcon className="h-4 w-4 inline-block mr-1" />)}
                               {isToggling === service.id ? '' : (service.available ? '上架中' : '已下架')}
                             </button>
@@ -593,7 +761,7 @@ const ServiceManagement = () => {
                               <PencilSquareIcon className="h-5 w-5" />
                             </button>
                             <button onClick={() => handleDeleteService(service.id, service.name)} disabled={isDeleting === service.id || !!editingService} className="text-red-500 p-2 rounded-full hover:bg-secondary-dark/20 disabled:text-gray-300 disabled:cursor-not-allowed"
-                            aria-label="刪除服務">
+                              aria-label="刪除服務">
                               {isDeleting === service.id ? '...' : <TrashIcon className="h-5 w-5" />}
                             </button>
                           </td>

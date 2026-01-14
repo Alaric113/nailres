@@ -14,6 +14,24 @@ export interface ActivePass {
   };
 }
 
+// Follow-up service eligibility issued after booking completion
+export interface ActiveFollowUp {
+  id: string;              // Unique ID
+  serviceId: string;       // Original service ID
+  serviceName: string;     // Original service name
+  followUpName: string;    // Follow-up service name, e.g., "補睫毛"
+  originalPrice: number;   // Original service price
+  completedAt: Timestamp;  // Booking completion time
+  expiresAt: Timestamp;    // Expiry time
+  pricingTiers: {          // Inline pricing tiers
+    withinDays: number;
+    discountRate: number;
+    label?: string;
+  }[];
+  bookingId: string;       // Related booking ID
+  status: 'active' | 'used' | 'expired';
+}
+
 // This represents the data stored in the /users/{uid} document
 export interface UserDocument {
   email: string;
@@ -31,6 +49,7 @@ export interface UserDocument {
   receivesPwaNotifications?: boolean; // Master switch for PWA
   pwaSubscriptions?: string[]; // 'all' or specific designer IDs
   activePasses?: ActivePass[]; // Active season passes
+  activeFollowUps?: ActiveFollowUp[]; // Active follow-up service eligibilities
   isPlatinumBlacklisted?: boolean; // If true, prevents upgrade to platinum (e.g. for no-show users)
 }
 

@@ -1,5 +1,7 @@
-import { doc,  serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, writeBatch, arrayUnion, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import type { ActiveFollowUp } from '../types/user';
+import type { Service } from '../types/service';
 
 /**
  * Marks a user as "No Show" (放鳥).
@@ -36,6 +38,124 @@ export const markUserAsNoShow = async (bookingId: string, userId: string): Promi
 
     } catch (error) {
         console.error("Error marking user as no show:", error);
+        throw error;
+    }
+};
+
+/**
+ * Issues follow-up service eligibility to user after booking completion.
+ * Checks all services in the booking and issues follow-up for those with enabled followUpConfig.
+ */
+export const issueFollowUpEligibility = async (
+    booking: { 
+        id: string; 
+        userId: string; 
+        serviceIds: string[]; 
+        dateTime: Timestamp; 
+        amount: number;
+        items?: { serviceId: string; price: number }[]; // Include items with actual prices
+    }
+): Promise<number> => {
+    try {
+        let issuedCount = 0;
+        const followUpsToAdd: ActiveFollowUp[] = [];
+
+        // Check each service in the booking
+        for (const serviceId of booking.serviceIds) {
+            const serviceDoc = await getDoc(doc(db, 'services', serviceId));
+            if (!serviceDoc.exists()) continue;
+
+            const service = { id: serviceDoc.id, ...serviceDoc.data() } as Service;
+            
+            // Check if this service has follow-up enabled
+            if (!service.followUpConfig?.enabled) continue;
+
+            // Calculate expiry date
+            const completedDate = booking.dateTime.toDate();
+            const expiryDate = new Date(completedDate);
+            expiryDate.setDate(expiryDate.getDate() + service.followUpConfig.validDays);
+
+            // Get actual price from booking items (includes options), fallback to service base price
+            const bookingItem = booking.items?.find(item => item.serviceId === serviceId);
+            const actualPrice = bookingItem?.price ?? service.price;
+
+            // Create follow-up eligibility
+            const followUp: ActiveFollowUp = {
+                id: `${booking.id}_${serviceId}_${Date.now()}`,
+                serviceId: service.id,
+                serviceName: service.name,
+                followUpName: service.followUpConfig.name,
+                originalPrice: actualPrice, // Use booking item price which includes options
+                completedAt: booking.dateTime,
+                expiresAt: Timestamp.fromDate(expiryDate),
+                pricingTiers: service.followUpConfig.pricingTiers,
+                bookingId: booking.id,
+                status: 'active'
+            };
+
+            followUpsToAdd.push(followUp);
+            issuedCount++;
+        }
+
+        // Add all follow-ups to user document
+        if (followUpsToAdd.length > 0 && booking.userId) {
+            const batch = writeBatch(db);
+            const userRef = doc(db, 'users', booking.userId);
+            
+            for (const followUp of followUpsToAdd) {
+                batch.update(userRef, {
+                    activeFollowUps: arrayUnion(followUp)
+                });
+            }
+            
+            await batch.commit();
+            console.log(`Issued ${issuedCount} follow-up eligibilities for booking ${booking.id}`);
+        }
+
+        return issuedCount;
+    } catch (error) {
+        console.error("Error issuing follow-up eligibility:", error);
+        throw error;
+    }
+};
+
+/**
+ * Marks follow-up eligibilities as used after booking completion.
+ * Updates the status from 'active' to 'used'.
+ */
+export const markFollowUpsAsUsed = async (
+    userId: string,
+    followUpIds: string[]
+): Promise<void> => {
+    if (!userId || followUpIds.length === 0) return;
+
+    try {
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
+        
+        if (!userSnap.exists()) {
+            console.warn(`User ${userId} not found when marking follow-ups as used`);
+            return;
+        }
+
+        const userData = userSnap.data();
+        const activeFollowUps = (userData.activeFollowUps || []) as ActiveFollowUp[];
+        
+        // Update status for matching follow-ups
+        const updatedFollowUps = activeFollowUps.map(fu => {
+            if (followUpIds.includes(fu.id)) {
+                return { ...fu, status: 'used' as const };
+            }
+            return fu;
+        });
+
+        const batch = writeBatch(db);
+        batch.update(userRef, { activeFollowUps: updatedFollowUps });
+        await batch.commit();
+
+        console.log(`Marked ${followUpIds.length} follow-ups as used for user ${userId}`);
+    } catch (error) {
+        console.error("Error marking follow-ups as used:", error);
         throw error;
     }
 };

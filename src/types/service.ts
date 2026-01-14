@@ -5,6 +5,22 @@ export interface PlatinumDiscount {
   value: number;
 }
 
+// Follow-up service pricing tier (e.g., 50% off within 2 weeks)
+export interface FollowUpPricingTier {
+  withinDays: number;    // e.g., 14 (2 weeks)
+  discountRate: number;  // e.g., 0.5 (50% of original price)
+  label?: string;        // e.g., "2週內"
+}
+
+// Follow-up service configuration
+export interface FollowUpConfig {
+  enabled: boolean;
+  name: string;           // e.g., "補睫毛"
+  description?: string;   // Optional description
+  validDays: number;      // Maximum valid days, e.g., 21
+  pricingTiers: FollowUpPricingTier[];
+}
+
 // This represents the data stored in the /services/{serviceId} document
 export interface Service {
   id: string; // The document ID
@@ -22,6 +38,7 @@ export interface Service {
   supportedDesigners?: string[]; // IDs of designers who can perform this service
   order?: number; // Added order field
   isPlanOnly?: boolean; // If true, hidden from public booking menu
+  followUpConfig?: FollowUpConfig; // Follow-up service configuration
 }
 
 export interface ServiceOption {

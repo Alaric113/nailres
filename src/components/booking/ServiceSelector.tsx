@@ -9,7 +9,11 @@ import { useAuthStore } from '../../store/authStore';
 import LoadingSpinner from '../common/LoadingSpinner';
 import CartSidebar from './CartSidebar';
 import MobileCartBar from './MobileCartBar';
+import FollowUpServiceCard from './FollowUpServiceCard';
+import FollowUpSelectModal from './FollowUpSelectModal';
 import { SparklesIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { useUserFollowUps } from '../../hooks/useUserFollowUps';
+import type { ActiveFollowUp } from '../../types/user';
 
 
 import type { PlanContentItem } from '../../types/seasonPass';
@@ -45,9 +49,11 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
     const { userProfile } = useAuthStore();
     const { settings } = useGlobalSettings();
     const promo = settings.seasonPassPromo;
+    const { followUps } = useUserFollowUps();
 
     const [activeCategory, setActiveCategory] = useState<string>('全部');
     const [imagesLoaded, setImagesLoaded] = useState(false);
+    const [selectedFollowUp, setSelectedFollowUp] = useState<ActiveFollowUp | null>(null);
 
     // Get all service images that need to be loaded
     const serviceImages = services.filter(s => s.available && s.imageUrl).map(s => s.imageUrl!);
@@ -221,6 +227,39 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
                             </Link>
                         </div>
                     )}
+
+                    {/* Follow-Up Services Section */}
+                    {followUps.length > 0 && (
+                        <div className="max-w-3xl mx-auto px-4 pt-4">
+                            <div className="mb-3 flex items-center gap-4 px-2 w-full ">
+                                <h2 className="text-2xl font-sans font-bold text-primary-dark tracking-wide">
+                                    售後優惠
+                                </h2>
+                                <div className="h-px bg-primary/20 flex-1"></div>
+                            </div>
+                            <div className="space-y-3 grid grid-cols-1 md:grid-cols-2 ">
+                                {followUps.map(followUp => (
+                                    <FollowUpServiceCard
+                                        key={followUp.id}
+                                        followUp={followUp}
+                                        onClick={() => setSelectedFollowUp(followUp)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Follow-Up Select Modal */}
+                    {selectedFollowUp && (
+                        <FollowUpSelectModal
+                            followUp={selectedFollowUp}
+                            onClose={() => setSelectedFollowUp(null)}
+                            onAdded={() => {
+                                setSelectedFollowUp(null);
+                            }}
+                        />
+                    )}
+
                     <div className="max-w-3xl mx-auto p-4 space-y-8">
                         {/* Show skeletons while loading images */}
                         {!imagesLoaded ? (
@@ -253,7 +292,7 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
                                         key={category}
                                         className="pb-8 border-b border-gray-100 last:border-0"
                                     >
-                                        <div className="flex items-center gap-4 mb-6 px-2 w-f">
+                                        <div className="flex items-center gap-4 mb-6 px-2 w-full">
                                             <h3 className="text-2xl font-sans font-bold text-primary-dark tracking-wide">
                                                 {category}
                                             </h3>

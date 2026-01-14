@@ -16,9 +16,10 @@ import type { UserCoupon } from '../types/coupon';
 import type { Designer } from '../types/designer';
 import type { BookingStatus } from '../types/booking'; // NEW IMPORT
 import type { Service } from '../types/service'; // NEW IMPORT
-import { collection, serverTimestamp, writeBatch, doc, increment } from 'firebase/firestore'; // NEW IMPORT
-import { db } from '../lib/firebase'; // NEW IMPORT
-import { useToast } from '../context/ToastContext'; // NEW IMPORT
+import { collection, serverTimestamp, writeBatch, doc, increment } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useToast } from '../context/ToastContext';
+import { markFollowUpsAsUsed } from '../utils/userActions';
 
 
 import {
@@ -69,7 +70,7 @@ const BookingPage = () => {
   const [pendingService, setPendingService] = useState<Service | null>(null);
 
   // === Hooks that must be called before any early returns ===
-  const { cart, clearCart } = useBookingStore();
+  const { cart, clearCart, updateFollowUpPrices } = useBookingStore();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { userProfile: currentUserProfile, currentUser } = useAuthStore();
@@ -199,6 +200,34 @@ const BookingPage = () => {
     return result;
   }, [cart]);
 
+  // Calculate follow-up service deadline (earliest expiry date in cart)
+  const followUpDeadline = useMemo(() => {
+    const followUpItems = cart.filter(item => item.originalFollowUp);
+    if (followUpItems.length === 0) return null;
+
+    // Get the earliest expiry date
+    // Handle both Timestamp (with toDate) and serialized object (with seconds) formats
+    const expiryDates = followUpItems.map(item => {
+      const expiresAt = item.originalFollowUp!.expiresAt;
+      if (typeof expiresAt.toDate === 'function') {
+        return expiresAt.toDate();
+      } else if (expiresAt.seconds) {
+        // Serialized Timestamp format from localStorage
+        return new Date(expiresAt.seconds * 1000);
+      }
+      return new Date(); // Fallback
+    });
+    return new Date(Math.min(...expiryDates.map(d => d.getTime())));
+  }, [cart]);
+
+  // Combine designer deadline with follow-up deadline (use the earlier one)
+  const effectiveBookingDeadline = useMemo(() => {
+    if (!designerBookingDeadline && !followUpDeadline) return null;
+    if (!designerBookingDeadline) return followUpDeadline;
+    if (!followUpDeadline) return designerBookingDeadline;
+    return new Date(Math.min(designerBookingDeadline.getTime(), followUpDeadline.getTime()));
+  }, [designerBookingDeadline, followUpDeadline]);
+
   // If we are loading the target user, show loading state (after ALL hooks are called)
   if (loadingTargetUser) {
     return (
@@ -270,6 +299,8 @@ const BookingPage = () => {
     setSelectedDate(date);
     setSelectedTime(null);
     if (date) {
+      // Update follow-up service prices based on selected date
+      updateFollowUpPrices(date);
       setTimeout(() => {
         setIsCalendarExpanded(false);
       }, 300);
@@ -481,6 +512,20 @@ const BookingPage = () => {
 
       showToast('預約成功！我們已發送確認訊息給您。', 'success', 5000);
 
+      // Mark any follow-up services as used
+      const followUpIds = cart.filter(item => item.followUpId).map(item => item.followUpId!);
+      if (followUpIds.length > 0) {
+        try {
+          await markFollowUpsAsUsed(
+            isActingOnBehalf ? targetUser.id : currentUser.uid,
+            followUpIds
+          );
+        } catch (fuError) {
+          console.error('Failed to mark follow-ups as used:', fuError);
+          // Don't fail the booking for this
+        }
+      }
+
       // Cleanup
       clearCart();
       setSelectedDesigner(null);
@@ -641,8 +686,15 @@ const BookingPage = () => {
                       onDateSelect={handleDateSelect}
                       closedDays={designerClosedDays}
                       isLoading={isLoadingDesignerBookingInfo}
-                      bookingDeadline={designerBookingDeadline}
+                      bookingDeadline={effectiveBookingDeadline}
                     />
+                    {/* Follow-up deadline notice */}
+                    {followUpDeadline && (
+                      <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
+                        <span className="font-medium">⏰ 售後優惠期限：</span>
+                        預約日期需在 {format(followUpDeadline, 'M月d日')} 前完成
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
