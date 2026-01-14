@@ -91,7 +91,7 @@ const FollowUpSelectModal: React.FC<FollowUpSelectModalProps> = ({
                     <div>
                         <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                             <CalendarIcon className="w-4 h-4" />
-                            價格梯度（依預約日期）
+                            價格（依預約日期）
                         </h3>
                         <div className="bg-amber-50 rounded-lg p-3 space-y-2">
                             {sortedTiers.map((tier, index) => {
