@@ -135,11 +135,20 @@ const RedemptionSettings = () => {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => handleOpenEdit(item)} className="p-1.5 text-gray-400 hover:text-[#9F9586] hover:bg-gray-100 rounded-lg">
+            {/* Action buttons - always visible on mobile, hover on desktop */}
+            <div className="flex flex-row md:flex-col gap-1 md:gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+              <button
+                onClick={() => handleOpenEdit(item)}
+                className="p-2 md:p-1.5 text-gray-500 md:text-gray-400 hover:text-[#9F9586] bg-gray-100 md:bg-transparent hover:bg-gray-100 rounded-lg"
+                aria-label="編輯"
+              >
                 <PencilSquareIcon className="w-5 h-5" />
               </button>
-              <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+              <button
+                onClick={() => handleDelete(item.id)}
+                className="p-2 md:p-1.5 text-gray-500 md:text-gray-400 hover:text-red-500 bg-gray-100 md:bg-transparent hover:bg-red-50 rounded-lg"
+                aria-label="刪除"
+              >
                 <TrashIcon className="w-5 h-5" />
               </button>
             </div>
