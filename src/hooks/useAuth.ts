@@ -28,10 +28,49 @@ export const useAuth = () => {
     // Helper to create profile if not exists
     const createUserProfile = async (firebaseUser: User) => {
       try {
-        const batch = writeBatch(db);
         const userDocRef = doc(db, 'users', firebaseUser.uid);
+        
+        // 0. Check if a user with the same email already exists (to prevent duplicates)
+        if (firebaseUser.email) {
+          const usersRef = collection(db, 'users');
+          const emailQuery = query(usersRef, where('email', '==', firebaseUser.email), limit(1));
+          const emailSnapshot = await getDocs(emailQuery);
 
-        // Find the new user coupon
+          if (!emailSnapshot.empty) {
+            const existingUserDoc = emailSnapshot.docs[0];
+            const existingUserData = existingUserDoc.data() as UserDocument;
+            const existingUserId = existingUserDoc.id;
+
+            console.log(`[Auth] Found existing user with email ${firebaseUser.email} (UID: ${existingUserId}). Linking...`);
+
+            const socialProviderData = firebaseUser.providerData[0];
+            const isLineLogin = socialProviderData?.providerId.includes('line');
+
+            const updates: Partial<UserDocument> = {
+              lastLogin: serverTimestamp(),
+            };
+
+            if (isLineLogin && !existingUserData.lineUserId) {
+              updates.lineUserId = socialProviderData.uid;
+            }
+
+            // If the UIDs are different (e.g., logging in with a new provider that wasn't linked at Auth level)
+            // we should technically update the existing document.
+            // BUT, Firestore 'users' doc is usually keyed by UID. 
+            // If they are different UIDs, we have a mismatch between Auth UID and Firestore Doc ID.
+            // This is complex to solve without Cloud Functions.
+            // For now, if UID matches, we just update. If not, we still proceed to create a new one 
+            // unless we want to risk data fragmentation.
+            
+            if (existingUserId === firebaseUser.uid) {
+              await updateDoc(userDocRef, updates);
+              return; // Successfully updated existing doc
+            }
+          }
+        }
+
+        const batch = writeBatch(db);
+        // ... rest of the existing creation logic
         const couponsRef = collection(db, 'coupons');
         const q = query(couponsRef, where('isNewUserCoupon', '==', true), where('isActive', '==', true), limit(1));
         const couponSnapshot = await getDocs(q);

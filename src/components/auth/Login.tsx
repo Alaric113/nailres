@@ -235,18 +235,12 @@ export const Login = () => {
 
                     if (!userDoc.exists()) {
                         // Crucial: Delete the "orphan" auth user so it doesn't block future linking
+                        // This happens if a user tries to Google Login without having bound it via LINE settings first.
                         await deleteUser(user);
-                        throw new Error('此 Google 帳號未綁定任何系統帳號，已清除本次紀錄。請先使用 LINE 登入後至設定頁面進行綁定。');
+                        throw new Error('此 Google 帳號尚未與會員帳號綁定。請先使用 LINE 登入後，至「會員中心 > 帳號設定」進行綁定。');
                     }
 
-                    const userData = userDoc.data();
-                    const allowedRoles = ['admin', 'manager', 'designer'];
-
-                    if (!userData?.role || !allowedRoles.includes(userData.role)) {
-                         // Do NOT delete user here, they might be a valid customer
-                        throw new Error('此帳號權限不足 (非管理員/設計師)，無法使用 Google 登入。');
-                    }
-
+                    // User exists, allow login regardless of role (Admin or Member)
                     navigate('/', { replace: true });
                 } catch (error: any) {
                     console.error(error);
