@@ -4,7 +4,6 @@ import {
   WrenchScrewdriverIcon,
   ArchiveBoxIcon, 
   TicketIcon,
-  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../store/authStore';
 import { useActivePass } from '../hooks/useActivePass';
@@ -79,13 +78,6 @@ const UserMemberPage = () => {
                 <WrenchScrewdriverIcon className="w-5 h-5" />
               </button>
             )}
-            <button 
-              onClick={() => navigate('/member/settings')}
-              className="p-2 rounded-full bg-white border border-[#EFECE5] text-gray-600 hover:bg-[#9F9586] hover:text-white transition-colors"
-              aria-label="Account Settings"
-            >
-              <Cog6ToothIcon className="w-5 h-5" />
-            </button>
             <button 
               onClick={handleLogout}
               className="p-2 rounded-full bg-white border border-[#EFECE5] text-gray-600 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors"

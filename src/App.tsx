@@ -19,9 +19,8 @@ const MemberOrderDetailPage = lazy(() => import('./pages/member/MemberOrderDetai
 const ReschedulePage = lazy(() => import('./pages/member/ReschedulePage'));
 const MemberRewardsPage = lazy(() => import('./pages/member/MemberRewardsPage'));
 const MemberPassPage = lazy(() => import('./pages/member/MemberPassPage'));
-const PurchasePassPage = lazy(() => import('./pages/member/PurchasePassPage')); // Added import
 const MemberCouponsPage = lazy(() => import('./pages/member/MemberCouponsPage'));
-const MemberSettingsPage = lazy(() => import('./pages/member/MemberSettingsPage'));
+const PurchasePassPage = lazy(() => import('./pages/member/PurchasePassPage'));
 
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const ServiceManagement = lazy(() => import('./pages/ServiceManagement'));
@@ -112,7 +111,6 @@ const routes = [
                   { path: 'rewards', element: <MemberRewardsPage /> },
                   { path: 'pass', element: <MemberPassPage /> },
                   { path: 'coupons', element: <MemberCouponsPage /> },
-                  { path: 'settings', element: <MemberSettingsPage /> },
                 ]
               },
               { path: 'member/purchase/:passId', element: <PurchasePassPage /> },
