@@ -159,6 +159,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     // 4. Update or create user profile in Firestore
     const userRef = db.collection('users').doc(lineUserId);
     const userDoc = await userRef.get();
+    const userData = userDoc.exists ? userDoc.data() : null;
 
     const timestamp = admin.firestore.FieldValue.serverTimestamp();
     const profileData = {
@@ -166,18 +167,23 @@ const handler: Handler = async (event: HandlerEvent) => {
       avatarUrl: pictureUrl,
     };
 
-    if (!userDoc.exists) {
-      // --- NEW USER FLOW ---
-      console.log(`Creating new user (OAuth): ${lineUserId}`);
+    // Treat as NEW USER if document doesn't exist OR if it was soft-deleted
+    if (!userDoc.exists || userData?.deleted) {
+      // --- NEW USER / REACTIVATION FLOW ---
+      console.log(`Creating new user (or reactivating OAuth): ${lineUserId}`);
 
-      // A. Create User Document
-      await userRef.set({
+      // A. Create/Overwrite User Document
+      const newUserData = {
         lineUserId: lineUserId,
         profile: profileData,
-        createdAt: timestamp,
+        createdAt: userDoc.exists ? userData?.createdAt : timestamp,
         updatedAt: timestamp,
-        role: 'user', // Default Role
-      });
+        role: 'user', // Reset Role
+        deleted: false, // Reactivate
+        deletedAt: admin.firestore.FieldValue.delete(),
+      };
+
+      await userRef.set(newUserData, { merge: true });
 
       // B. Distribute "New User" Coupons
       try {

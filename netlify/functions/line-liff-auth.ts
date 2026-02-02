@@ -89,6 +89,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     // 3. Check if user exists to determine if we need to distribute coupons or set default role
     const userRef = db.collection('users').doc(verifiedLineUserId);
     const userDoc = await userRef.get();
+    const userData = userDoc.exists ? userDoc.data() : null;
 
     const timestamp = admin.firestore.FieldValue.serverTimestamp();
     const profileData = {
@@ -96,20 +97,34 @@ const handler: Handler = async (event: HandlerEvent) => {
       avatarUrl: pictureUrl || lineProfile.picture,
     };
 
-    if (!userDoc.exists) {
-      // --- NEW USER FLOW ---
-      console.log(`Creating new user: ${verifiedLineUserId}`);
+    // Treat as NEW USER if document doesn't exist OR if it was soft-deleted
+    if (!userDoc.exists || userData?.deleted) {
+      // --- NEW USER / REACTIVATION FLOW ---
+      console.log(`Creating new user (or reactivating): ${verifiedLineUserId}`);
 
-      // A. Create User Document
-      await userRef.set({
+      // A. Create/Overwrite User Document
+      // We use set() without merge to ensure a clean slate, removing 'deleted' flags etc.
+      // BUT we might want to keep some history? 
+      // If we want to keep history, we should use { merge: true } but explicitly set deleted: false.
+      // However, to ensure they get "fresh" status, let's reset key fields.
+      
+      const newUserData = {
         lineUserId: verifiedLineUserId,
         profile: profileData,
-        createdAt: timestamp,
+        createdAt: userDoc.exists ? userData?.createdAt : timestamp, // Keep original creation date if reactivating? Or reset? Let's keep original.
         updatedAt: timestamp,
-        role: 'user', // Default Role
-      });
+        role: 'user', // Reset Role
+        deleted: false, // Reactivate
+        deletedAt: admin.firestore.FieldValue.delete(), // Remove deletion timestamp
+      };
 
-      // B. Distribute "New User" Coupons
+      await userRef.set(newUserData, { merge: true });
+
+      // B. Distribute "New User" Coupons (Only if they don't have them? Or just give them?)
+      // Simplest is to just run the distribution logic. 
+      // Note: If they previously had these coupons, they will get duplicates unless we check `user_coupons`.
+      // The current logic creates a NEW user_coupon doc, so they will get new ones. This is likely desired for a "fresh start".
+      
       try {
         const couponsSnapshot = await db.collection('coupons')
           .where('isNewUserCoupon', '==', true)
