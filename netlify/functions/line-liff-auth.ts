@@ -113,7 +113,7 @@ const handler: Handler = async (event: HandlerEvent) => {
       try {
         const couponsSnapshot = await db.collection('coupons')
           .where('isNewUserCoupon', '==', true)
-          .where('isEnabled', '==', true)
+          .where('isActive', '==', true)
           .get();
 
         console.log(`[line-liff-auth] Found ${couponsSnapshot.size} potential new user coupons.`);
