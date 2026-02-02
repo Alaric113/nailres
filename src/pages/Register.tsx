@@ -4,6 +4,7 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { handleSocialSignIn } from '../lib/socialAuth';
+import { distributeNewUserCoupon } from '../utils/userActions';
 import type { UserDocument } from '../types/user';
 
 const Register = () => {
@@ -40,6 +41,9 @@ const Register = () => {
       };
 
       await setDoc(doc(db, 'users', user.uid), newUserProfile);
+
+      // Distribute New User Coupon
+      await distributeNewUserCoupon(user.uid);
       
     } catch (err: any) {
       console.error('Registration Error:', err);

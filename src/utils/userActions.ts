@@ -1,7 +1,66 @@
-import { doc, getDoc, serverTimestamp, writeBatch, arrayUnion, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, writeBatch, arrayUnion, Timestamp, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { ActiveFollowUp } from '../types/user';
 import type { Service } from '../types/service';
+
+/**
+ * Distributes the "New User Coupon" to a specific user.
+ * Searches for an active coupon marked as 'isNewUserCoupon'.
+ * If found, creates a user_coupon record.
+ */
+export const distributeNewUserCoupon = async (userId: string): Promise<boolean> => {
+    try {
+        const couponsRef = collection(db, 'coupons');
+        const q = query(couponsRef, where('isNewUserCoupon', '==', true), where('isActive', '==', true), limit(1));
+        const couponSnapshot = await getDocs(q);
+        
+        if (couponSnapshot.empty) {
+            console.log("No active new user coupon found.");
+            return false;
+        }
+
+        const newUserCoupon = couponSnapshot.docs[0];
+        const couponData = newUserCoupon.data();
+        const batch = writeBatch(db);
+
+        // Create in ROOT collection 'user_coupons'
+        const userCouponRef = doc(collection(db, 'user_coupons'));
+
+        const uniqueSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+        
+        // Default to 90 days validity for new user coupon if not specified in template (mimicking useAuth.ts behavior)
+        // Ideally we should check if couponData.validUntil exists, but useAuth.ts hardcodes 90 days.
+        // We will stick to the pattern: Use 90 days from NOW.
+        const validUntil = new Date();
+        validUntil.setDate(validUntil.getDate() + 90);
+
+        batch.set(userCouponRef, {
+            userId: userId,
+            couponId: newUserCoupon.id,
+            code: `${couponData.code}-${uniqueSuffix}`,
+            title: couponData.title,
+            status: 'active',
+            value: couponData.value,
+            type: couponData.type,
+            minSpend: couponData.minSpend || 0,
+            scopeType: couponData.scopeType || 'all',
+            scopeIds: couponData.scopeIds || [],
+            details: couponData.details || '',
+            createdAt: serverTimestamp(),
+            validFrom: serverTimestamp(),
+            validUntil: Timestamp.fromDate(validUntil),
+            redemptionSource: 'new_user_gift'
+        });
+
+        await batch.commit();
+        console.log(`Distributed new user coupon ${newUserCoupon.id} to user ${userId}`);
+        return true;
+
+    } catch (error) {
+        console.error("Error distributing new user coupon:", error);
+        return false;
+    }
+};
 
 /**
  * Marks a user as "No Show" (放鳥).
