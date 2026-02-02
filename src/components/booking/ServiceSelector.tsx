@@ -11,7 +11,7 @@ import CartSidebar from './CartSidebar';
 import MobileCartBar from './MobileCartBar';
 import FollowUpServiceCard from './FollowUpServiceCard';
 import FollowUpSelectModal from './FollowUpSelectModal';
-import { SparklesIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { SparklesIcon } from '@heroicons/react/24/outline';
 import { useUserFollowUps } from '../../hooks/useUserFollowUps';
 import type { ActiveFollowUp } from '../../types/user';
 
