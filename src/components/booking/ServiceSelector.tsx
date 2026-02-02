@@ -200,7 +200,7 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
                                 <div className="flex">
                                     {promo.imageUrl ? (
                                         <div className=" flex-1 rounded-xl  overflow-hidden ">
-                                            <img src={promo.imageUrl} alt="Promo" className="p-0 m-0 " loading="lazy" />
+                                            <img src={promo.imageUrl} alt="Promo" className="w-full " loading="lazy" />
                                         </div>
                                     ) : (
                                         <div className="col-span-2 w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 to-orange-400 flex items-center justify-center shrink-0">
