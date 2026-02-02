@@ -103,7 +103,28 @@ const handler: Handler = async (event: HandlerEvent) => {
         console.log(`[delete-user] Admin ${requesterUid} request delete for ${targetUserId}`);
 
         // 7. Perform Deletion
-        // A. Auth
+        // A. Firestore (Soft Delete to preserve history)
+        const userRef = db.collection('users').doc(targetUserId);
+        const userSnap = await userRef.get();
+        const userData = userSnap.data();
+
+        if (userSnap.exists) {
+            await userRef.update({
+                deleted: true,
+                deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+                role: 'deleted',
+                email: `deleted_${targetUserId}@placeholder.com`, // Free up email
+                lineUserId: admin.firestore.FieldValue.delete(), // Free up LINE ID
+                'profile.displayName': `${userData?.profile?.displayName || 'Unknown'} (已刪除)`,
+                'profile.avatarUrl': '', // Remove avatar
+                activeFollowUps: [], // Clear sensitive/active data
+            });
+            console.log(`[delete-user] Firestore soft-deleted: ${targetUserId}`);
+        } else {
+            console.warn(`[delete-user] Firestore doc not found for ${targetUserId}`);
+        }
+
+        // B. Auth (Hard Delete to prevent login)
         try {
             await auth.deleteUser(targetUserId);
             console.log(`[delete-user] Auth deleted: ${targetUserId}`);
@@ -111,13 +132,11 @@ const handler: Handler = async (event: HandlerEvent) => {
             if (err.code === 'auth/user-not-found') {
                 console.log(`[delete-user] User not in auth.`);
             } else {
-                throw err;
+                // If auth deletion fails, we might want to revert firestore? 
+                // For now, let's just log it. The user is effectively banned via 'role: deleted'.
+                console.error(`[delete-user] Failed to delete auth user:`, err);
             }
         }
-
-        // B. Firestore
-        await db.collection('users').doc(targetUserId).delete();
-        console.log(`[delete-user] Firestore deleted: ${targetUserId}`);
 
         return {
             statusCode: 200,

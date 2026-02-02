@@ -49,7 +49,10 @@ const CustomerListPage = () => {
   // ... (filtering logic)
 
   const filteredUsers = users.filter(user => {
-    // ... same logic
+    // Filter out soft-deleted users
+    if (user.deleted || user.role === 'deleted') return false;
+
+    // ... existing logic
     if (roleFilter !== 'all' && user.role !== roleFilter) {
       return false;
     }

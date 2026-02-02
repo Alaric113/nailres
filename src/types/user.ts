@@ -1,6 +1,6 @@
 import type { Timestamp, FieldValue } from 'firebase/firestore';
 
-export type UserRole = 'user' | 'admin' | 'platinum' | 'designer' | 'manager';
+export type UserRole = 'user' | 'admin' | 'platinum' | 'designer' | 'manager' | 'deleted';
 
 // Active Season Pass held by a user
 export interface ActivePass {
@@ -51,6 +51,7 @@ export interface UserDocument {
   activePasses?: ActivePass[]; // Active season passes
   activeFollowUps?: ActiveFollowUp[]; // Active follow-up service eligibilities
   isPlatinumBlacklisted?: boolean; // If true, prevents upgrade to platinum (e.g. for no-show users)
+  deleted?: boolean; // Soft delete flag
 }
 
 // This represents the user document with its ID from the collection

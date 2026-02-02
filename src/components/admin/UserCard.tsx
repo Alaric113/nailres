@@ -18,6 +18,7 @@ const roleMap: Record<UserRole, string> = {
   designer: '設計師',
   platinum: '白金會員',
   user: '一般會員',
+  deleted: '已刪除',
 };
 
 const DEFAULT_AVATAR = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';

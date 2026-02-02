@@ -179,14 +179,14 @@ import { TicketIcon, CreditCardIcon, PaperAirplaneIcon, UsersIcon, UserGroupIcon
       return <div className="flex justify-center p-8"><LoadingSpinner /></div>;
     }
   
-    const roleLabels: Record<UserRole, string> = {
-      user: '一般會員',
-      platinum: '白金會員',
-      admin: '管理員',
-      manager: '管理設計師',
-      designer: '設計師',
-    };
-  
+      const roleLabels: Record<UserRole, string> = {
+        user: '一般會員',
+        platinum: '白金會員',
+        admin: '管理員',
+        manager: '管理設計師',
+        designer: '設計師',
+        deleted: '已刪除',
+      };  
     return (
       <div className="space-y-6">
         {/* Header */}
