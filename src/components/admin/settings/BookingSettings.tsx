@@ -488,44 +488,10 @@ const BookingSettings: React.FC = () => {
                                 />
                             </div>
 
-                            {/* Title */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">標題</label>
-                                <input 
-                                    type="text"
-                                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
-                                    placeholder="例如：成為會員享專屬優惠"
-                                    value={promo.title}
-                                    onChange={(e) => setPromo({...promo, title: e.target.value})}
-                                />
-                            </div>
-
-                            {/* Description */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
-                                <textarea 
-                                    rows={3}
-                                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none resize-none"
-                                    placeholder="例如：購買季卡即享多項專屬服務與優惠折扣..."
-                                    value={promo.description}
-                                    onChange={(e) => setPromo({...promo, description: e.target.value})}
-                                />
-                            </div>
-
-                            {/* CTA */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-4 hidden">
+                                
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">按鈕文字</label>
-                                    <input 
-                                        type="text"
-                                        className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
-                                        placeholder="例如：了解更多"
-                                        value={promo.ctaText}
-                                        onChange={(e) => setPromo({...promo, ctaText: e.target.value})}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">按鈕連結</label>
+                                    <label className="block text-sm  font-medium text-gray-700 mb-1">按鈕連結</label>
                                     <input 
                                         type="text"
                                         className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none"
