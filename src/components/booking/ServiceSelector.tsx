@@ -195,34 +195,19 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
                         <div className="max-w-3xl mx-auto px-4 pt-4">
                             <Link
                                 to={promo.ctaLink || '/member/pass'}
-                                className="block bg-[#9F9586]  rounded-2xl px-2 py-3 shadow-sm hover:shadow-md transition-all group"
+                                className="block  rounded-2xl hover:shadow-md transition-all group"
                             >
-                                <div className="grid grid-cols-5 gap-4">
+                                <div className="flex gap-4">
                                     {promo.imageUrl ? (
-                                        <div className="col-span-2 flex-1 rounded-xl bg-gray-100 overflow-hidden border border-gray-100">
-                                            <img src={promo.imageUrl} alt="Promo" className="w-full h-full object-cover" loading="lazy" />
+                                        <div className="col-span-2 flex-1 rounded-xl  overflow-hidden ">
+                                            <img src={promo.imageUrl} alt="Promo" className=" h-50" loading="lazy" />
                                         </div>
                                     ) : (
                                         <div className="col-span-2 w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 to-orange-400 flex items-center justify-center shrink-0">
                                             <SparklesIcon className="w-6 h-6 text-white" />
                                         </div>
                                     )}
-                                    <div className=" col-span-3 min-w-0">
-                                        <h3 className="text-lg font-bold text-gray-900 mb-1">
-                                            {promo.title}
-                                        </h3>
-                                        {promo.description && (
-                                            <p className="text-sm text-gray-600 mb-3 whitespace-pre-wrap">
-                                                {promo.description}
-                                            </p>
-                                        )}
-                                        <div >
-                                            <span className="flex pt-4 justify-end items-end flex-1 gap-1 text-sm font-semibold text-white group-hover:gap-2 transition-all">
-                                                {promo.ctaText || '了解更多'}
-                                                <ArrowRightIcon className="w-4 h-4" />
-                                            </span>
-                                        </div>
-                                    </div>
+                                    
                                 </div>
                             </Link>
                         </div>
