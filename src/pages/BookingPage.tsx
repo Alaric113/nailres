@@ -16,7 +16,7 @@ import type { UserCoupon } from '../types/coupon';
 import type { Designer } from '../types/designer';
 import type { BookingStatus } from '../types/booking'; // NEW IMPORT
 import type { Service } from '../types/service'; // NEW IMPORT
-import { collection, serverTimestamp, writeBatch, doc, increment } from 'firebase/firestore';
+import { collection, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useToast } from '../context/ToastContext';
 import { markFollowUpsAsUsed } from '../utils/userActions';
@@ -425,13 +425,17 @@ const BookingPage = () => {
       // 2. If a coupon was used, update its usage count and mark as used
       if (selectedCoupon) {
         // selectedCoupon is UserCoupon, so cast it to access specific fields
-        const userCoupon = selectedCoupon as any;
+        // const userCoupon = selectedCoupon as any;
 
         // Update Template Usage Count (if linked)
+        // NOTE: Commented out because users don't have permission to write to 'coupons' collection
+        // This should be handled by a backend trigger if needed.
+        /*
         if (userCoupon.couponId) {
           const couponRef = doc(db, 'coupons', userCoupon.couponId);
           batch.update(couponRef, { usageCount: increment(1) });
         }
+        */
 
         // Update User Coupon Status in ROOT collection
         const userCouponRef = doc(db, 'user_coupons', selectedCoupon.id);
