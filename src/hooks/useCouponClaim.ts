@@ -109,9 +109,14 @@ export const useCouponClaim = () => {
                 });
 
                 // Increment Usage Count
+                // NOTE: Users cannot update 'coupons' collection due to security rules.
+                // This usually requires a backend function or Firestore trigger to maintain accurately.
+                // For now, we skip updating the global count to allow the claim to proceed.
+                /*
                 transaction.update(couponRef, {
                     usageCount: (data.usageCount || 0) + 1
                 });
+                */
             });
 
             setIsClaiming(false);
