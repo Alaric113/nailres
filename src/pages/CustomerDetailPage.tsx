@@ -1,38 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc, arrayUnion, query, collection, where, getDocs, orderBy } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, query, collection, where, getDocs, orderBy, deleteDoc, serverTimestamp, Timestamp, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useBookings } from '../hooks/useBookings';
 import { useSeasonPasses } from '../hooks/useSeasonPasses';
 import type { EnrichedUser, ActivePass, UserRole } from '../types/user';
+import type { Coupon } from '../types/coupon';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import PassActivationModal from '../components/admin/PassActivationModal';
 import EditPassModal from '../components/admin/EditPassModal';
+import PointAdjustmentModal from '../components/admin/PointAdjustmentModal';
+import IssueCouponModal from '../components/admin/IssueCouponModal';
 import { motion, useAnimation, type PanInfo } from 'framer-motion';
-import { 
-  ArrowLeftIcon, 
-  UserCircleIcon, 
-  CalendarDaysIcon, 
-  TicketIcon, 
+import {
+  ArrowLeftIcon,
+  UserCircleIcon,
+  CalendarDaysIcon,
+  TicketIcon,
   GiftIcon,
   PencilIcon,
   CheckIcon,
   XMarkIcon,
   PencilSquareIcon,
-  TrashIcon
+  TrashIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
-// Keep for other uses if any? No, user said unused.
-// But wait, line 636 uses `locale: zhTW`.
-// So `zhTW` IS used in current file?
-// Checking file...
-// Line 636: `{format(booking.dateTime, 'yyyy-MM-dd HH:mm', { locale: zhTW })}`
-// Wait, that line was in the OLD `CustomerBookingHistory`.
-// I replaced `CustomerBookingHistory` implementation with `BookingOrderCard`.
-// `BookingOrderCard` has its own `format`.
-// So `zhTW` in `CustomerDetailPage` might indeed be unused now if I removed the old rendering.
-// Let's check imports.
-
 import BookingOrderCard from '../components/admin/BookingOrderCard';
 import { updateBookingStatus } from '../utils/bookingActions';
 import { useToast } from '../context/ToastContext';
@@ -42,16 +35,16 @@ type TabKey = 'info' | 'bookings' | 'loyalty' | 'passes';
 const CustomerDetailPage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  
+
   const [user, setUser] = useState<EnrichedUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('info');
-  
+
   // Edit mode for notes
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesText, setNotesText] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
-  
+
   // Pass Modal
   const [isPassModalOpen, setIsPassModalOpen] = useState(false);
 
@@ -64,6 +57,118 @@ const CustomerDetailPage: React.FC = () => {
   const [editingPass, setEditingPass] = useState<ActivePass | null>(null);
   // Store the index of the pass being edited to identify it in the array
   const [editingPassIndex, setEditingPassIndex] = useState<number>(-1);
+
+  // Points & Coupons Modals
+  const [isEditPointsModalOpen, setIsEditPointsModalOpen] = useState(false);
+  const [isIssueCouponModalOpen, setIsIssueCouponModalOpen] = useState(false);
+
+  const { showToast } = useToast();
+
+  const handleAdjustPoints = async (amount: number, reason: string) => {
+    if (!userId || !user) return;
+    try {
+      const userRef = doc(db, 'users', userId);
+      const currentPoints = user.loyaltyPoints || 0;
+      const newPoints = Math.max(0, currentPoints + amount);
+
+      // 1. Update User Points
+      await updateDoc(userRef, {
+        loyaltyPoints: newPoints
+      });
+
+      // 2. Add History Record
+      await addDoc(collection(db, 'point_history'), {
+        userId,
+        points: amount,
+        description: reason, // e.g. "Admin Adjustment: reason"
+        createdAt: serverTimestamp(),
+        type: amount > 0 ? 'earn' : 'redeem'
+      });
+
+      // 3. Add Transaction Record (for consistency)
+      await addDoc(collection(db, 'point_transactions'), {
+        userId,
+        points: amount,
+        type: 'admin_adjustment',
+        description: reason,
+        createdAt: serverTimestamp()
+      });
+
+      // Update Local State
+      setUser({ ...user, loyaltyPoints: newPoints });
+      // Refresh history
+      // Simple manual prepend or refetch. Let's manual prepend for speed
+      setPointHistory(prev => [{
+        id: 'temp-' + Date.now(),
+        points: amount,
+        description: reason,
+        createdAt: Timestamp.now()
+      }, ...prev]);
+
+      showToast('點數調整成功', 'success');
+
+    } catch (error) {
+      console.error("Error adjusting points:", error);
+      showToast('點數調整失敗', 'error');
+      throw error;
+    }
+  };
+
+  const handleIssueCoupon = async (couponTemplate: Coupon) => {
+    if (!userId) return;
+    try {
+      // Create User Coupon
+      const uniqueSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const userCouponCode = `${couponTemplate.code}-${uniqueSuffix}`;
+
+      // Default 90 days if not in template (template should have relative validity, but simplified schema uses absolute or manual)
+      // Let's use 90 days for now or if template has something better.
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + 90);
+
+      const newCouponData = {
+        userId,
+        couponId: couponTemplate.id,
+        code: userCouponCode,
+        title: couponTemplate.title,
+        description: couponTemplate.details || '',
+        status: 'active',
+        value: couponTemplate.value,
+        type: couponTemplate.type,
+        minSpend: couponTemplate.minSpend || 0,
+        scopeType: couponTemplate.scopeType || 'all',
+        scopeIds: couponTemplate.scopeIds || [],
+        createdAt: serverTimestamp(),
+        validFrom: serverTimestamp(),
+        validUntil: Timestamp.fromDate(validUntil),
+        isUsed: false,
+        redemptionSource: 'admin_issue'
+      };
+
+      const docRef = await addDoc(collection(db, 'user_coupons'), newCouponData);
+
+      // Update Local State
+      setCoupons(prev => [{ id: docRef.id, ...newCouponData, validUntil: Timestamp.fromDate(validUntil) }, ...prev]);
+      showToast('優惠券發送成功', 'success');
+
+    } catch (error) {
+      console.error("Error issuing coupon:", error);
+      showToast('發送失敗', 'error');
+      throw error;
+    }
+  };
+
+  const handleDeleteUserCoupon = async (couponId: string) => {
+    if (!confirm('確定要刪除此優惠券嗎？此操作無法復原。')) return;
+    try {
+      await deleteDoc(doc(db, 'user_coupons', couponId));
+      setCoupons(prev => prev.filter(c => c.id !== couponId));
+      showToast('優惠券已刪除', 'success');
+    } catch (error) {
+      console.error("Error deleting coupon:", error);
+      showToast('刪除失敗', 'error');
+    }
+  };
 
   // Fetch user data
   useEffect(() => {
@@ -91,22 +196,22 @@ const CustomerDetailPage: React.FC = () => {
   useEffect(() => {
     if (!userId) return;
     const fetchData = async () => {
-        try {
-            // Coupons
-            const couponsQ = query(collection(db, 'user_coupons'), where('userId', '==', userId));
-            const couponsSnap = await getDocs(couponsQ);
-            setCoupons(couponsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-            
-            // Point History
-            const historyQ = query(collection(db, 'point_history'), where('userId', '==', userId), orderBy('createdAt', 'desc'));
-            const historySnap = await getDocs(historyQ);
-            setPointHistory(historySnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        } catch (e) {
-            console.error(e);
-        }
+      try {
+        // Coupons
+        const couponsQ = query(collection(db, 'user_coupons'), where('userId', '==', userId));
+        const couponsSnap = await getDocs(couponsQ);
+        setCoupons(couponsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+        // Point History
+        const historyQ = query(collection(db, 'point_history'), where('userId', '==', userId), orderBy('createdAt', 'desc'));
+        const historySnap = await getDocs(historyQ);
+        setPointHistory(historySnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e) {
+        console.error(e);
+      }
     }
     if (activeTab === 'loyalty') {
-        fetchData();
+      fetchData();
     }
   }, [userId, activeTab]);
 
@@ -131,74 +236,74 @@ const CustomerDetailPage: React.FC = () => {
 
     // 1. Activate Pass
     try {
-        await updateDoc(doc(db, 'users', userId), {
-            activePasses: arrayUnion(pass)
-        });
+      await updateDoc(doc(db, 'users', userId), {
+        activePasses: arrayUnion(pass)
+      });
     } catch (error) {
-        console.error("Error activating pass:", error);
-        alert("開通方案失敗");
-        return;
+      console.error("Error activating pass:", error);
+      alert("開通方案失敗");
+      return;
     }
-    
+
     // 2. Distribute Rewards (Coupons / GiftCards)
     const originalPass = allSeasonPasses.find(p => p.id === pass.passId);
     if (originalPass) {
-        let rewardsSent = 0;
-        const promises = [];
+      let rewardsSent = 0;
+      const promises = [];
 
-        for (const item of originalPass.contentItems) {
-            // Check for Coupon
-            if (item.benefitType === 'discount' && item.couponId) {
-                const quantity = item.quantity || 1;
-                // Distribute N times? Usually we distribute 1 coupon with quantity logic, OR distribute N distinct coupons.
-                // Our distribution API distributes ONE instance per call (or batch of users).
-                // If we want to give 2 coupons, we should call it twice or support quantity in API.
-                // For safety and simplicity, let's loop.
-                for (let i = 0; i < quantity; i++) {
-                     promises.push(
-                        fetch('/.netlify/functions/distribute-coupon', {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                couponId: item.couponId,
-                                targets: [{ type: 'specific', ids: [userId] }]
-                            })
-                        })
-                     );
-                }
-                rewardsSent += quantity;
-            } 
-            // Check for Gift Card
-            else if (item.benefitType === 'giftcard' && item.giftCardId) {
-                const quantity = item.quantity || 1;
-                for (let i = 0; i < quantity; i++) {
-                    promises.push(
-                        fetch('/.netlify/functions/distribute-giftcard', {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                giftCardId: item.giftCardId,
-                                targets: [{ type: 'specific', ids: [userId] }]
-                            })
-                        })
-                    );
-                }
-                 rewardsSent += quantity;
-            }
+      for (const item of originalPass.contentItems) {
+        // Check for Coupon
+        if (item.benefitType === 'discount' && item.couponId) {
+          const quantity = item.quantity || 1;
+          // Distribute N times? Usually we distribute 1 coupon with quantity logic, OR distribute N distinct coupons.
+          // Our distribution API distributes ONE instance per call (or batch of users).
+          // If we want to give 2 coupons, we should call it twice or support quantity in API.
+          // For safety and simplicity, let's loop.
+          for (let i = 0; i < quantity; i++) {
+            promises.push(
+              fetch('/.netlify/functions/distribute-coupon', {
+                method: 'POST',
+                body: JSON.stringify({
+                  couponId: item.couponId,
+                  targets: [{ type: 'specific', ids: [userId] }]
+                })
+              })
+            );
+          }
+          rewardsSent += quantity;
         }
+        // Check for Gift Card
+        else if (item.benefitType === 'giftcard' && item.giftCardId) {
+          const quantity = item.quantity || 1;
+          for (let i = 0; i < quantity; i++) {
+            promises.push(
+              fetch('/.netlify/functions/distribute-giftcard', {
+                method: 'POST',
+                body: JSON.stringify({
+                  giftCardId: item.giftCardId,
+                  targets: [{ type: 'specific', ids: [userId] }]
+                })
+              })
+            );
+          }
+          rewardsSent += quantity;
+        }
+      }
 
-        if (promises.length > 0) {
-            try {
-                // Run in background / parallel
-                await Promise.all(promises);
-                // We rely on toast or just silent success. Since it's automatic, maybe just a console log or minor notification.
-                // showToast(`已自動發送 ${rewardsSent} 個獎勵`, 'success'); 
-                // Note: showToast is not directly available here unless I passed it or use context. 
-                // Context is available via useToast hook likely.
-                console.log(`Successfully distributed ${rewardsSent} rewards.`);
-            } catch (err) {
-                console.error("Error distributing rewards:", err);
-                alert("方案開通成功，但部分獎勵發送失敗，請手動補發。");
-            }
+      if (promises.length > 0) {
+        try {
+          // Run in background / parallel
+          await Promise.all(promises);
+          // We rely on toast or just silent success. Since it's automatic, maybe just a console log or minor notification.
+          // showToast(`已自動發送 ${rewardsSent} 個獎勵`, 'success'); 
+          // Note: showToast is not directly available here unless I passed it or use context. 
+          // Context is available via useToast hook likely.
+          console.log(`Successfully distributed ${rewardsSent} rewards.`);
+        } catch (err) {
+          console.error("Error distributing rewards:", err);
+          alert("方案開通成功，但部分獎勵發送失敗，請手動補發。");
         }
+      }
     }
 
     // Refresh user data
@@ -233,7 +338,7 @@ const CustomerDetailPage: React.FC = () => {
   // Handle delete entire pass
   const handleDeletePass = async (passIndex: number) => {
     if (!userId || !user || !user.activePasses) return;
-    
+
     // We confirm in the UI handler usually, but here just in case.
     // The slide action will trigger this.
 
@@ -255,17 +360,17 @@ const CustomerDetailPage: React.FC = () => {
 
     const newActivePasses = [...user.activePasses];
     // Merge updates into the specific pass
-    newActivePasses[editingPassIndex] = { 
-        ...newActivePasses[editingPassIndex], 
-        ...updates 
+    newActivePasses[editingPassIndex] = {
+      ...newActivePasses[editingPassIndex],
+      ...updates
     };
 
     try {
-        await updateDoc(doc(db, 'users', userId), { activePasses: newActivePasses });
-        setUser({ ...user, activePasses: newActivePasses });
+      await updateDoc(doc(db, 'users', userId), { activePasses: newActivePasses });
+      setUser({ ...user, activePasses: newActivePasses });
     } catch (error) {
-        console.error('Error updating pass:', error);
-        throw error; // Let modal handle error state
+      console.error('Error updating pass:', error);
+      throw error; // Let modal handle error state
     }
   };
 
@@ -287,37 +392,37 @@ const CustomerDetailPage: React.FC = () => {
           <div className="flex items-center justify-between gap-3">
             {/* Left: Back & User Info */}
             <div className="flex items-center gap-3 min-w-0 overflow-hidden">
-                <button 
+              <button
                 onClick={() => navigate('/admin/customers')}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
-                >
+              >
                 <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
-                </button>
-                <div className="flex items-center gap-3 min-w-0">
+              </button>
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-base sm:text-lg overflow-hidden flex-shrink-0">
-                    {user.profile.avatarUrl ? (
+                  {user.profile.avatarUrl ? (
                     <img src={user.profile.avatarUrl} alt="" className="w-full h-full object-cover" />
-                    ) : (
+                  ) : (
                     (user.profile.displayName || '?')[0]
-                    )}
+                  )}
                 </div>
                 <div className="min-w-0">
-                    <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{user.profile.displayName || '未命名'}</h1>
-                    <p className="text-xs sm:text-sm text-gray-500 truncate">{user.email || user.lineUserId?.slice(0, 10) + '...'}</p>
+                  <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{user.profile.displayName || '未命名'}</h1>
+                  <p className="text-xs sm:text-sm text-gray-500 truncate">{user.email || user.lineUserId?.slice(0, 10) + '...'}</p>
                 </div>
-                </div>
+              </div>
             </div>
-            
+
             {/* Right: Quick Actions */}
             <div className="flex-shrink-0 ml-2">
-                <button
-                    onClick={() => navigate(`/booking?behalfOf=${userId}`)}
-                    className="px-3 sm:px-4 py-2 bg-[#9F9586] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#8a8174] transition-colors flex items-center gap-1 sm:gap-2 whitespace-nowrap"
-                >
-                    <CalendarDaysIcon className="w-4 h-4" />
-                    <span className="hidden xs:inline sm:inline">新增預約</span>
-                    <span className="xs:hidden sm:hidden">預約</span>
-                </button>
+              <button
+                onClick={() => navigate(`/booking?behalfOf=${userId}`)}
+                className="px-3 sm:px-4 py-2 bg-[#9F9586] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#8a8174] transition-colors flex items-center gap-1 sm:gap-2 whitespace-nowrap"
+              >
+                <CalendarDaysIcon className="w-4 h-4" />
+                <span className="hidden xs:inline sm:inline">新增預約</span>
+                <span className="xs:hidden sm:hidden">預約</span>
+              </button>
             </div>
           </div>
         </div>
@@ -331,11 +436,10 @@ const CustomerDetailPage: React.FC = () => {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-                  activeTab === tab.key
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                className={`flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${activeTab === tab.key
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
               >
                 <tab.icon className="w-4 h-4" />
                 <span className="hidden xs:inline sm:inline">{tab.label}</span>
@@ -361,13 +465,12 @@ const CustomerDetailPage: React.FC = () => {
                       value={user.role}
                       onChange={(e) => handleRoleChange(e.target.value as UserRole)}
                       disabled={isUpdatingRole}
-                      className={`p-1.5 border rounded-lg text-xs font-medium ${
-                        user.role === 'admin' ? 'bg-red-100 text-red-700 border-red-200' : 
+                      className={`p-1.5 border rounded-lg text-xs font-medium ${user.role === 'admin' ? 'bg-red-100 text-red-700 border-red-200' :
                         user.role === 'manager' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' :
-                        user.role === 'platinum' ? 'bg-amber-100 text-amber-700 border-amber-200' : 
-                        user.role === 'designer' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                        'bg-gray-100 text-gray-600 border-gray-200'
-                      }`}
+                          user.role === 'platinum' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                            user.role === 'designer' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                              'bg-gray-100 text-gray-600 border-gray-200'
+                        }`}
                     >
                       <option value="admin">管理員</option>
                       <option value="manager">管理設計師</option>
@@ -383,13 +486,13 @@ const CustomerDetailPage: React.FC = () => {
                 </div>
               </dl>
             </div>
-            
+
             {/* Notes Section */}
             <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h2 className="font-bold text-gray-900 text-sm sm:text-base">備註</h2>
                 {!isEditingNotes && (
-                  <button 
+                  <button
                     onClick={() => setIsEditingNotes(true)}
                     className="text-primary text-sm font-medium flex items-center gap-1"
                   >
@@ -399,7 +502,7 @@ const CustomerDetailPage: React.FC = () => {
               </div>
               {isEditingNotes ? (
                 <div className="space-y-3">
-                  <textarea 
+                  <textarea
                     value={notesText}
                     onChange={(e) => setNotesText(e.target.value)}
                     className="w-full p-3 border border-gray-200 rounded-lg focus:ring-primary focus:border-primary text-sm"
@@ -407,13 +510,13 @@ const CustomerDetailPage: React.FC = () => {
                     placeholder="輸入備註..."
                   />
                   <div className="flex gap-2 justify-end">
-                    <button 
+                    <button
                       onClick={() => { setIsEditingNotes(false); setNotesText(user.notes || ''); }}
                       className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg flex items-center gap-1"
                     >
                       <XMarkIcon className="w-4 h-4" /> 取消
                     </button>
-                    <button 
+                    <button
                       onClick={handleSaveNotes}
                       disabled={isSavingNotes}
                       className="px-3 py-1.5 text-sm bg-primary text-white rounded-lg flex items-center gap-1 disabled:opacity-50"
@@ -437,78 +540,109 @@ const CustomerDetailPage: React.FC = () => {
         {/* Tab: Loyalty */}
         {activeTab === 'loyalty' && (
           <div className="space-y-4 sm:space-y-6">
-             {/* Points Summary */}
-             <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                <div>
-                    <h2 className="font-bold text-gray-900 mb-1 text-sm sm:text-base">現有點數</h2>
-                    <p className="text-gray-500 text-xs sm:text-sm">可用於折抵消費或兌換獎勵</p>
+            {/* Points Summary */}
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+              <div>
+                <h2 className="font-bold text-gray-900 mb-1 text-sm sm:text-base">現有點數</h2>
+                <p className="text-gray-500 text-xs sm:text-sm">可用於折抵消費或兌換獎勵</p>
+              </div>
+              <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                <div className="text-left sm:text-right">
+                  <p className="text-2xl sm:text-3xl font-bold text-primary">{user.loyaltyPoints || 0}</p>
+                  <p className="text-xs text-gray-400 mt-1 truncate">累積總點數: {pointHistory.reduce((acc, curr) => acc + (curr.points > 0 ? curr.points : 0), 0)}</p>
                 </div>
-                <div className="text-left sm:text-right w-full sm:w-auto">
-                    <p className="text-2xl sm:text-3xl font-bold text-primary">{user.loyaltyPoints || 0}</p>
-                    <p className="text-xs text-gray-400 mt-1 truncate">累積總點數: {pointHistory.reduce((acc, curr) => acc + (curr.points > 0 ? curr.points : 0), 0)}</p>
+                <button
+                  onClick={() => setIsEditPointsModalOpen(true)}
+                  className="p-2 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors border border-gray-200"
+                  title="手動調整點數"
+                >
+                  <PencilIcon className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Coupons */}
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2 text-sm sm:text-base">
+                  <TicketIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+                  持有優惠券 ({coupons.length})
+                </h3>
+                <button
+                  onClick={() => setIsIssueCouponModalOpen(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  發送優惠券
+                </button>
+              </div>
+
+              {coupons.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                  {coupons.map(coupon => (
+                    <div key={coupon.id} className={`group relative border rounded-xl p-4 flex justify-between items-start ${coupon.isUsed || (coupon.validUntil && coupon.validUntil.toDate() < new Date()) ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-amber-200'}`}>
+                      <div className="min-w-0 pr-2">
+                        <h4 className="font-bold text-gray-800 truncate">{coupon.title}</h4>
+                        <p className="text-xs text-gray-500 mt-1 truncate">{coupon.description}</p>
+                        <div className="mt-2 flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600">{coupon.code}</span>
+                          {coupon.isUsed ? <span className="text-xs text-red-500 font-bold whitespace-nowrap">已使用</span> : <span className="text-xs text-green-600 font-bold whitespace-nowrap">可使用</span>}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="block text-lg font-bold text-primary whitespace-nowrap">
+                          {coupon.type === 'percentage' ? `${100 - coupon.value}% OFF` : `$${coupon.value}`}
+                        </span>
+                        {coupon.validUntil && (
+                          <p className="text-[10px] text-gray-400 mt-1 whitespace-nowrap">
+                            ~ {format(coupon.validUntil.toDate(), 'yyyy-MM-dd')}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Delete Action - Visible on Hover or Always on Touch */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteUserCoupon(coupon.id);
+                        }}
+                        className="absolute -top-2 -right-2 p-1.5 bg-red-100 text-red-500 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200"
+                        title="刪除優惠券"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-             </div>
+              ) : (
+                <p className="text-center text-gray-400 py-4 text-sm">尚無優惠券</p>
+              )}
+            </div>
 
-             {/* Coupons */}
-             <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm">
-                <h3 className="font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
-                    <TicketIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
-                    持有優惠券 ({coupons.length})
-                </h3>
-                {coupons.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                        {coupons.map(coupon => (
-                             <div key={coupon.id} className={`border rounded-xl p-4 flex justify-between items-start ${coupon.isUsed || (coupon.validUntil && coupon.validUntil.toDate() < new Date()) ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-amber-200'}`}>
-                                <div className="min-w-0 pr-2">
-                                    <h4 className="font-bold text-gray-800 truncate">{coupon.title}</h4>
-                                    <p className="text-xs text-gray-500 mt-1 truncate">{coupon.description}</p>
-                                    <div className="mt-2 flex items-center gap-2 flex-wrap">
-                                        <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600">{coupon.code}</span>
-                                        {coupon.isUsed ? <span className="text-xs text-red-500 font-bold whitespace-nowrap">已使用</span> : <span className="text-xs text-green-600 font-bold whitespace-nowrap">可使用</span>}
-                                    </div>
-                                </div>
-                                <div className="text-right flex-shrink-0">
-                                     <span className="block text-lg font-bold text-primary whitespace-nowrap">
-                                        {coupon.type === 'percentage' ? `${100 - coupon.value}% OFF` : `$${coupon.value}`}
-                                     </span>
-                                     {coupon.validUntil && (
-                                         <p className="text-[10px] text-gray-400 mt-1 whitespace-nowrap">
-                                             ~ {format(coupon.validUntil.toDate(), 'yyyy-MM-dd')}
-                                         </p>
-                                     )}
-                                </div>
-                             </div>
-                        ))}
+            {/* Point History */}
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+              <h3 className="font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                <CalendarDaysIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                點數紀錄
+              </h3>
+              {pointHistory.length > 0 ? (
+                <div className="space-y-3">
+                  {pointHistory.map(history => (
+                    <div key={history.id} className="flex justify-between items-center text-sm border-b border-gray-50 last:border-0 pb-3 last:pb-0">
+                      <div className="min-w-0 pr-2">
+                        <p className="font-medium text-gray-800 truncate">{history.description || '點數變動'}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{history.createdAt ? format(history.createdAt.toDate(), 'yyyy-MM-dd HH:mm') : '-'}</p>
+                      </div>
+                      <span className={`font-bold flex-shrink-0 ${history.points > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                        {history.points > 0 ? '+' : ''}{history.points}
+                      </span>
                     </div>
-                ) : (
-                    <p className="text-center text-gray-400 py-4 text-sm">尚無優惠券</p>
-                )}
-             </div>
-
-             {/* Point History */}
-             <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm">
-                <h3 className="font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
-                    <CalendarDaysIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-                    點數紀錄
-                </h3>
-                {pointHistory.length > 0 ? (
-                    <div className="space-y-3">
-                        {pointHistory.map(history => (
-                            <div key={history.id} className="flex justify-between items-center text-sm border-b border-gray-50 last:border-0 pb-3 last:pb-0">
-                                <div className="min-w-0 pr-2">
-                                    <p className="font-medium text-gray-800 truncate">{history.description || '點數變動'}</p>
-                                    <p className="text-xs text-gray-400 mt-0.5">{history.createdAt ? format(history.createdAt.toDate(), 'yyyy-MM-dd HH:mm') : '-'}</p>
-                                </div>
-                                <span className={`font-bold flex-shrink-0 ${history.points > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                    {history.points > 0 ? '+' : ''}{history.points}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-center text-gray-400 py-4 text-sm">尚無點數紀錄</p>
-                )}
-             </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-gray-400 py-4 text-sm">尚無點數紀錄</p>
+              )}
+            </div>
           </div>
         )}
 
@@ -517,35 +651,35 @@ const CustomerDetailPage: React.FC = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="font-bold text-gray-900">季卡方案</h2>
-              <button 
+              <button
                 onClick={() => setIsPassModalOpen(true)}
                 className="px-3 py-1.5 bg-primary text-white rounded-lg text-sm font-medium flex items-center gap-1"
               >
                 <TicketIcon className="w-4 h-4" /> 開通新方案
               </button>
             </div>
-            
+
             {user.activePasses && user.activePasses.length > 0 ? (
               <div className="space-y-3">
                 {user.activePasses.map((pass, idx) => {
                   const expiry = pass.expiryDate.toDate();
                   const isExpired = expiry < new Date();
                   const totalRemaining = Object.values(pass.remainingUsages).reduce((a, b) => a + b, 0);
-                  
+
                   return (
-                    <SwipeablePassCard 
-                        key={idx}
-                        pass={pass} 
-                        isExpired={isExpired} 
-                        totalRemaining={totalRemaining}
-                        expiry={expiry}
-                        onEdit={() => {
-                            setEditingPass(pass);
-                            setEditingPassIndex(idx);
-                            setIsEditPassModalOpen(true);
-                        }}
-                        onDelete={() => handleDeletePass(idx)}
-                        getItemDetails={getItemDetails}
+                    <SwipeablePassCard
+                      key={idx}
+                      pass={pass}
+                      isExpired={isExpired}
+                      totalRemaining={totalRemaining}
+                      expiry={expiry}
+                      onEdit={() => {
+                        setEditingPass(pass);
+                        setEditingPassIndex(idx);
+                        setIsEditPassModalOpen(true);
+                      }}
+                      onDelete={() => handleDeletePass(idx)}
+                      getItemDetails={getItemDetails}
                     />
                   );
                 })}
@@ -567,7 +701,7 @@ const CustomerDetailPage: React.FC = () => {
         onActivate={handleActivatePass}
         userName={user.profile.displayName || ''}
       />
-      
+
       <EditPassModal
         isOpen={isEditPassModalOpen}
         onClose={() => setIsEditPassModalOpen(false)}
@@ -575,117 +709,131 @@ const CustomerDetailPage: React.FC = () => {
         allPasses={allSeasonPasses}
         onSave={handleEditPassSave}
       />
+
+      {/* Points Adjustment Modal */}
+      <PointAdjustmentModal
+        isOpen={isEditPointsModalOpen}
+        onClose={() => setIsEditPointsModalOpen(false)}
+        onConfirm={handleAdjustPoints}
+        currentPoints={user.loyaltyPoints || 0}
+      />
+
+      {/* Issue Coupon Modal */}
+      <IssueCouponModal
+        isOpen={isIssueCouponModalOpen}
+        onClose={() => setIsIssueCouponModalOpen(false)}
+        onConfirm={handleIssueCoupon}
+      />
     </div>
   );
 };
 
 // Swipeable Card Component
 const SwipeablePassCard = ({ pass, isExpired, expiry, onEdit, onDelete, getItemDetails }: any) => {
-    const controls = useAnimation();
-  
-    const handleDragEnd = (_: any, info: PanInfo) => {
-      const offset = info.offset.x;
-      const velocity = info.velocity.x;
-  
-      if (offset < -60 || velocity < -500) {
-        controls.start({ x: -80 }); 
-      } else {
-        controls.start({ x: 0 });
-      }
-    };
-  
-    const handleDelete = () => {
-      if (window.confirm(`確定要刪除季卡 ${pass.passName} 嗎？刪除後無法復原。`)) {
-        onDelete();
-        controls.start({ x: 0 });
-      } else {
-        controls.start({ x: 0 });
-      }
-    };
-  
-    return (
-      <div className="relative overflow-hidden rounded-xl">
-        {/* Background (Delete Action) */}
-        <div className="absolute inset-y-0 right-0 w-20 flex items-center justify-center bg-red-500 rounded-r-xl">
-          <button 
-            onClick={handleDelete}
-            className="w-full h-full flex flex-col items-center justify-center text-white"
-          >
-            <TrashIcon className="w-6 h-6" />
-            <span className="text-xs font-medium mt-1">刪除</span>
-          </button>
-        </div>
-  
-        {/* Card Content */}
-        <motion.div 
-            drag="x"
-            dragConstraints={{ left: -80, right: 0 }}
-            dragElastic={0.1}
-            onDragEnd={handleDragEnd}
-            animate={controls}
-            className={`relative bg-white border shadow-sm ${isExpired ? 'opacity-70 border-gray-200' : 'border-amber-200'} z-10 rounded-xl overflow-hidden`}
-        >
-          {/* Header */}
-          <div className={`px-4 py-3 flex justify-between items-start ${isExpired ? 'bg-gray-50' : 'bg-amber-50/50'}`}>
-            <div>
-              <p className="font-bold text-gray-900">
-                {pass.passName}
-                {pass.variantName && <span className="text-gray-500 font-normal ml-2">({pass.variantName})</span>}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                購買日: {format(pass.purchaseDate.toDate(), 'yyyy-MM-dd')}
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-               <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-1 rounded-full ${isExpired ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 hidden text-amber-700'}`}>
-                        {isExpired ? '已過期' : ``}
-                    </span>
-                    <button 
-                        onClick={onEdit}
-                        className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-black/5"
-                    >
-                        <PencilSquareIcon className="w-4 h-4" />
-                    </button>
-               </div>
-              <p className={`text-xs mt-1 font-medium ${isExpired ? 'text-red-500' : 'text-gray-500'}`}>
-                到期: {format(expiry, 'yyyy-MM-dd')}
-              </p>
-            </div>
-          </div>
-  
-          {/* Content List */}
-          <div className="p-4 space-y-2.5">
-            {Object.entries(pass.remainingUsages).length > 0 ? (
-                Object.entries(pass.remainingUsages).map(([itemId, quantity]: [string, any]) => {
-                    const details = getItemDetails(pass.passId, itemId);
-                    const name = details?.name || '未知項目';
-                    const category = details?.category || '未知';
-                    
-                    return (
-                        <div key={itemId} className="flex justify-between items-center text-sm border-b border-gray-50 last:border-0 pb-1 last:pb-0">
-                             <div className="flex items-center gap-2 overflow-hidden">
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
-                                    category === '服務' 
-                                    ? 'bg-primary/10 text-primary border-primary/20' 
-                                    : 'bg-indigo-50 text-indigo-600 border-indigo-100'
-                                }`}>
-                                    {category}
-                                </span>
-                                <span className="text-gray-700 truncate">{name}</span>
-                             </div>
-                             <span className="font-bold text-gray-400 text-xs">x{quantity}</span>
-                        </div>
-                    );
-                })
-            ) : (
-                <p className="text-center text-xs text-gray-400 py-2">無可用項目</p>
-            )}
-          </div>
-        </motion.div>
-      </div>
-    );
+  const controls = useAnimation();
+
+  const handleDragEnd = (_: any, info: PanInfo) => {
+    const offset = info.offset.x;
+    const velocity = info.velocity.x;
+
+    if (offset < -60 || velocity < -500) {
+      controls.start({ x: -80 });
+    } else {
+      controls.start({ x: 0 });
+    }
   };
+
+  const handleDelete = () => {
+    if (window.confirm(`確定要刪除季卡 ${pass.passName} 嗎？刪除後無法復原。`)) {
+      onDelete();
+      controls.start({ x: 0 });
+    } else {
+      controls.start({ x: 0 });
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-xl">
+      {/* Background (Delete Action) */}
+      <div className="absolute inset-y-0 right-0 w-20 flex items-center justify-center bg-red-500 rounded-r-xl">
+        <button
+          onClick={handleDelete}
+          className="w-full h-full flex flex-col items-center justify-center text-white"
+        >
+          <TrashIcon className="w-6 h-6" />
+          <span className="text-xs font-medium mt-1">刪除</span>
+        </button>
+      </div>
+
+      {/* Card Content */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -80, right: 0 }}
+        dragElastic={0.1}
+        onDragEnd={handleDragEnd}
+        animate={controls}
+        className={`relative bg-white border shadow-sm ${isExpired ? 'opacity-70 border-gray-200' : 'border-amber-200'} z-10 rounded-xl overflow-hidden`}
+      >
+        {/* Header */}
+        <div className={`px-4 py-3 flex justify-between items-start ${isExpired ? 'bg-gray-50' : 'bg-amber-50/50'}`}>
+          <div>
+            <p className="font-bold text-gray-900">
+              {pass.passName}
+              {pass.variantName && <span className="text-gray-500 font-normal ml-2">({pass.variantName})</span>}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              購買日: {format(pass.purchaseDate.toDate(), 'yyyy-MM-dd')}
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <span className={`text-xs px-2 py-1 rounded-full ${isExpired ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 hidden text-amber-700'}`}>
+                {isExpired ? '已過期' : ``}
+              </span>
+              <button
+                onClick={onEdit}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-black/5"
+              >
+                <PencilSquareIcon className="w-4 h-4" />
+              </button>
+            </div>
+            <p className={`text-xs mt-1 font-medium ${isExpired ? 'text-red-500' : 'text-gray-500'}`}>
+              到期: {format(expiry, 'yyyy-MM-dd')}
+            </p>
+          </div>
+        </div>
+
+        {/* Content List */}
+        <div className="p-4 space-y-2.5">
+          {Object.entries(pass.remainingUsages).length > 0 ? (
+            Object.entries(pass.remainingUsages).map(([itemId, quantity]: [string, any]) => {
+              const details = getItemDetails(pass.passId, itemId);
+              const name = details?.name || '未知項目';
+              const category = details?.category || '未知';
+
+              return (
+                <div key={itemId} className="flex justify-between items-center text-sm border-b border-gray-50 last:border-0 pb-1 last:pb-0">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded border ${category === '服務'
+                      ? 'bg-primary/10 text-primary border-primary/20'
+                      : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                      }`}>
+                      {category}
+                    </span>
+                    <span className="text-gray-700 truncate">{name}</span>
+                  </div>
+                  <span className="font-bold text-gray-400 text-xs">x{quantity}</span>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-center text-xs text-gray-400 py-2">無可用項目</p>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 
 // Sub-component for booking history
@@ -695,18 +843,18 @@ const CustomerBookingHistory: React.FC<{ userId: string; userName?: string }> = 
   const { showToast } = useToast();
 
   const handleUpdateStatus = async (booking: any, newStatus: any) => {
-      setUpdatingId(booking.id || '');
-      try {
-          await updateBookingStatus(booking.id, newStatus);
-          showToast(`訂單狀態已更新`, 'success');
-          // Optimistic update or refetch
-          if (refetch) refetch(); // Assuming useBookings has refetch, otherwise rely on realtime
-      } catch (error) {
-          console.error("Failed to update status:", error);
-          showToast('更新失敗', 'error');
-      } finally {
-          setUpdatingId(null);
-      }
+    setUpdatingId(booking.id || '');
+    try {
+      await updateBookingStatus(booking.id, newStatus);
+      showToast(`訂單狀態已更新`, 'success');
+      // Optimistic update or refetch
+      if (refetch) refetch(); // Assuming useBookings has refetch, otherwise rely on realtime
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      showToast('更新失敗', 'error');
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   if (isLoading) return <LoadingSpinner />;
@@ -723,20 +871,20 @@ const CustomerBookingHistory: React.FC<{ userId: string; userName?: string }> = 
   return (
     <div className="space-y-3">
       {bookings.map(booking => {
-          // Enrich booking with user name if missing (since we are on customer page, we know who it is)
-          const enrichedBooking = {
-              ...booking,
-              userName: userName || '客戶'
-          };
-          
-          return (
-            <BookingOrderCard
-                key={booking.id}
-                booking={enrichedBooking as any} // Cast to compatible type
-                updatingId={updatingId}
-                onUpdateStatus={handleUpdateStatus}
-            />
-          );
+        // Enrich booking with user name if missing (since we are on customer page, we know who it is)
+        const enrichedBooking = {
+          ...booking,
+          userName: userName || '客戶'
+        };
+
+        return (
+          <BookingOrderCard
+            key={booking.id}
+            booking={enrichedBooking as any} // Cast to compatible type
+            updatingId={updatingId}
+            onUpdateStatus={handleUpdateStatus}
+          />
+        );
       })}
     </div>
   );
