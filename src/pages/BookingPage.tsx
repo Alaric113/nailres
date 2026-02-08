@@ -34,7 +34,10 @@ import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDesignerBookingInfo } from '../hooks/useDesignerBookingInfo';
+import liff from '@line/liff';
 import { isLiffBrowser } from '../lib/liff';
+
+
 import { useActivePass } from '../hooks/useActivePass';
 
 import { useSeasonPasses } from '../hooks/useSeasonPasses';
@@ -485,6 +488,28 @@ const BookingPage = () => {
 
       await batch.commit();
 
+      let skipCustomerNotification = false;
+
+      // Try sending LIFF message if in LIFF
+      if (isLiff) {
+         try {
+             // Attempt to send message as the user
+             // Make sure liff is initialized. It is usually initialized in App.tsx or main.tsx
+             // But just in case, catch error.
+             if (liff.isInClient()) {
+                await liff.sendMessages([{
+                    type: 'text',
+                    text: `查詢預約 ${newBookingRef.id}`
+                }]);
+                skipCustomerNotification = true;
+                console.log('Sent LIFF message for booking confirmation');
+             }
+         } catch (liffError) {
+             console.error('Failed to send LIFF message:', liffError);
+             // Fallback to Push Notification if LIFF fails (skip remains false)
+         }
+      }
+
       // 3. Send LINE message (Async)
       fetch('/api/send-line-message', {
         method: 'POST',
@@ -498,6 +523,7 @@ const BookingPage = () => {
           notes: notes,
           status: initialStatus,
           bookingId: newBookingRef.id,
+          skipCustomerNotification,
         }),
       }).catch(err => console.error('Failed to send LINE notification:', err));
 
