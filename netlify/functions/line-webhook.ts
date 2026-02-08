@@ -122,12 +122,27 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
              const dateObj = bookingData.dateTime.toDate ? bookingData.dateTime.toDate() : new Date(bookingData.dateTime);
              formattedDateTime = dateObj.toLocaleString('zh-TW', {
               year: 'numeric', month: 'long', day: 'numeric',
-              hour: '2-digit', minute: '2-digit', hour12: false
+              hour: '2-digit', minute: '2-digit', hour12: false,
+              timeZone: 'Asia/Taipei'
             });
           }
 
+          let customerName = bookingData.customerName;
+          if (!customerName && bookingData.userId) {
+              try {
+                  const userDoc = await db.collection('users').doc(bookingData.userId).get();
+                  if (userDoc.exists) {
+                      const userData = userDoc.data();
+                      customerName = userData?.profile?.displayName || userData?.displayName;
+                  }
+              } catch (e) {
+                  console.error('Error fetching user for name fallback:', e);
+              }
+          }
+          customerName = customerName || '客戶';
+
           const flexContainer = createBookingConfirmationFlex(
-            bookingData.customerName || '客戶',
+            customerName,
             bookingData.serviceNames || [],
             formattedDateTime,
             bookingData.amount || 0,
