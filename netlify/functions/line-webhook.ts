@@ -78,8 +78,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       const replyToken = lineEvent.replyToken;
       const text = lineEvent.message.text?.trim();
 
-      // Check for Booking Confirmation Pattern: "查詢預約 [bookingId]"
-      const bookingMatch = text.match(/^查詢預約 (.+)$/);
+      // Check for Booking Confirmation Pattern: "確認預約 [bookingId]"
+      const bookingMatch = text.match(/^確認預約 (.+)$/);
       
       if (bookingMatch) {
         const bookingId = bookingMatch[1];
@@ -124,6 +124,20 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
           console.error('Error processing booking inquiry:', err);
           await replyMessage(replyToken, [{ type: 'text', text: '系統發生錯誤，請稍後再試。' }]);
         }
+        return; // Done
+      }
+
+      // Check for Payment Report Pattern: "我已匯款! [note]"
+      const paymentMatch = text.match(/^我已匯款! (.+)$/);
+      if (paymentMatch) {
+          const note = paymentMatch[1];
+          console.log(`Processing payment report: ${note}`);
+          
+          await replyMessage(replyToken, [{
+              type: 'text',
+              text: `收到您的匯款通知 (末五碼：${note})。\n我們會盡快確認款項，確認無誤後將更新您的預約狀態！`
+          }]);
+          return;
       }
     }));
 

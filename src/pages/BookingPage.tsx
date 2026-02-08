@@ -499,7 +499,7 @@ const BookingPage = () => {
              if (liff.isInClient()) {
                 await liff.sendMessages([{
                     type: 'text',
-                    text: `查詢預約 ${newBookingRef.id}`
+                    text: `確認預約 ${newBookingRef.id}`
                 }]);
                 skipCustomerNotification = true;
                 console.log('Sent LIFF message for booking confirmation');
