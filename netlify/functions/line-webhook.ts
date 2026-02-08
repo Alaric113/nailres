@@ -4,14 +4,15 @@ import * as crypto from 'crypto';
 import { initializeFirebase } from '../utils/firebase-admin';
 import { createBookingConfirmationFlex } from '../utils/line-message-utils';
 
-const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || process.env.VITE_LINE_CHANNEL_SECRET;
-const CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || process.env.VITE_LINE_CHANNEL_ACCESS_TOKEN;
+const CHANNEL_SECRET = (process.env.LINE_CHANNEL_SECRET || process.env.VITE_LINE_CHANNEL_SECRET || '').trim();
+const CHANNEL_ACCESS_TOKEN = (process.env.LINE_CHANNEL_ACCESS_TOKEN || process.env.VITE_LINE_CHANNEL_ACCESS_TOKEN || '').trim();
 
 const verifySignature = (body: string, signature: string): boolean => {
   if (!CHANNEL_SECRET) {
       console.error('MISSING CHANNEL_SECRET');
       return false;
   }
+  console.log('Using Channel Secret Length:', CHANNEL_SECRET.length); // DEBUG LENGTH
   const hash = crypto
     .createHmac('sha256', CHANNEL_SECRET)
     .update(body)
@@ -125,7 +126,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
             });
           }
 
-          const flexMessage = createBookingConfirmationFlex(
+          const flexContainer = createBookingConfirmationFlex(
             bookingData.customerName || '客戶',
             bookingData.serviceNames || [],
             formattedDateTime,
@@ -137,7 +138,11 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
           const altText = `訂單詳情：${bookingData.serviceNames?.join(', ')}`;
           
-          await replyMessage(replyToken, [flexMessage]);
+          await replyMessage(replyToken, [{
+            type: 'flex',
+            altText: altText,
+            contents: flexContainer
+          }]);
 
         } catch (err) {
           console.error('Error processing booking inquiry:', err);
