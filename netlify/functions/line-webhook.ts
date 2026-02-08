@@ -47,16 +47,21 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
+  let body = event.body || '';
+  if (event.isBase64Encoded) {
+    body = Buffer.from(body, 'base64').toString('utf-8');
+  }
+
   // 2. Verify Signature
   const signature = event.headers['x-line-signature'];
-  if (!signature || !verifySignature(event.body || '', signature)) {
-    console.warn('Invalid signature');
+  if (!signature || !verifySignature(body, signature)) {
+    console.warn('Invalid signature. Headers:', JSON.stringify(event.headers));
     return { statusCode: 401, body: 'Invalid signature' };
   }
 
   try {
-    const body = JSON.parse(event.body || '{}');
-    const events = body.events || [];
+    const parsedBody = JSON.parse(body);
+    const events = parsedBody.events || [];
 
     // Initialize Firebase if we have events to process
     if (events.length > 0) {
