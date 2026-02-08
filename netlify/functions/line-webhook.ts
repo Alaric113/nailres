@@ -4,8 +4,8 @@ import * as crypto from 'crypto';
 import { initializeFirebase } from '../utils/firebase-admin';
 import { createBookingConfirmationFlex } from '../utils/line-message-utils';
 
-const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET;
-const CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || process.env.VITE_LINE_CHANNEL_SECRET;
+const CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || process.env.VITE_LINE_CHANNEL_ACCESS_TOKEN;
 
 const verifySignature = (body: string, signature: string): boolean => {
   if (!CHANNEL_SECRET) return false;
