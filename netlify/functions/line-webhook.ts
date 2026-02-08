@@ -8,11 +8,25 @@ const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || process.env.VITE_LINE_
 const CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || process.env.VITE_LINE_CHANNEL_ACCESS_TOKEN;
 
 const verifySignature = (body: string, signature: string): boolean => {
-  if (!CHANNEL_SECRET) return false;
+  if (!CHANNEL_SECRET) {
+      console.error('MISSING CHANNEL_SECRET');
+      return false;
+  }
   const hash = crypto
     .createHmac('sha256', CHANNEL_SECRET)
     .update(body)
     .digest('base64');
+  
+  // Debug Log
+  if (hash !== signature) {
+      console.log('Signature Mismatch Debug:');
+      console.log('Body Length:', body.length);
+      console.log('Body Preview:', body.substring(0, 50));
+      console.log('Channel Secret (First 3 chars):', CHANNEL_SECRET.substring(0, 3));
+      console.log('Received Sig:', signature);
+      console.log('Calculated Sig:', hash);
+  }
+
   return hash === signature;
 };
 
