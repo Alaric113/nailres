@@ -5,7 +5,7 @@ import Sidebar from '../components/common/Sidebar';
 import MainLayout from '../components/MainLayout';
 import AnnouncementBanner from '../components/common/AnnouncementBanner';
 import { useAuthStore } from '../store/authStore';
-import { isLiffBrowser } from '../lib/liff';
+import { isLiffBrowser, initializeLiff } from '../lib/liff'; // Updated import
 
 const UserLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -14,6 +14,13 @@ const UserLayout: React.FC = () => {
 
   // Check once on mount/render if it's LIFF
   const [isLiff] = useState(isLiffBrowser());
+
+  // Initialize LIFF if we are in a LIFF browser
+  React.useEffect(() => {
+    if (isLiff) {
+      initializeLiff().then(() => console.log('[UserLayout] LIFF Initialized'));
+    }
+  }, [isLiff]);
 
   const toggleSidebar = useCallback(() => {
     setIsSidebarOpen(prev => !prev);
