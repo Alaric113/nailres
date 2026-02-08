@@ -8,6 +8,8 @@ import { ChevronLeftIcon, ClipboardDocumentIcon, CheckCircleIcon } from '@heroic
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
+import liff from '@line/liff';
+import { isLiffBrowser } from '../../lib/liff';
 
 const BookingPaymentPage = () => {
   const { bookingId } = useParams();
@@ -86,10 +88,22 @@ const BookingPaymentPage = () => {
             throw new Error(errorData.message || 'Payment submission failed');
         }
 
-        setIsSuccess(true);
-        showToast('付款資訊已送出', 'success');
+        // Send LIFF message if in LIFF
+        if (isLiffBrowser()) {
+            try {
+                if (liff.isInClient()) {
+                    await liff.sendMessages([{
+                        type: 'text',
+                        text: `我已匯款! ${note}`
+                    }]);
+                    console.log('Sent LIFF message for payment report');
+                }
+            } catch (liffError) {
+                console.error('Failed to send LIFF message:', liffError);
+            }
+        }
 
-        // Send LINE Notification to Admins (Fire and forget, don't block UI)
+        // Send LINE Notification to Admins
         fetch('/api/send-line-message', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -99,11 +113,12 @@ const BookingPaymentPage = () => {
                 note,
                 customerName: booking.customerName || '客戶',
                 serviceName: booking.serviceNames?.join(', ') || '一般預約',
-                amount: booking.totalAmount || 1000 // Using totalAmount if available, or default deposit
+                amount: booking.totalAmount || 1000
             })
         }).catch(err => console.error('Failed to send LINE notification:', err));
         
         setIsSuccess(true);
+        showToast('付款資訊已送出', 'success');
 
     } catch (err: any) {
         console.error(err);
