@@ -25,7 +25,6 @@ const navigation = [
   { name: '總覽', href: '/admin', icon: HomeIcon },
   { name: '行事曆', href: '/admin/calendar', icon: CalendarDaysIcon },
   { name: '營業時間', href: '/admin/hours', icon: ClockIcon },
-  { name: '營業時間', href: '/admin/hours', icon: ClockIcon },
   { name: '季卡訂單', href: '/admin/orders-pass', icon: TicketIcon },
   { name: '預約訂單', href: '/admin/orders', icon: CurrencyDollarIcon },
   { name: '客戶管理', href: '/admin/customers', icon: UserGroupIcon },
