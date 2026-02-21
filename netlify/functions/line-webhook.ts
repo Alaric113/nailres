@@ -125,6 +125,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
               hour: '2-digit', minute: '2-digit', hour12: false
             });
           }
+          console.log('Formatted DateTime:', formattedDateTime);
 
           let customerName = bookingData.customerName;
           if (!customerName && bookingData.userId) {
