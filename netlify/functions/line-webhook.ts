@@ -9,23 +9,23 @@ const CHANNEL_ACCESS_TOKEN = (process.env.LINE_CHANNEL_ACCESS_TOKEN || process.e
 
 const verifySignature = (body: string, signature: string): boolean => {
   if (!CHANNEL_SECRET) {
-      console.error('MISSING CHANNEL_SECRET');
-      return false;
+    console.error('MISSING CHANNEL_SECRET');
+    return false;
   }
   console.log('Using Channel Secret Length:', CHANNEL_SECRET.length); // DEBUG LENGTH
   const hash = crypto
     .createHmac('sha256', CHANNEL_SECRET)
     .update(body)
     .digest('base64');
-  
+
   // Debug Log
   if (hash !== signature) {
-      console.log('Signature Mismatch Debug:');
-      console.log('Body Length:', body.length);
-      console.log('Body Preview:', body.substring(0, 50));
-      console.log('Channel Secret (First 3 chars):', CHANNEL_SECRET.substring(0, 3));
-      console.log('Received Sig:', signature);
-      console.log('Calculated Sig:', hash);
+    console.log('Signature Mismatch Debug:');
+    console.log('Body Length:', body.length);
+    console.log('Body Preview:', body.substring(0, 50));
+    console.log('Channel Secret (First 3 chars):', CHANNEL_SECRET.substring(0, 3));
+    console.log('Received Sig:', signature);
+    console.log('Calculated Sig:', hash);
   }
 
   return hash === signature;
@@ -100,14 +100,14 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
       // Check for Booking Confirmation Pattern: "確認預約 [bookingId]"
       const bookingMatch = text.match(/^確認預約 (.+)$/);
-      
+
       if (bookingMatch) {
         const bookingId = bookingMatch[1];
         console.log(`Processing booking inquiry for: ${bookingId}`);
 
         try {
           const bookingDoc = await db.collection('bookings').doc(bookingId).get();
-          
+
           if (!bookingDoc.exists) {
             await replyMessage(replyToken, [{ type: 'text', text: '找不到相關的預約紀錄。' }]);
             return;
@@ -119,25 +119,24 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
           // Format Date
           let formattedDateTime = '未定';
           if (bookingData.dateTime) {
-             const dateObj = bookingData.dateTime.toDate ? bookingData.dateTime.toDate() : new Date(bookingData.dateTime);
-             formattedDateTime = dateObj.toLocaleString('zh-TW', {
+            const dateObj = bookingData.dateTime.toDate ? bookingData.dateTime.toDate() : new Date(bookingData.dateTime);
+            formattedDateTime = dateObj.toLocaleString('zh-TW', {
               year: 'numeric', month: 'long', day: 'numeric',
-              hour: '2-digit', minute: '2-digit', hour12: false,
-              timeZone: 'Asia/Taipei'
+              hour: '2-digit', minute: '2-digit', hour12: false
             });
           }
 
           let customerName = bookingData.customerName;
           if (!customerName && bookingData.userId) {
-              try {
-                  const userDoc = await db.collection('users').doc(bookingData.userId).get();
-                  if (userDoc.exists) {
-                      const userData = userDoc.data();
-                      customerName = userData?.profile?.displayName || userData?.displayName;
-                  }
-              } catch (e) {
-                  console.error('Error fetching user for name fallback:', e);
+            try {
+              const userDoc = await db.collection('users').doc(bookingData.userId).get();
+              if (userDoc.exists) {
+                const userData = userDoc.data();
+                customerName = userData?.profile?.displayName || userData?.displayName;
               }
+            } catch (e) {
+              console.error('Error fetching user for name fallback:', e);
+            }
           }
           customerName = customerName || '客戶';
 
@@ -152,7 +151,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
           );
 
           const altText = `訂單詳情：${bookingData.serviceNames?.join(', ')}`;
-          
+
           await replyMessage(replyToken, [{
             type: 'flex',
             altText: altText,
@@ -169,14 +168,14 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       // Check for Payment Report Pattern: "我已匯款! [note]"
       const paymentMatch = text.match(/^我已匯款! (.+)$/);
       if (paymentMatch) {
-          const note = paymentMatch[1];
-          console.log(`Processing payment report: ${note}`);
-          
-          await replyMessage(replyToken, [{
-              type: 'text',
-              text: `收到您的匯款通知 (末五碼：${note})。\n我們會盡快確認款項，確認無誤後將更新您的預約狀態！`
-          }]);
-          return;
+        const note = paymentMatch[1];
+        console.log(`Processing payment report: ${note}`);
+
+        await replyMessage(replyToken, [{
+          type: 'text',
+          text: `收到您的匯款通知 (末五碼：${note})。\n我們會盡快確認款項，確認無誤後將更新您的預約狀態！`
+        }]);
+        return;
       }
     }));
 
