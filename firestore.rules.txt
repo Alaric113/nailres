@@ -52,7 +52,7 @@ service cloud.firestore {
       // 使用者可建立自己的文件，但角色必須是 'user'
       allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'user';
       // 使用者可更新自己除了 'role' 以外的資料；管理員/管理設計師可更新任何資料，包括修改角色
-      allow update: if (isAuthenticated() && request.auth.uid == userId && !('role' in request.resource.data)) || canAdminAllDesigners();
+      allow update: if (isAuthenticated() && request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) || canAdminAllDesigners();
       // 不允許刪除使用者文件
       allow delete: if false;
 
