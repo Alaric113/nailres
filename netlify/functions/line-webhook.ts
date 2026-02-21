@@ -122,7 +122,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
             const dateObj = bookingData.dateTime.toDate ? bookingData.dateTime.toDate() : new Date(bookingData.dateTime);
             formattedDateTime = dateObj.toLocaleString('zh-TW', {
               year: 'numeric', month: 'long', day: 'numeric',
-              hour: '2-digit', minute: '2-digit', hour12: false
+              hour: '2-digit', minute: '2-digit', hour12: false,
+              timeZone: 'Asia/Taipei'
             });
           }
           console.log('Formatted DateTime:', formattedDateTime);
