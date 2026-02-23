@@ -237,8 +237,10 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
     const formattedDateTime = new Date(dateTime).toLocaleString('zh-TW', {
       year: 'numeric', month: 'long', day: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: false
+      hour: '2-digit', minute: '2-digit', hour12: false,
+      timeZone: 'Asia/Taipei'
     });
+    
 
     const messagePromises = [];
     const style = statusStyles[status] || statusStyles.default;

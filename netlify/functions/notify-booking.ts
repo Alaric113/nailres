@@ -76,6 +76,18 @@ interface NotifyRequestBody {
     targetToken?: string; // For test notifications
 }
 
+const formatDateTime = (date: Date | string) => {
+    return new Date(date).toLocaleString('zh-TW', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Taipei'
+    }).replace(/\//g, '-');
+};
+
 const handler: Handler = async (event, context) => {
     if (event.httpMethod !== "POST") {
         return { statusCode: 405, body: "Method Not Allowed" };
@@ -116,7 +128,7 @@ const handler: Handler = async (event, context) => {
             const message = {
                 notification: {
                     title: 'PWA 推播測試',
-                    body: `這是一則測試訊息！收到此訊息代表您的裝置已成功設定推播通知。\n時間: ${new Date().toLocaleString('zh-TW')}`,
+                    body: `這是一則測試訊息！收到此訊息代表您的裝置已成功設定推播通知。\n時間: ${formatDateTime(new Date())}`,
                 },
                 token: targetToken,
             };
@@ -141,6 +153,8 @@ const handler: Handler = async (event, context) => {
         if (!bookingId || !customerName || !serviceNames || !bookingTime) {
             return { statusCode: 400, body: JSON.stringify({ message: "Missing required booking information" }) };
         }
+
+        const formattedBookingTime = formatDateTime(bookingTime);
 
 
         // 1. Fetch Admins and Managers
@@ -208,7 +222,7 @@ const handler: Handler = async (event, context) => {
         const message = {
             notification: {
                 title: '新預約通知',
-                body: `${customerName} 預約了 ${serviceNames.join(', ')}\n時間: ${bookingTime}`,
+                body: `${customerName} 預約了 ${serviceNames.join(', ')}\n時間: ${formattedBookingTime}`,
             },
             data: {
                 bookingId: bookingId,
