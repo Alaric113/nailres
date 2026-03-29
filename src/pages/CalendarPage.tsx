@@ -281,14 +281,16 @@ const CalendarPage = () => {
               eventContent={(arg) => {
                 const booking = arg.event.extendedProps.booking as EnrichedBooking;
                 const isMonthView = calendarRef.current?.getApi().view.type === 'dayGridMonth';
-
+                if(booking.status == 'cancelled'){
+                  return ''
+                }
                 // Compact view for month grid
                 if (isMonthView && isMobile) {
                   return (
-                    <div className="flex flex-col items-center gap-1 px-1 py-0.5 w-full">
+                    <div className="flex flex-col items-start gap-1  py-0.5 w-full">
                       
                       <span className="text-[10px] truncate">{format(booking?.dateTime || new Date(), 'HH:mm')}</span>
-                      <span className="text-[10px] truncate">{arg.event.title}</span>
+                      <span className="text-[10px] truncate overflow-x-clip">{arg.event.title}</span>
                     </div>
                   );
                 }

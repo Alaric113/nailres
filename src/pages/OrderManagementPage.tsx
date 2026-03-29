@@ -255,7 +255,7 @@ const OrderManagementPage = () => {
 
   return (
     <div className="min-h-full bg-[#FAF9F6] pb-24 md:pb-12 pt-4 md:pt-8 w-full">
-      <main className="container mx-auto px-4 max-w-3xl space-y-3">
+      <main className="container mx-auto px-4 space-y-3">
 
         <OrderTypeTabs />
 
@@ -309,15 +309,15 @@ const OrderManagementPage = () => {
             )}
           </div>
 
-          <section className=" overflow-x-auto snap-x snap-mandatory gap-2 pb-2 -mx-4 px-4 hide-scrollbar grid grid-cols-2 md:grid-cols-4 sm:gap-4 sm:pb-0 sm:mx-0 sm:px-0">
-            <div className="snap-center col-span-2 shrink-0 w-[85vw] sm:w-auto">
+          <section className=" overflow-x-auto gap-2 pb-2 hide-scrollbar grid grid-cols-2 md:grid-cols-4 sm:gap-4 sm:pb-0 sm:mx-0 sm:px-0">
+            <div className="col-span-2 ">
               <StatCard title="本月營收" value={`$${stats.monthlyRevenue.toLocaleString()}`} icon={BanknotesIcon} bgColor="bg-green-50" color="text-green-600" />
             </div>
-            <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
+            <div className="">
               <StatCard title="待處理" value={stats.pendingCount} icon={ClockIcon} bgColor="bg-orange-50" color="text-orange-600" />
             </div>
 
-            <div className="snap-center shrink-0 w-[40vw] sm:w-auto">
+            <div className="">
               <StatCard title="本月完成" value={stats.completedCount} icon={CheckCircleIcon} bgColor="bg-indigo-50" color="text-indigo-600" />
             </div>
           </section>
