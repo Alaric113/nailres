@@ -23,7 +23,7 @@ const MapFix = () => {
 
 const StoreInfoPage: React.FC = () => {
   const { currentUser } = useAuthStore();
-  const position: [number, number] = [25.08800, 121.47539]; // Coordinates from previous iframe
+  const position: [number, number] = [25.08127, 121.47420]; // Coordinates from previous iframe
   const [showAppSelection, setShowAppSelection] = useState(false);
   const isLiff = isLiffBrowser();
 
@@ -191,8 +191,8 @@ const StoreInfoPage: React.FC = () => {
                    </div>
                    <div className="text-left">
                       <h3 className="font-serif text-base text-[#2C2825] mb-1">Address</h3>
-                      <p className="text-[#8A8175] text-sm leading-snug">新北市蘆洲區民權路68巷16號1樓</p>
-                      <p className="text-[12px] text-[#8A8175]/60 mt-1">三民高中捷運站2號出口 步行5分鐘</p>
+                      <p className="text-[#8A8175] text-sm leading-snug">新北市蘆洲區中山一路176號</p>
+                      <p className="text-[12px] text-[#8A8175]/60 mt-1">三民高中捷運站1號出口 步行10分鐘</p>
                    </div>
                 </div>
 
