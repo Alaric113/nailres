@@ -23,7 +23,7 @@ const MapFix = () => {
 
 const StoreInfoPage: React.FC = () => {
   const { currentUser } = useAuthStore();
-  const position: [number, number] = [25.08127, 121.47420]; // Coordinates from previous iframe
+  const position: [number, number] = [25.081264, 121.47417]; // Coordinates from previous iframe
   const [showAppSelection, setShowAppSelection] = useState(false);
   const isLiff = isLiffBrowser();
 
