@@ -18,6 +18,8 @@ interface BookingFormProps {
   totalDiscountableOptionsPrice?: number;
   /** Σ 不可折扣加購項目原價 */
   totalNonDiscountableOptionsPrice?: number;
+  /** Σ 不可折扣服務本體原價 */
+  totalNonDiscountableServicePrice?: number;
   /** Σ 可折扣加購項目折後價（折扣後） */
   totalDiscountedDiscountableOptions?: number;
   notes: string;
@@ -34,6 +36,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
   totalServicePrice,
   totalDiscountableOptionsPrice,
   totalNonDiscountableOptionsPrice,
+  totalNonDiscountableServicePrice,
   totalDiscountedDiscountableOptions,
   notes,
   onNotesChange
@@ -50,8 +53,9 @@ const BookingForm: React.FC<BookingFormProps> = ({
   // 計算優惠券公式顯示文字
   const getCouponFormulaText = (): string | null => {
     if (!selectedCoupon || !hasCouponDiscount || !originalPrice) return null;
-    // 折扣前金額 = 可折扣基礎（白金折扣後）— 不含不可折扣項目
-    const beforeCoupon = (originalPrice - (platinumDiscountAmount ?? 0)) - (totalNonDiscountableOptionsPrice ?? 0);
+    // 折扣前金額 = 可折扣基礎（白金折扣後）— 不含不可折扣項目（服務+加購）
+    const totalNonDiscountableAmount = (totalNonDiscountableOptionsPrice ?? 0) + (totalNonDiscountableServicePrice ?? 0);
+    const beforeCoupon = (originalPrice - (platinumDiscountAmount ?? 0)) - totalNonDiscountableAmount;
     if (beforeCoupon <= 0) return null;
 
     if (selectedCoupon.type === 'percentage') {

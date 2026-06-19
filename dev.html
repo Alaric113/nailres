@@ -467,8 +467,9 @@ App (RouterProvider)
   <li><span class="tag tag-yellow">WARN</span> <code>App.css</code> 仍然保留著 Vite 預設的樣板內容（max-width: 1280px、logo-spin 動畫等），但實際 UI 使用的是 <code>index.css</code>，造成不必要的樣式殘留</li>
   <li><span class="tag tag-yellow">WARN</span> <code>Button.tsx</code> 和 <code>Input.tsx</code> 自定義元件似乎未被廣泛使用，多數頁面直接使用原生 HTML 元素 + Tailwind classes</li>
   <li><span class="tag tag-green">IMPROVED</span> <code class="file-path">BookingForm.tsx</code> 價格顯示已改造為三層明細：服務本體費用 / 可折扣加購(折扣後) / 不可折扣加購(原價) / 折扣優惠 / 總計費用</li>
-  <li><span class="tag tag-green">IMPROVED</span> <code class="file-path">types/service.ts</code> 新增 <strong>雙層折扣控制</strong>：<code>ServiceOption.discountable</code>（選項群組層級）+ <code>ServiceOptionItem.isDiscountable</code>（個別項目層級）。預設皆為 <code>undefined = false</code>（不可折扣），僅兩層皆允許才參與折扣。</li>
-  <li><span class="tag tag-green">IMPROVED</span> <code class="file-path">ServiceOptionEditor.tsx</code> 在選項群組（必選/可複選旁）和個別項目（數量旁）新增「<span style="color:#059669;">可折扣</span>」checkbox</li>
+  <li><span class="tag tag-green">ARCHITECTURE</span> <strong>全域權限標記法</strong>：<code>Service.isDiscountable</code>（服務本體，預設 true）+ <code>ServiceOptionItem.isDiscountable</code>（加購項目，預設 false）。移除 <code>ServiceOption.discountable</code>（群組層級簡化）。折扣只套用於 <code>isDiscountable === true</code> 的項目。</li>
+  <li><span class="tag tag-green">IMPROVED</span> <code class="file-path">ServiceManagement.tsx</code> 基本資訊頁籤新增「<span style="color:#059669;">允許參與折扣</span>」checkbox（綠色主題）</li>
+  <li><span class="tag tag-green">IMPROVED</span> <code class="file-path">ServiceOptionEditor.tsx</code> 群組層級「可折扣」checkbox 移除，項目層級改名「<span style="color:#059669;">允許參與折扣</span>」</li>
   <li><span class="tag tag-blue">INFO</span> <code>Sidebar.tsx</code> 中只對 admin 角色顯示「管理後臺」連結，未包含 manager/designer</li>
 </ul>
 </section>
@@ -1709,53 +1710,43 @@ BookingPaymentPage:
 </ul>
 
 <h4>Cheat Sheet: 所有價格計算公式一覽</h4>
-<h4>✅ UI 優化：結帳價格透明度改造 + 可折扣/不可折扣加購拆分 + 雙層折扣控制</h4>
-<p>定義於 <code class="file-path">src/components/booking/BookingForm.tsx</code> 和 <code class="file-path">src/pages/BookingPage.tsx</code> 和 <code class="file-path">src/types/service.ts</code></p>
+<h4>✅ 全域權限標記法 — isDiscountable 統一控制折扣參與</h4>
+<p>定義於 <code class="file-path">src/types/service.ts</code> 和 <code class="file-path">src/pages/BookingPage.tsx</code> 和 <code class="file-path">src/components/admin/ServiceManagement.tsx</code> 等</p>
 <pre>
-【資料結構擴充】
-  ServiceOption 新增 discountable?: boolean  （群組層級，預設 undefined = 不可折扣）
-  ServiceOptionItem 保留 isDiscountable?: boolean（項目層級，預設 undefined = 不可折扣）
-  
-  可折扣判斷：僅當 option.discountable === true 且 item.isDiscountable !== false 才參與折扣
-  預設兩層皆 undefined → 所有加購預設不可折扣
+【資料模型一致化】
+  Service.isDiscountable?: boolean         （服務本體，預設 undefined = true）
+  ServiceOptionItem.isDiscountable?: boolean（加購項目，預設 undefined = false）
+  ServiceOption.discountable → 已移除       （群組層級簡化為統一單層標記）
 
-【useMemo 計算邏輯】
-  // 雙層迭代：保有 optionId → 查找 option 的 discountable
-  Object.entries(item.selectedOptions).forEach(([optionId, optionItems]) => {
-    const parentOption = item.service.options?.find(o => o.id === optionId);
-    const isOptionDiscountable = parentOption?.discountable === true;
-    optionItems.forEach(o => {
-      const canDiscount = isOptionDiscountable && (o.isDiscountable !== false);
-      if (canDiscount) discountableOptionsPrice += price;
-      else nonDiscountableOptionsPrice += price;
-    });
-  });
+【定價邏輯（計算單元級別）】
+  折扣只套用於 isDiscountable === true 的項目：
+    discountableBase = Σ(服務價格 where service.isDiscountable !== false)
+                     + Σ(加購價格 where item.isDiscountable === true)
+    
+  isDiscountable !== true 的項目全部原價：
+    nonDiscountableBase = Σ(服務價格 where service.isDiscountable === false)
+                       + Σ(加購價格 where item.isDiscountable !== true)
 
-【輸出值變更】
-  舊：totalServicePrice + totalOptionsPrice
-  新：totalServicePrice
-      + totalDiscountableOptionsPrice    (可折扣加購原價)
-      + totalNonDiscountableOptionsPrice (不可折扣加購原價)
-      + totalDiscountedDiscountableOptions (可折扣加購折後價)
+【useMemo 簡化後】（不再需要 Object.entries 查找 ServiceOption）
+  const svcDiscountable = item.service.isDiscountable !== false;  // 預設 true
+  const allOptions = Object.values(item.selectedOptions).flat();
+  const discountableOptionsPrice = allOptions
+    .filter(o => o.isDiscountable === true)  // 只有 true 才可折扣
+    .reduce(...);
+  const nonDiscountableOptionsPrice = allOptions
+    .filter(o => o.isDiscountable !== true)  // false/undefined 不可折扣
+    .reduce(...);
+  const itemDiscountableBase = (svcDiscountable ? servicePrice : 0) + discountableOptionsPrice;
+  const itemNonDiscountableBase = (!svcDiscountable ? servicePrice : 0) + nonDiscountableOptionsPrice;
 
-【BookingForm UI】
-┌─────────────────────────────────────────────┐
-│  服務本體費用                         $1,000  │
-│  ＋ 可折扣加購 (折扣後)              $140   │  ← 紫色，只顯示有可折扣加購時
-│  ＋ 不可折扣加購 (原價)               $50   │  ← 灰色，只顯示有不可折扣加購時
-│  ───────────────────────────────── │
-│  － 折扣優惠                      -$410   │  ← 無折扣時整行隱藏
-│  (折扣適用於服務本體及可折扣加購，         │
-│   不可折扣項目維持原價)                     │
-│  ════════════════════════════════════ │
-│  總計費用                            $780   │  ← text-2xl font-extrabold
-└─────────────────────────────────────────────┘
+【後台管理】
+  ServiceManagement.tsx: 服務編輯基本資訊頁籤 → 「允許參與折扣」checkbox
+  ServiceOptionEditor.tsx: 每個加購項目 → 「允許參與折扣」checkbox
 
-【檔案】
-  src/types/service.ts                     — 新增 ServiceOption.discountable 欄位
-  src/pages/BookingPage.tsx                 — 改寫 Option 迭代使用雙層折扣判斷
-  src/components/booking/BookingForm.tsx     — 三層明細 UI + 更新折扣說明文字
-  src/components/admin/ServiceOptionEditor.tsx — 新增「可折扣」checkbox（群組+項目雙層）
+【Migration Script】
+  scripts/migrate-services-discountable.ts:
+  - 現有服務 → isDiscountable: true
+  - 現有加購項目 → isDiscountable: false
 </pre>
 
 <h4>Cheat Sheet: 所有價格計算公式一覽</h4>
@@ -2019,7 +2010,7 @@ BookingPaymentPage:
 
 <p>以下是建議的逐步重構計畫，按優先級排列：</p>
 
-<h3>Phase 1：緊急止血 (1-2 週) <span class="tag tag-green" style="margin-left:8px;">✅ 已完成 1.1, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8</span></h3>
+<h3>Phase 1：緊急止血 (1-2 週) <span class="tag tag-green" style="margin-left:8px;">✅ 已完成 1.1, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10</span></h3>
 <table>
   <tr><th>#</th><th>任務</th><th>說明</th><th>狀態</th></tr>
   <tr><td>1.1</td><td><span class="badge badge-p0">P0</span> 修復 LINE 登入激活已刪除帳號</td><td>line-liff-auth / line-oauth-auth 中檢查 deleted flag</td><td style="color:#059669;">✅ 已完成</td></tr>
@@ -2028,14 +2019,10 @@ BookingPaymentPage:
   <tr><td>1.4</td><td><span class="badge badge-p1">P1</span> 刪除重複的 CouponSelectorModal</td><td>BookingPage.tsx 中移除重複渲染</td><td style="color:#059669;">✅ 已完成</td></tr>
   <tr><td>1.5</td><td><span class="badge badge-p1">P1</span> delete-user function 加入安全防護</td><td>防自刪、防最後管理員被刪</td><td style="color:#059669;">✅ 已完成</td></tr>
   <tr><td>1.6</td><td>修復白金折扣連加購品項一併打折</td><td>折扣僅套用 service.price，optionsPrice 維持原價</td><td style="color:#059669;">✅ 已完成</td></tr>
-  <tr><td>1.7</td><td>結帳價格透明度改造</td><td>BookingForm 改為明細卡片：服務原價/加購/折扣/總價分開顯示</td><td style="color:#059669;">✅ 已完成</td></tr>
-  <tr><td>1.8</td><td>可折扣/不可折扣加購拆分</td><td>ServiceOptionItem 新增 isDiscountable；useMemo 按 isDiscountable 分類計算折扣</td><td style="color:#059669;">✅ 已完成</td></tr>
-  <tr><td>1.9</td><td>雙層折扣控制（選項群組 + 項目）</td><td>ServiceOption 新增 discountable；pricing logic 雙層迭代；Editor UI 開關</td><td style="color:#059669;">✅ 已完成</td></tr>
-</table>
-
-
-<h3>Phase 1：緊急止血 (1-2 週) <span class="tag tag-green" style="margin-left:8px;">✅ 已完成 1.1, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9</span></h3>
-  <tr><td>1.9</td><td>雙層折扣控制（選項群組 + 項目）</td><td>ServiceOption 新增 discountable；pricing logic 改為雙層迭代判斷；ServiceOptionEditor 新增 UI 開關</td><td style="color:#059669;">✅ 已完成</td></tr>
+  <tr><td>1.7</td><td>結帳價格透明度改造</td><td>BookingForm 改為明細卡片</td><td style="color:#059669;">✅ 已完成</td></tr>
+  <tr><td>1.8</td><td>可折扣/不可折扣加購拆分</td><td>ServiceOptionItem 新增 isDiscountable</td><td style="color:#059669;">✅ 已完成</td></tr>
+  <tr><td>1.9</td><td>雙層折扣控制 → 全域權限標記法</td><td>Service 新增 isDiscountable；移除 ServiceOption.discountable 簡化為統一單層</td><td style="color:#059669;">✅ 已完成</td></tr>
+  <tr><td>1.10</td><td>後台 UI + Migration Script</td><td>ServiceManagement 新增 checkbox；ServiceOptionEditor 項目層級 checkbox；Firestore 遷移腳本</td><td style="color:#059669;">✅ 已完成</td></tr>
 </table>
 
 
@@ -2080,16 +2067,17 @@ BookingPaymentPage:
 Manager 權限過大                        firestore.rules.txt             僅 admin 可改 role            ✅ 已修復
 Role 混合會員等級                       全域                           新增 membershipTier           暫緩
 白金折扣連加購一併打折                   BookingPage.tsx                分離 servicePrice/optionsPrice ✅ 已修復
-加購預設不可折扣 + 雙層開關              types/service.ts               ServiceOption.discountable    ✅ 已修復
-                                       ServiceOptionEditor.tsx          + item 雙層 checkbox
+全域權限標記法 isDiscountable           types/service.ts               Service, ServiceOptionItem    ✅ 已修復
+                                       ServiceManagement.tsx            統一 isDiscountable
+                                       ServiceOptionEditor.tsx          移除群組層級
+                                       BookingPage.tsx                  簡化為單層判斷
+                                       scripts/migrate-discountable.ts  遷移 Script
 CouponSelectorModal 重複渲染            BookingPage.tsx                刪除重複行                    ✅ 已修復
 註冊邏輯重複                            Register.tsx, useAuth.ts       合併為單一機制                ✅ 已修復
 角色直接前端修改                        CustomerListPage.tsx            改為後端 API /api/update-    ✅ 已修復
                                        CustomerDetailPage.tsx           user-role
                                        update-user-role.ts (新增)
-雙層折扣控制系統                        types/service.ts                新增 option.discountable +    ✅ 已修復
-                                       ServiceOptionEditor.tsx         雙層 UI checkbox
-                                       BookingPage.tsx                 改用 Object.entries 迭代
+
 delete-user 無安全防護                   delete-user.ts                 加入自刪/最後管理員檢查        ✅ 已修復
 無金流                                  submit-payment.ts              跳過（金流手續費問題）        跳過
 付款逾時無取消                          (無)                           新增 Cloud Function            待處理
@@ -2112,7 +2100,7 @@ firestore 非官方套件                    package.json                    移
   <span style="color:#d97706;font-weight:700;">8 個 P1</span> · 
   <span style="color:#2563eb;font-weight:700;">10 個 P2</span> · 
   <span style="color:#6b7280;font-weight:700;">12 個 P3</span> 問題
-  · <span style="color:#059669;font-weight:700;">  已修復 11 個</span>
+  · <span style="color:#059669;font-weight:700;">  已修復 12 個</span>
 </p>
 
 </div>

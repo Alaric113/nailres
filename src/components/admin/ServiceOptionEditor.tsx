@@ -201,15 +201,6 @@ const ServiceOptionEditor: React.FC<ServiceOptionEditorProps> = ({ options, onCh
                       />
                       <span>可複選</span>
                     </label>
-                    <label className="flex items-center space-x-2 text-sm text-green-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={option.discountable === true}
-                        onChange={(e) => handleOptionChange(option.id, 'discountable', e.target.checked)}
-                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                      />
-                      <span>可折扣</span>
-                    </label>
                   </div>
                 </div>
 
@@ -281,7 +272,7 @@ const ServiceOptionEditor: React.FC<ServiceOptionEditorProps> = ({ options, onCh
                                     onChange={(e) => handleItemChange(option.id, item.id, 'isDiscountable', e.target.checked)}
                                     className="rounded border-gray-300 text-green-600 focus:ring-green-500 h-4 w-4"
                                 />
-                                <span className="text-xs text-green-600">可折扣</span>
+                                <span className="text-xs text-green-600">允許參與折扣</span>
                              </label>
                              <label className="flex items-center space-x-1 cursor-pointer" title="啟用數量選擇">
                                 <input 

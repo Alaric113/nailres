@@ -28,6 +28,12 @@ export interface Service {
   price: number;
   duration: number; // Duration in minutes
   category: string;
+  /**
+   * 此服務本體是否可參與折扣。
+   * 預設 undefined = true（可折扣，向後兼容）。
+   * 設為 false 則此服務金額不計入 discountableBase。
+   */
+  isDiscountable?: boolean;
   platinumPrice?: number | null; // Deprecated, kept for backward compatibility
   platinumDiscount?: PlatinumDiscount; // New field
   imageUrl?: string;
@@ -46,12 +52,6 @@ export interface ServiceOption {
   name: string; // e.g., "加購項目", "卸甲"
   required: boolean;
   multiSelect: boolean;
-  /**
-   * 此選項分類是否可參與折扣。
-   * 預設 undefined = false（不可折扣），需明確設為 true 才可折扣。
-   * 個別項目仍有 isDiscountable 可進一步控制。
-   */
-  discountable?: boolean;
   items: ServiceOptionItem[];
 }
 
@@ -63,7 +63,7 @@ export interface ServiceOptionItem {
   /**
    * 此項目是否可參與折扣。
    * 預設 undefined = false（不可折扣）。
-   * 注意：僅當所屬 ServiceOption.discountable === true 時，此標記才有作用。
+   * 僅當此標記為 true 時，金額才計入 discountableBase。
    */
   isDiscountable?: boolean;
   allowQuantity?: boolean; // New: Allow selecting quantity for this specific item

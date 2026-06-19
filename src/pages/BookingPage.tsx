@@ -146,6 +146,7 @@ const BookingPage = () => {
     totalServicePrice,
     totalDiscountableOptionsPrice,
     totalNonDiscountableOptionsPrice,
+    totalNonDiscountableServicePrice,
     totalDiscountedDiscountableOptions
   } = useMemo(() => {
     const duration = cart.reduce((acc, item) => acc + item.totalDuration, 0);
@@ -154,45 +155,41 @@ const BookingPage = () => {
     let totalBasePrice = 0;
     let totalDiscountedPrice = 0;
     let aggregatedServicePrice = 0;
-    let aggregatedDiscountableOpts = 0;    // 可折扣加購（折扣前）
-    let aggregatedNonDiscountableOpts = 0; // 不可折扣加購（原價）
-    let aggregatedDiscountedOpts = 0;      // 可折扣加購（折扣後）
+    let aggregatedDiscountableOpts = 0;              // 可折扣加購（折扣前）
+    let aggregatedNonDiscountableOpts = 0;           // 不可折扣加購（原價）
+    let aggregatedNonDiscountableServicePrice = 0;   // 不可折扣服務本體（原價）
+    let aggregatedDiscountedOpts = 0;                // 可折扣加購（折扣後）
 
-    // === 業務邏輯：折扣僅套用於「服務本體 + 可折扣加購」，不可折扣加購維持原價 ===
-    // 加購項目的 isDiscountable 預設為 true（undefined → 可折扣，向後兼容）
+    // === 全域權限標記法：isDiscountable 統一控制折扣參與 ===
+    // Service.isDiscountable 控制服務本體（預設 true = 可折扣）
+    // ServiceOptionItem.isDiscountable 控制加購項目（預設 undefined = false = 不可折扣）
+    // 折扣僅套用於 isDiscountable 為 true 的項目，其餘金額一律加總到總價
     cart.forEach(item => {
       const servicePrice = item.service.price;
-      // === 雙層折扣控制：ServiceOption.discountable + ServiceOptionItem.isDiscountable ===
-      // 預設兩層都是 undefined = false，即所有加購不參與折扣。
-      // 僅當 option.discountable === true 且 item.isDiscountable !== false 才可折扣。
-      let discountableOptionsPrice = 0;
-      let nonDiscountableOptionsPrice = 0;
+      const svcDiscountable = item.service.isDiscountable !== false; // 預設 true
 
-      Object.entries(item.selectedOptions).forEach(([optionId, optionItems]) => {
-        const parentOption = item.service.options?.find(o => o.id === optionId);
-        const isOptionDiscountable = parentOption?.discountable === true;
-
-        optionItems.forEach(o => {
-          const canDiscount = isOptionDiscountable && (o.isDiscountable !== false);
-          const price = o.price * (o.quantity || 1);
-          if (canDiscount) {
-            discountableOptionsPrice += price;
-          } else {
-            nonDiscountableOptionsPrice += price;
-          }
-        });
-      });
+      // 加購選項：簡單依 isDiscountable 拆分成可折扣/不可折扣
+      const allOptions = Object.values(item.selectedOptions).flat();
+      const discountableOptionsPrice = allOptions
+        .filter(o => o.isDiscountable === true)
+        .reduce((sum, o) => sum + (o.price * (o.quantity || 1)), 0);
+      const nonDiscountableOptionsPrice = allOptions
+        .filter(o => o.isDiscountable !== true)
+        .reduce((sum, o) => sum + (o.price * (o.quantity || 1)), 0);
       const optionsPrice = discountableOptionsPrice + nonDiscountableOptionsPrice;
 
       aggregatedServicePrice += servicePrice;
       aggregatedDiscountableOpts += discountableOptionsPrice;
       aggregatedNonDiscountableOpts += nonDiscountableOptionsPrice;
+      if (!svcDiscountable) aggregatedNonDiscountableServicePrice += servicePrice;
 
-      const itemBasePrice = item.totalPrice; // 原始總價（僅用於無折扣回退）
+      const itemBasePrice = item.totalPrice;
       totalBasePrice += itemBasePrice;
 
-      // 可折扣基礎 = 服務本體 + 可折扣加購
-      const itemDiscountableBase = servicePrice + discountableOptionsPrice;
+      // 可折扣基礎：僅計算 isDiscountable === true 的項目
+      const itemDiscountableBase = (svcDiscountable ? servicePrice : 0) + discountableOptionsPrice;
+      // 不可折扣部分：isDiscountable === false 的服務 + 不可折扣加購
+      const itemNonDiscountableBase = (!svcDiscountable ? servicePrice : 0) + nonDiscountableOptionsPrice;
 
       let itemFinalDiscountableBase = itemDiscountableBase; // 預設：無折扣
       let itemDiscountedOptionsPrice = discountableOptionsPrice; // 預設：無折扣
@@ -204,8 +201,7 @@ const BookingPage = () => {
           const { type, value } = serviceDef.platinumDiscount;
 
           if (type === 'percentage') {
-            // 折扣套用於 discountableBase（服務 + 可折扣加購）
-            // 例：服務 $1000 + 可折扣加購 $200、折扣 70% → 1200*0.7 = $840
+            // 折扣套用於 discountableBase（僅 isDiscountable 為 true 的項目）
             itemFinalDiscountableBase = Math.floor(itemDiscountableBase * (value / 100));
             // 按比例拆分折扣給可折扣加購
             const discountRatio = itemDiscountableBase > 0
@@ -213,31 +209,27 @@ const BookingPage = () => {
               : 0;
             itemDiscountedOptionsPrice = Math.round(discountableOptionsPrice * discountRatio);
           } else if (type === 'fixed') {
-            // 定額折扣從 discountableBase 扣除
-            // 例：服務 $1000 + 可折扣加購 $200、折扣 $400 → max(0, 1200-400) = $800
             itemFinalDiscountableBase = Math.max(0, itemDiscountableBase - value);
             const discountRatio = itemDiscountableBase > 0
               ? itemFinalDiscountableBase / itemDiscountableBase
               : 0;
             itemDiscountedOptionsPrice = Math.round(discountableOptionsPrice * discountRatio);
           } else {
-            // 未知折扣類型，回退為原價
             itemFinalDiscountableBase = itemDiscountableBase;
             itemDiscountedOptionsPrice = discountableOptionsPrice;
           }
         } else if (serviceDef?.platinumPrice) {
-          // 既有邏輯：platinumPrice 取代 service.price，所有加購維持原價
-          itemFinalDiscountableBase = serviceDef.platinumPrice + discountableOptionsPrice;
+          // 既有邏輯：platinumPrice 取代 servicePrice，選項維持原價
+          itemFinalDiscountableBase = (svcDiscountable ? serviceDef.platinumPrice : 0) + discountableOptionsPrice;
           itemDiscountedOptionsPrice = discountableOptionsPrice;
         } else {
-          // 無折扣定義
           itemFinalDiscountableBase = itemDiscountableBase;
           itemDiscountedOptionsPrice = discountableOptionsPrice;
         }
       }
-      // 非白金會員：itemFinalDiscountableBase 維持 itemDiscountableBase
 
-      const itemFinalPrice = itemFinalDiscountableBase + nonDiscountableOptionsPrice;
+      // 最終價格 = 折扣後的 discountableBase + 不可折扣部分（全部原價）
+      const itemFinalPrice = itemFinalDiscountableBase + itemNonDiscountableBase;
       aggregatedDiscountedOpts += itemDiscountedOptionsPrice;
       totalDiscountedPrice += itemFinalPrice;
     });
@@ -255,12 +247,14 @@ const BookingPage = () => {
         totalServicePrice: aggregatedServicePrice,
         totalDiscountableOptionsPrice: aggregatedDiscountableOpts,
         totalNonDiscountableOptionsPrice: aggregatedNonDiscountableOpts,
+        totalNonDiscountableServicePrice: aggregatedNonDiscountableServicePrice,
         totalDiscountedDiscountableOptions: aggregatedDiscountedOpts
       };
     }
 
-    // 優惠券折扣僅套用於可折扣基礎（服務本體 + 可折扣加購），不可折扣項目不參與
-    const couponDiscountBase = totalDiscountedPrice - aggregatedNonDiscountableOpts;
+    // 優惠券折扣僅套用於可折扣基礎，不可折扣項目（服務+加購）不參與
+    const totalNonDiscountable = aggregatedNonDiscountableOpts + aggregatedNonDiscountableServicePrice;
+    const couponDiscountBase = totalDiscountedPrice - totalNonDiscountable;
     const couponDiscount = selectedCoupon.type === 'fixed'
       ? Math.min(selectedCoupon.value, Math.max(0, couponDiscountBase))
       : Math.floor(Math.max(0, couponDiscountBase) * (selectedCoupon.value / 100));
@@ -273,12 +267,12 @@ const BookingPage = () => {
       finalPrice: final,
       discountAmount: totalDiscount,
       platinumDiscountAmount: computedPlatinumDiscount,
-      couponDiscountAmount: couponDiscount,
-      totalServicePrice: aggregatedServicePrice,
-      totalDiscountableOptionsPrice: aggregatedDiscountableOpts,
-      totalNonDiscountableOptionsPrice: aggregatedNonDiscountableOpts,
-      totalDiscountedDiscountableOptions: aggregatedDiscountedOpts
-    };
+      couponDiscountAmount: couponDiscount,        totalServicePrice: aggregatedServicePrice,
+        totalDiscountableOptionsPrice: aggregatedDiscountableOpts,
+        totalNonDiscountableOptionsPrice: aggregatedNonDiscountableOpts,
+        totalNonDiscountableServicePrice: aggregatedNonDiscountableServicePrice,
+        totalDiscountedDiscountableOptions: aggregatedDiscountedOpts
+      };
   }, [cart, selectedCoupon, actingUserProfile, services]);
 
   const allowedDesignerIds = useMemo(() => {
@@ -940,6 +934,7 @@ const BookingPage = () => {
                   totalServicePrice={totalServicePrice}
                   totalDiscountableOptionsPrice={totalDiscountableOptionsPrice}
                   totalNonDiscountableOptionsPrice={totalNonDiscountableOptionsPrice}
+                  totalNonDiscountableServicePrice={totalNonDiscountableServicePrice}
                   totalDiscountedDiscountableOptions={totalDiscountedDiscountableOptions}
                   notes={notes}
                   onNotesChange={setNotes}

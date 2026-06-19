@@ -22,6 +22,7 @@ const ServiceManagement = () => {
     price: string;
     duration: string;
     category: string;
+    isDiscountable: boolean;
     platinumDiscount?: { type: 'percentage' | 'fixed' | 'none', value: number }; // Changed logic
     imageUrl: string;
     description: string;
@@ -31,6 +32,7 @@ const ServiceManagement = () => {
     followUpConfig: FollowUpConfig;
   }>({
     name: '', price: '', duration: '', category: '',
+    isDiscountable: true,
     platinumDiscount: { type: 'none', value: 0 },
     imageUrl: '', description: '', options: [], supportedDesigners: [],
     isPlanOnly: false,
@@ -62,6 +64,7 @@ const ServiceManagement = () => {
         price: String(editingService.price),
         duration: String(editingService.duration),
         category: editingService.category,
+        isDiscountable: editingService.isDiscountable !== false, // default true
         platinumDiscount: editingService.platinumDiscount
           ? { ...editingService.platinumDiscount, type: editingService.platinumDiscount.type as any }
           : { type: 'none', value: 0 },
@@ -109,6 +112,7 @@ const ServiceManagement = () => {
           price: Number(formData.price),
           duration: Number(formData.duration),
           category: formData.category,
+          isDiscountable: formData.isDiscountable,
           platinumDiscount: savePlatinumDiscount, // Saved new format
           imageUrl: formData.imageUrl,
           description: formData.description,
@@ -128,6 +132,7 @@ const ServiceManagement = () => {
           price: Number(formData.price),
           duration: Number(formData.duration),
           category: formData.category,
+          isDiscountable: formData.isDiscountable,
           platinumDiscount: savePlatinumDiscount, // Saved new format
           available: true,
           imageUrl: formData.imageUrl,
@@ -173,6 +178,7 @@ const ServiceManagement = () => {
   const resetForm = () => {
     setFormData({
       name: '', price: '', duration: '', category: '',
+      isDiscountable: true,
       platinumDiscount: { type: 'none', value: 0 },
       imageUrl: '', description: '', options: [], supportedDesigners: [],
       isPlanOnly: false,
@@ -343,6 +349,23 @@ const ServiceManagement = () => {
                       )}
                       {categoriesError && <option disabled>錯誤: {categoriesError}</option>}
                     </select>
+                  </div>
+                </div>
+
+                {/* 允許參與折扣 */}
+                <div className="flex items-center gap-2 bg-green-50 p-3 rounded-lg border border-green-100">
+                  <input
+                    type="checkbox"
+                    id="isDiscountable"
+                    checked={formData.isDiscountable}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isDiscountable: e.target.checked }))}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                  <div>
+                    <label htmlFor="isDiscountable" className="block text-sm font-bold text-green-800">
+                      允許參與折扣
+                    </label>
+                    <p className="text-xs text-green-700">取消勾選後，此服務將不計入 discountableBase，無論白金折扣或優惠券皆不影響此服務金額。</p>
                   </div>
                 </div>
 
