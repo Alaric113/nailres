@@ -201,6 +201,15 @@ const ServiceOptionEditor: React.FC<ServiceOptionEditorProps> = ({ options, onCh
                       />
                       <span>可複選</span>
                     </label>
+                    <label className="flex items-center space-x-2 text-sm text-green-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={option.discountable === true}
+                        onChange={(e) => handleOptionChange(option.id, 'discountable', e.target.checked)}
+                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <span>可折扣</span>
+                    </label>
                   </div>
                 </div>
 
@@ -263,8 +272,17 @@ const ServiceOptionEditor: React.FC<ServiceOptionEditorProps> = ({ options, onCh
                           <span className="absolute right-2 top-2 text-xs text-gray-400 pointer-events-none">分</span>
                         </div>
 
-                        {/* Quantity Config */}
+                        {/* Discountable & Quantity Config */}
                         <div className="flex items-center gap-2 border-l border-gray-200 pl-2 ml-1">
+                             <label className="flex items-center space-x-1 cursor-pointer" title="此項目是否可參與折扣">
+                                <input 
+                                    type="checkbox" 
+                                    checked={item.isDiscountable === true}
+                                    onChange={(e) => handleItemChange(option.id, item.id, 'isDiscountable', e.target.checked)}
+                                    className="rounded border-gray-300 text-green-600 focus:ring-green-500 h-4 w-4"
+                                />
+                                <span className="text-xs text-green-600">可折扣</span>
+                             </label>
                              <label className="flex items-center space-x-1 cursor-pointer" title="啟用數量選擇">
                                 <input 
                                     type="checkbox" 

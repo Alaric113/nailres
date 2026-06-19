@@ -46,6 +46,12 @@ export interface ServiceOption {
   name: string; // e.g., "加購項目", "卸甲"
   required: boolean;
   multiSelect: boolean;
+  /**
+   * 此選項分類是否可參與折扣。
+   * 預設 undefined = false（不可折扣），需明確設為 true 才可折扣。
+   * 個別項目仍有 isDiscountable 可進一步控制。
+   */
+  discountable?: boolean;
   items: ServiceOptionItem[];
 }
 
@@ -54,6 +60,12 @@ export interface ServiceOptionItem {
   name: string; // e.g., "單色", "造型", "本店卸甲"
   price: number;
   duration?: number; // Extra time in minutes
+  /**
+   * 此項目是否可參與折扣。
+   * 預設 undefined = false（不可折扣）。
+   * 注意：僅當所屬 ServiceOption.discountable === true 時，此標記才有作用。
+   */
+  isDiscountable?: boolean;
   allowQuantity?: boolean; // New: Allow selecting quantity for this specific item
   maxQuantity?: number;    // New: Max quantity (default 10)
   quantity?: number; // Selected quantity (for cart/booking state)

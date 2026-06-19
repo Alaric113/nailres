@@ -466,6 +466,9 @@ App (RouterProvider)
 <ul>
   <li><span class="tag tag-yellow">WARN</span> <code>App.css</code> 仍然保留著 Vite 預設的樣板內容（max-width: 1280px、logo-spin 動畫等），但實際 UI 使用的是 <code>index.css</code>，造成不必要的樣式殘留</li>
   <li><span class="tag tag-yellow">WARN</span> <code>Button.tsx</code> 和 <code>Input.tsx</code> 自定義元件似乎未被廣泛使用，多數頁面直接使用原生 HTML 元素 + Tailwind classes</li>
+  <li><span class="tag tag-green">IMPROVED</span> <code class="file-path">BookingForm.tsx</code> 價格顯示已改造為三層明細：服務本體費用 / 可折扣加購(折扣後) / 不可折扣加購(原價) / 折扣優惠 / 總計費用</li>
+  <li><span class="tag tag-green">IMPROVED</span> <code class="file-path">types/service.ts</code> 新增 <strong>雙層折扣控制</strong>：<code>ServiceOption.discountable</code>（選項群組層級）+ <code>ServiceOptionItem.isDiscountable</code>（個別項目層級）。預設皆為 <code>undefined = false</code>（不可折扣），僅兩層皆允許才參與折扣。</li>
+  <li><span class="tag tag-green">IMPROVED</span> <code class="file-path">ServiceOptionEditor.tsx</code> 在選項群組（必選/可複選旁）和個別項目（數量旁）新增「<span style="color:#059669;">可折扣</span>」checkbox</li>
   <li><span class="tag tag-blue">INFO</span> <code>Sidebar.tsx</code> 中只對 admin 角色顯示「管理後臺」連結，未包含 manager/designer</li>
 </ul>
 </section>
@@ -774,7 +777,13 @@ Step 4: 確認與下單
   ├─ 預約摘要（時間、服務、設計師）
   ├─ 優惠券選擇 (CouponSelectorModal)
   │  └─ 可輸入優惠碼領取
-  ├─ BookingForm（備註、價格顯示）
+  ├─ BookingForm（備註、價格明細卡片）
+  │  ├─ 服務本體費用：$totalServicePrice
+  │  ├─ ＋可折扣加購 (折扣後)：$totalDiscountedDiscountableOptions（可折扣加購才顯示）
+  │  ├─ ＋不可折扣加購 (原價)：$totalNonDiscountableOptionsPrice（不可折扣加購才顯示）
+  │  ├─ －折扣優惠：-$discountAmount（無折扣時隱藏整行）
+  │  │   └─ 附小字說明：「(折扣適用於服務本體及可折扣加購，不可折扣項目維持原價)」
+  │  └─ 總計費用：$finalPrice（text-2xl font-extrabold 強調）
   └─ 確認預約 → 檢查 bookingNotice → 顯示確認 Modal
      └─ processBooking:
         1. writeBatch 建立 booking 文件
@@ -1179,56 +1188,70 @@ for each cart item:
 <h4>🛒 最終結帳金額計算 (BookingPage.tsx, lines 138-180)</h4>
 <pre>
 // STEP 1: 原始總價
-totalBasePrice = Σ cart[item].totalPrice
+totalBasePrice = Σ item.totalPrice
+            = Σ (servicePrice + Σ(option.price × qty))
 
-// STEP 2: Platinum 折扣 (只對 platinum role 執行)
-totalDiscountedPrice = Σ computeItemFinalPrice(item)
+// STEP 2: 分解每項 CartItem 的加購為「可折扣」與「不可折扣」
+//   ServiceOptionItem.isDiscountable 預設為 true（undefined = 可折扣，向後兼容）
+for each item in cart:
+  servicePrice = item.service.price
+  discountableOptionsPrice = Σ options.where(isDiscountable !== false).price
+  nonDiscountableOptionsPrice = Σ options.where(isDiscountable === false).price
+  discountableBase = servicePrice + discountableOptionsPrice
 
-function computeItemFinalPrice(item):
-  if (actingUserProfile?.role !== 'platinum')
-    return item.totalPrice  // 無折扣
+// STEP 3: Platinum 折扣 (只對 platinum role 執行)
+  if (actingUserProfile?.role === 'platinum'):
+    serviceDef = services.find(s.id === item.service.id)
 
-  serviceDef = services.find(s.id === item.service.id)
-  if (!serviceDef) return item.totalPrice
+    CASE A: serviceDef.platinumDiscount.type === 'percentage'
+      finalDiscountableBase = Math.floor(discountableBase × value / 100)
+      // 折扣比例 = finalDiscountableBase / discountableBase
+      discountedOptionsPrice = Math.round(discountableOptionsPrice × 比例)
 
-  // Case A: 百分比折扣 (新機制)
-  // ★ 折扣僅套用於服務原價，加購選項維持原價
-  if (serviceDef.platinumDiscount?.type === 'percentage'):
-    servicePrice = item.service.price
-    optionsPrice = item.totalPrice - servicePrice
-    return Math.floor(servicePrice × value / 100) + optionsPrice
-    // e.g., value=70 → 服務價7折 + 加購原價
+    CASE B: serviceDef.platinumDiscount.type === 'fixed'
+      finalDiscountableBase = Math.max(0, discountableBase - value)
+      discountedOptionsPrice = Math.round(discountableOptionsPrice × 比例)
 
-  // Case B: 固定金額折扣 (新機制)
-  // ★ 折扣僅從服務原價扣除，加購不受影響
-  if (serviceDef.platinumDiscount?.type === 'fixed'):
-    servicePrice = item.service.price
-    optionsPrice = item.totalPrice - servicePrice
-    return Math.max(0, servicePrice - value) + optionsPrice
-    // e.g., value=200 → 服務價減200 + 加購原價
+    CASE C: serviceDef.platinumPrice (deprecated)
+      finalDiscountableBase = platinumPrice + discountableOptionsPrice
+      discountedOptionsPrice = discountableOptionsPrice  // 無折扣
 
-  // Case C: 獨立白金價格 (deprecated 舊機制)
-  if (serviceDef.platinumPrice):
-    optionsPrice = item.totalPrice - item.service.price
-    return serviceDef.platinumPrice + optionsPrice
+  else (非白金):
+    finalDiscountableBase = discountableBase
+    discountedOptionsPrice = discountableOptionsPrice  // 無折扣
 
-  return item.totalPrice
+  itemFinalPrice = finalDiscountableBase + nonDiscountableOptionsPrice
+  totalDiscountedPrice += itemFinalPrice
 
-// STEP 3: 優惠券折扣
+  // 彙總用於 UI 明細
+  aggregatedServicePrice += servicePrice
+  aggregatedDiscountableOpts += discountableOptionsPrice
+  aggregatedNonDiscountableOpts += nonDiscountableOptionsPrice
+  aggregatedDiscountedOpts += discountedOptionsPrice
+
+// STEP 4: 優惠券折扣
 if (selectedCoupon && totalDiscountedPrice >= selectedCoupon.minSpend):
   if (selectedCoupon.type === 'fixed'):
     couponDiscount = selectedCoupon.value
   if (selectedCoupon.type === 'percentage'):
     couponDiscount = Math.floor(totalDiscountedPrice × selectedCoupon.value / 100)
-  
   finalPrice = Math.max(0, totalDiscountedPrice - couponDiscount)
 else:
   finalPrice = totalDiscountedPrice
   couponDiscount = 0
 
-// STEP 4: 結果
+// STEP 5: 結果
 totalDiscountAmount = (totalBasePrice - totalDiscountedPrice) + couponDiscount
-finalResult = { totalDuration, originalPrice: totalBasePrice, finalPrice, discountAmount: totalDiscountAmount }
+finalResult = {
+  totalDuration,
+  originalPrice: totalBasePrice,
+  finalPrice,
+  discountAmount: totalDiscountAmount,
+  totalServicePrice,           // 服務本體費用
+  totalDiscountableOptionsPrice,        // 可折扣加購（折扣前）
+  totalNonDiscountableOptionsPrice,     // 不可折扣加購（原價）
+  totalDiscountedDiscountableOptions    // 可折扣加購（折扣後）
+}
 </pre>
 
 <h4>⏭️ 預約狀態決定</h4>
@@ -1686,15 +1709,68 @@ BookingPaymentPage:
 </ul>
 
 <h4>Cheat Sheet: 所有價格計算公式一覽</h4>
+<h4>✅ UI 優化：結帳價格透明度改造 + 可折扣/不可折扣加購拆分 + 雙層折扣控制</h4>
+<p>定義於 <code class="file-path">src/components/booking/BookingForm.tsx</code> 和 <code class="file-path">src/pages/BookingPage.tsx</code> 和 <code class="file-path">src/types/service.ts</code></p>
+<pre>
+【資料結構擴充】
+  ServiceOption 新增 discountable?: boolean  （群組層級，預設 undefined = 不可折扣）
+  ServiceOptionItem 保留 isDiscountable?: boolean（項目層級，預設 undefined = 不可折扣）
+  
+  可折扣判斷：僅當 option.discountable === true 且 item.isDiscountable !== false 才參與折扣
+  預設兩層皆 undefined → 所有加購預設不可折扣
+
+【useMemo 計算邏輯】
+  // 雙層迭代：保有 optionId → 查找 option 的 discountable
+  Object.entries(item.selectedOptions).forEach(([optionId, optionItems]) => {
+    const parentOption = item.service.options?.find(o => o.id === optionId);
+    const isOptionDiscountable = parentOption?.discountable === true;
+    optionItems.forEach(o => {
+      const canDiscount = isOptionDiscountable && (o.isDiscountable !== false);
+      if (canDiscount) discountableOptionsPrice += price;
+      else nonDiscountableOptionsPrice += price;
+    });
+  });
+
+【輸出值變更】
+  舊：totalServicePrice + totalOptionsPrice
+  新：totalServicePrice
+      + totalDiscountableOptionsPrice    (可折扣加購原價)
+      + totalNonDiscountableOptionsPrice (不可折扣加購原價)
+      + totalDiscountedDiscountableOptions (可折扣加購折後價)
+
+【BookingForm UI】
+┌─────────────────────────────────────────────┐
+│  服務本體費用                         $1,000  │
+│  ＋ 可折扣加購 (折扣後)              $140   │  ← 紫色，只顯示有可折扣加購時
+│  ＋ 不可折扣加購 (原價)               $50   │  ← 灰色，只顯示有不可折扣加購時
+│  ───────────────────────────────── │
+│  － 折扣優惠                      -$410   │  ← 無折扣時整行隱藏
+│  (折扣適用於服務本體及可折扣加購，         │
+│   不可折扣項目維持原價)                     │
+│  ════════════════════════════════════ │
+│  總計費用                            $780   │  ← text-2xl font-extrabold
+└─────────────────────────────────────────────┘
+
+【檔案】
+  src/types/service.ts                     — 新增 ServiceOption.discountable 欄位
+  src/pages/BookingPage.tsx                 — 改寫 Option 迭代使用雙層折扣判斷
+  src/components/booking/BookingForm.tsx     — 三層明細 UI + 更新折扣說明文字
+  src/components/admin/ServiceOptionEditor.tsx — 新增「可折扣」checkbox（群組+項目雙層）
+</pre>
+
+<h4>Cheat Sheet: 所有價格計算公式一覽</h4>
 <pre>
 情境                         | 計算公式                                     | 檔案
 ────────────────────────────────────────────────────────────────────────────
 基本服務價格                  | service.price                                | types/service.ts
 加價購價格                   | Σ(optionItem.price × qty)                   | bookingStore.ts
 購物車單項價格               | service.price + Σ(optionItem.price × qty)   | bookingStore.addToCart
-白金%折扣                    | floor(servicePrice × val/100) + optionsPrice  | BookingPage.tsx
-白金固定折扣                 | max(0, servicePrice - val) + optionsPrice        | BookingPage.tsx
-白金專屬價格                 | platinumPrice + Σ(optionPrice)              | BookingPage.tsx
+可折扣基礎                   | servicePrice + Σ(discountableOptions)       | BookingPage.tsx
+白金%折扣                    | floor(discountableBase × val/100)            | BookingPage.tsx
+白金固定折扣                 | max(0, discountableBase - value)             | BookingPage.tsx
+白金專屬價格                 | platinumPrice + Σ(discountableOptions)       | BookingPage.tsx
+可折扣加購折後價             | round(discountableOptions × discountRatio)  | BookingPage.tsx
+不可折扣加購                  | 維持原價（不參與折扣）                       | BookingPage.tsx
 優惠券固定折扣               | 扣 coupon.value 元                           | BookingPage.tsx
 優惠券%折扣                  | floor(price × coupon.value / 100)            | BookingPage.tsx
 跟進服務折扣                 | Math.round(originalPrice × discountRate)     | useUserFollowUps.ts
@@ -1702,7 +1778,7 @@ BookingPaymentPage:
 季卡購買點數                 | Math.floor(price / 1000)                    | useSeasonPasses.activatePass
 季卡效期計算                 | "N個月" → addMonth(N), "N年" → addYear(N)  | useSeasonPasses.activatePass
 點數兌換                     | user.loyaltyPoints - reward.points          | useRedemption.ts
-訂單總金額                   | totalDiscountedPrice - couponDiscount        | BookingPage.tsx useMemo
+訂單總金額                   | finalDiscountableBase + nonDiscountableOpts   | BookingPage.tsx useMemo
 付款頁面訂金                 | 固定 $1,000 (非動態)                        | BookingPaymentPage.tsx
 </pre>
 </section>
@@ -1943,7 +2019,7 @@ BookingPaymentPage:
 
 <p>以下是建議的逐步重構計畫，按優先級排列：</p>
 
-<h3>Phase 1：緊急止血 (1-2 週) <span class="tag tag-green" style="margin-left:8px;">✅ 已完成 1.1, 1.2, 1.4, 1.5, 1.6</span></h3>
+<h3>Phase 1：緊急止血 (1-2 週) <span class="tag tag-green" style="margin-left:8px;">✅ 已完成 1.1, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8</span></h3>
 <table>
   <tr><th>#</th><th>任務</th><th>說明</th><th>狀態</th></tr>
   <tr><td>1.1</td><td><span class="badge badge-p0">P0</span> 修復 LINE 登入激活已刪除帳號</td><td>line-liff-auth / line-oauth-auth 中檢查 deleted flag</td><td style="color:#059669;">✅ 已完成</td></tr>
@@ -1952,6 +2028,14 @@ BookingPaymentPage:
   <tr><td>1.4</td><td><span class="badge badge-p1">P1</span> 刪除重複的 CouponSelectorModal</td><td>BookingPage.tsx 中移除重複渲染</td><td style="color:#059669;">✅ 已完成</td></tr>
   <tr><td>1.5</td><td><span class="badge badge-p1">P1</span> delete-user function 加入安全防護</td><td>防自刪、防最後管理員被刪</td><td style="color:#059669;">✅ 已完成</td></tr>
   <tr><td>1.6</td><td>修復白金折扣連加購品項一併打折</td><td>折扣僅套用 service.price，optionsPrice 維持原價</td><td style="color:#059669;">✅ 已完成</td></tr>
+  <tr><td>1.7</td><td>結帳價格透明度改造</td><td>BookingForm 改為明細卡片：服務原價/加購/折扣/總價分開顯示</td><td style="color:#059669;">✅ 已完成</td></tr>
+  <tr><td>1.8</td><td>可折扣/不可折扣加購拆分</td><td>ServiceOptionItem 新增 isDiscountable；useMemo 按 isDiscountable 分類計算折扣</td><td style="color:#059669;">✅ 已完成</td></tr>
+  <tr><td>1.9</td><td>雙層折扣控制（選項群組 + 項目）</td><td>ServiceOption 新增 discountable；pricing logic 雙層迭代；Editor UI 開關</td><td style="color:#059669;">✅ 已完成</td></tr>
+</table>
+
+
+<h3>Phase 1：緊急止血 (1-2 週) <span class="tag tag-green" style="margin-left:8px;">✅ 已完成 1.1, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9</span></h3>
+  <tr><td>1.9</td><td>雙層折扣控制（選項群組 + 項目）</td><td>ServiceOption 新增 discountable；pricing logic 改為雙層迭代判斷；ServiceOptionEditor 新增 UI 開關</td><td style="color:#059669;">✅ 已完成</td></tr>
 </table>
 
 
@@ -1996,11 +2080,16 @@ BookingPaymentPage:
 Manager 權限過大                        firestore.rules.txt             僅 admin 可改 role            ✅ 已修復
 Role 混合會員等級                       全域                           新增 membershipTier           暫緩
 白金折扣連加購一併打折                   BookingPage.tsx                分離 servicePrice/optionsPrice ✅ 已修復
+加購預設不可折扣 + 雙層開關              types/service.ts               ServiceOption.discountable    ✅ 已修復
+                                       ServiceOptionEditor.tsx          + item 雙層 checkbox
 CouponSelectorModal 重複渲染            BookingPage.tsx                刪除重複行                    ✅ 已修復
 註冊邏輯重複                            Register.tsx, useAuth.ts       合併為單一機制                ✅ 已修復
 角色直接前端修改                        CustomerListPage.tsx            改為後端 API /api/update-    ✅ 已修復
                                        CustomerDetailPage.tsx           user-role
                                        update-user-role.ts (新增)
+雙層折扣控制系統                        types/service.ts                新增 option.discountable +    ✅ 已修復
+                                       ServiceOptionEditor.tsx         雙層 UI checkbox
+                                       BookingPage.tsx                 改用 Object.entries 迭代
 delete-user 無安全防護                   delete-user.ts                 加入自刪/最後管理員檢查        ✅ 已修復
 無金流                                  submit-payment.ts              跳過（金流手續費問題）        跳過
 付款逾時無取消                          (無)                           新增 Cloud Function            待處理
@@ -2023,7 +2112,7 @@ firestore 非官方套件                    package.json                    移
   <span style="color:#d97706;font-weight:700;">8 個 P1</span> · 
   <span style="color:#2563eb;font-weight:700;">10 個 P2</span> · 
   <span style="color:#6b7280;font-weight:700;">12 個 P3</span> 問題
-  · <span style="color:#059669;font-weight:700;">已修復 8 個</span>
+  · <span style="color:#059669;font-weight:700;">  已修復 11 個</span>
 </p>
 
 </div>

@@ -136,73 +136,148 @@ const BookingPage = () => {
   } = useDesignerBookingInfo(selectedDesigner?.id || null);
 
   /* New Per-Service Platinum Discount Logic - MUST be before early return */
-  const { totalDuration, originalPrice, finalPrice, discountAmount } = useMemo(() => {
+  const {
+    totalDuration,
+    originalPrice,
+    finalPrice,
+    discountAmount,
+    platinumDiscountAmount,
+    couponDiscountAmount,
+    totalServicePrice,
+    totalDiscountableOptionsPrice,
+    totalNonDiscountableOptionsPrice,
+    totalDiscountedDiscountableOptions
+  } = useMemo(() => {
     const duration = cart.reduce((acc, item) => acc + item.totalDuration, 0);
 
     // Calculate price item by item to apply specific service discounts
     let totalBasePrice = 0;
     let totalDiscountedPrice = 0;
+    let aggregatedServicePrice = 0;
+    let aggregatedDiscountableOpts = 0;    // 可折扣加購（折扣前）
+    let aggregatedNonDiscountableOpts = 0; // 不可折扣加購（原價）
+    let aggregatedDiscountedOpts = 0;      // 可折扣加購（折扣後）
 
-    // === 業務邏輯：服務與加購折扣分離 ===
-    // 白金折扣僅套用於 service.price（服務原價），加購選項維持原價
+    // === 業務邏輯：折扣僅套用於「服務本體 + 可折扣加購」，不可折扣加購維持原價 ===
+    // 加購項目的 isDiscountable 預設為 true（undefined → 可折扣，向後兼容）
     cart.forEach(item => {
       const servicePrice = item.service.price;
-      const optionsPrice = item.totalPrice - servicePrice;
+      // === 雙層折扣控制：ServiceOption.discountable + ServiceOptionItem.isDiscountable ===
+      // 預設兩層都是 undefined = false，即所有加購不參與折扣。
+      // 僅當 option.discountable === true 且 item.isDiscountable !== false 才可折扣。
+      let discountableOptionsPrice = 0;
+      let nonDiscountableOptionsPrice = 0;
+
+      Object.entries(item.selectedOptions).forEach(([optionId, optionItems]) => {
+        const parentOption = item.service.options?.find(o => o.id === optionId);
+        const isOptionDiscountable = parentOption?.discountable === true;
+
+        optionItems.forEach(o => {
+          const canDiscount = isOptionDiscountable && (o.isDiscountable !== false);
+          const price = o.price * (o.quantity || 1);
+          if (canDiscount) {
+            discountableOptionsPrice += price;
+          } else {
+            nonDiscountableOptionsPrice += price;
+          }
+        });
+      });
+      const optionsPrice = discountableOptionsPrice + nonDiscountableOptionsPrice;
+
+      aggregatedServicePrice += servicePrice;
+      aggregatedDiscountableOpts += discountableOptionsPrice;
+      aggregatedNonDiscountableOpts += nonDiscountableOptionsPrice;
+
       const itemBasePrice = item.totalPrice; // 原始總價（僅用於無折扣回退）
       totalBasePrice += itemBasePrice;
-      
-      let itemFinalPrice: number;
+
+      // 可折扣基礎 = 服務本體 + 可折扣加購
+      const itemDiscountableBase = servicePrice + discountableOptionsPrice;
+
+      let itemFinalDiscountableBase = itemDiscountableBase; // 預設：無折扣
+      let itemDiscountedOptionsPrice = discountableOptionsPrice; // 預設：無折扣
 
       if (actingUserProfile?.role === 'platinum') {
         const serviceDef = services.find(s => s.id === item.service.id);
-        
+
         if (serviceDef?.platinumDiscount) {
           const { type, value } = serviceDef.platinumDiscount;
-          
+
           if (type === 'percentage') {
-            // 折扣只套用在服務原價，加購維持原價
-            // 例：服務 $1000 + 加購 $300、折扣 70% → 1000*0.7 + 300 = $1000
-            itemFinalPrice = Math.floor(servicePrice * (value / 100)) + optionsPrice;
+            // 折扣套用於 discountableBase（服務 + 可折扣加購）
+            // 例：服務 $1000 + 可折扣加購 $200、折扣 70% → 1200*0.7 = $840
+            itemFinalDiscountableBase = Math.floor(itemDiscountableBase * (value / 100));
+            // 按比例拆分折扣給可折扣加購
+            const discountRatio = itemDiscountableBase > 0
+              ? itemFinalDiscountableBase / itemDiscountableBase
+              : 0;
+            itemDiscountedOptionsPrice = Math.round(discountableOptionsPrice * discountRatio);
           } else if (type === 'fixed') {
-            // 折扣只從服務原價扣除，加購不受影響
-            // 例：服務 $1000 + 加購 $300、折扣 $400 → max(0, 1000-400) + 300 = $900
-            itemFinalPrice = Math.max(0, servicePrice - value) + optionsPrice;
+            // 定額折扣從 discountableBase 扣除
+            // 例：服務 $1000 + 可折扣加購 $200、折扣 $400 → max(0, 1200-400) = $800
+            itemFinalDiscountableBase = Math.max(0, itemDiscountableBase - value);
+            const discountRatio = itemDiscountableBase > 0
+              ? itemFinalDiscountableBase / itemDiscountableBase
+              : 0;
+            itemDiscountedOptionsPrice = Math.round(discountableOptionsPrice * discountRatio);
           } else {
-            itemFinalPrice = itemBasePrice; // 未知折扣類型，回退為原價
+            // 未知折扣類型，回退為原價
+            itemFinalDiscountableBase = itemDiscountableBase;
+            itemDiscountedOptionsPrice = discountableOptionsPrice;
           }
         } else if (serviceDef?.platinumPrice) {
-          // 既有邏輯：platinumPrice 取代 service.price，加購維持原價
-          itemFinalPrice = serviceDef.platinumPrice + optionsPrice;
+          // 既有邏輯：platinumPrice 取代 service.price，所有加購維持原價
+          itemFinalDiscountableBase = serviceDef.platinumPrice + discountableOptionsPrice;
+          itemDiscountedOptionsPrice = discountableOptionsPrice;
         } else {
-          itemFinalPrice = itemBasePrice; // 無折扣定義
+          // 無折扣定義
+          itemFinalDiscountableBase = itemDiscountableBase;
+          itemDiscountedOptionsPrice = discountableOptionsPrice;
         }
-      } else {
-        itemFinalPrice = itemBasePrice; // 非白金會員
       }
-      
+      // 非白金會員：itemFinalDiscountableBase 維持 itemDiscountableBase
+
+      const itemFinalPrice = itemFinalDiscountableBase + nonDiscountableOptionsPrice;
+      aggregatedDiscountedOpts += itemDiscountedOptionsPrice;
       totalDiscountedPrice += itemFinalPrice;
     });
+
+    const computedPlatinumDiscount = totalBasePrice - totalDiscountedPrice;
 
     if (!selectedCoupon || totalDiscountedPrice < selectedCoupon.minSpend) {
       return {
         totalDuration: duration,
         originalPrice: totalBasePrice,
         finalPrice: totalDiscountedPrice,
-        discountAmount: totalBasePrice - totalDiscountedPrice
+        discountAmount: computedPlatinumDiscount,
+        platinumDiscountAmount: computedPlatinumDiscount,
+        couponDiscountAmount: 0,
+        totalServicePrice: aggregatedServicePrice,
+        totalDiscountableOptionsPrice: aggregatedDiscountableOpts,
+        totalNonDiscountableOptionsPrice: aggregatedNonDiscountableOpts,
+        totalDiscountedDiscountableOptions: aggregatedDiscountedOpts
       };
     }
 
+    // 優惠券折扣僅套用於可折扣基礎（服務本體 + 可折扣加購），不可折扣項目不參與
+    const couponDiscountBase = totalDiscountedPrice - aggregatedNonDiscountableOpts;
     const couponDiscount = selectedCoupon.type === 'fixed'
-      ? selectedCoupon.value
-      : Math.floor(totalDiscountedPrice * (selectedCoupon.value / 100));
+      ? Math.min(selectedCoupon.value, Math.max(0, couponDiscountBase))
+      : Math.floor(Math.max(0, couponDiscountBase) * (selectedCoupon.value / 100));
     const final = Math.max(0, totalDiscountedPrice - couponDiscount);
-    const totalDiscount = (totalBasePrice - totalDiscountedPrice) + couponDiscount;
+    const totalDiscount = computedPlatinumDiscount + couponDiscount;
 
     return {
       totalDuration: duration,
       originalPrice: totalBasePrice,
       finalPrice: final,
-      discountAmount: totalDiscount
+      discountAmount: totalDiscount,
+      platinumDiscountAmount: computedPlatinumDiscount,
+      couponDiscountAmount: couponDiscount,
+      totalServicePrice: aggregatedServicePrice,
+      totalDiscountableOptionsPrice: aggregatedDiscountableOpts,
+      totalNonDiscountableOptionsPrice: aggregatedNonDiscountableOpts,
+      totalDiscountedDiscountableOptions: aggregatedDiscountedOpts
     };
   }, [cart, selectedCoupon, actingUserProfile, services]);
 
@@ -796,14 +871,22 @@ const BookingPage = () => {
                       <div key={item.itemId} className="flex flex-col text-sm border-b border-dashed border-gray-100 pb-2 last:border-0 last:pb-0">
                         <div className="flex justify-between items-center">
                           <span className="text-gray-900 font-bold">{item.service.name}</span>
-                          <span className="text-gray-500">${item.totalPrice}</span>
-                        </div>
-                        {/* Show options in review */}
-                        {Object.values(item.selectedOptions).flat().length > 0 && (
-                          <div className="text-xs text-gray-400 mt-1">
-                            {Object.values(item.selectedOptions).flat().map(o => o.name).join(', ')}
+                          <div className="text-right">
+                            <span className="text-gray-500">${item.totalPrice}</span>
                           </div>
-                        )}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1 space-y-0.5">
+                          <span>服務原價 $<span className="font-medium">{item.service.price}</span></span>
+                          {Object.values(item.selectedOptions).flat().length > 0 && (
+                            <span className="ml-2">+ 加購 $<span className="font-medium">{item.totalPrice - item.service.price}</span></span>
+                          )}
+                          {/* Show options list */}
+                          {Object.values(item.selectedOptions).flat().length > 0 && (
+                            <div className="text-gray-400 mt-0.5">
+                              {Object.values(item.selectedOptions).flat().map(o => o.name).join(', ')}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -847,15 +930,20 @@ const BookingPage = () => {
                   </div>
                 </div>
                 <ChevronRightIcon className="h-4 w-4 text-gray-400 group-hover:text-[#9F9586]" />
-              </button>
-
-              <BookingForm
-                originalPrice={originalPrice}
-                discountAmount={discountAmount}
-                totalPrice={finalPrice}
-                notes={notes}
-                onNotesChange={setNotes}
-              />
+              </button>                <BookingForm
+                  originalPrice={originalPrice}
+                  discountAmount={discountAmount}
+                  platinumDiscountAmount={platinumDiscountAmount}
+                  couponDiscountAmount={couponDiscountAmount}
+                  selectedCoupon={selectedCoupon}
+                  totalPrice={finalPrice}
+                  totalServicePrice={totalServicePrice}
+                  totalDiscountableOptionsPrice={totalDiscountableOptionsPrice}
+                  totalNonDiscountableOptionsPrice={totalNonDiscountableOptionsPrice}
+                  totalDiscountedDiscountableOptions={totalDiscountedDiscountableOptions}
+                  notes={notes}
+                  onNotesChange={setNotes}
+                />
             </div>
           </div>
         )}
