@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, arrayUnion, query, collection, where, getDocs, orderBy, deleteDoc, serverTimestamp, Timestamp, addDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { useBookings } from '../hooks/useBookings';
 import { useSeasonPasses } from '../hooks/useSeasonPasses';
 import type { EnrichedUser, ActivePass, UserRole } from '../types/user';
@@ -319,10 +319,29 @@ const CustomerDetailPage: React.FC = () => {
     if (!userId || !user) return;
     setIsUpdatingRole(true);
     try {
-      await updateDoc(doc(db, 'users', userId), { role: newRole });
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/update-user-role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ targetUserId: userId, newRole })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Role update failed');
+      }
+
+      // Optimistic local update
       setUser(prev => prev ? { ...prev, role: newRole } : null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating role:', error);
+      // Role change failures are critical - show a more visible error
+      alert(`權限更新失敗: ${error.message}`);
     } finally {
       setIsUpdatingRole(false);
     }

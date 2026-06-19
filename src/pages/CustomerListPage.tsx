@@ -92,16 +92,29 @@ const CustomerListPage = () => {
   };  
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
-    // ... existing logic
     setIsUpdatingRole(true);
     setSaveError(null);
 
     try {
-      const userDocRef = doc(db, 'users', userId);
-      await updateDoc(userDocRef, { role: newRole });
-    } catch (err) {
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/update-user-role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ targetUserId: userId, newRole })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Role update failed');
+      }
+    } catch (err: any) {
       console.error("Error updating role:", err);
-      setSaveError("權限更新失敗，請稍後再試。");
+      setSaveError(err.message || "權限更新失敗，請稍後再試。");
     } finally {
       setIsUpdatingRole(false);
     }
