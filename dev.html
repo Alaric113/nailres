@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TreeRing 美甲預約系統 — 專案分析文件</title>
+  <style>
+    :root {
+      --primary: #9F9586;
+      --primary-dark: #8A8173;
+      --secondary: #EFECE5;
+      --bg: #FDFBF7;
+      --text: #5C5548;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --success: #10b981;
+      --pink: #ec4899;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.8;
+    }
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 280px;
+      background: #fff;
+      border-right: 1px solid var(--secondary);
+      overflow-y: auto;
+      z-index: 100;
+      padding: 1.5rem 0;
+    }
+    .sidebar h2 {
+      font-size: 1rem;
+      padding: 0 1.25rem;
+      margin-bottom: 0.5rem;
+      color: var(--primary-dark);
+      font-weight: 700;
+    }
+    .sidebar a {
+      display: block;
+      padding: 0.4rem 1.25rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    .sidebar a:hover, .sidebar a.active {
+      background: var(--secondary);
+      border-left-color: var(--primary);
+      color: var(--primary-dark);
+    }
+    .sidebar .section-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #999;
+      padding: 0.75rem 1.25rem 0.25rem;
+      font-weight: 600;
+    }
+    .main {
+      margin-left: 280px;
+      max-width: 960px;
+      padding: 2rem 2.5rem 4rem;
+    }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 1.25rem; }
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: #111;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 2rem;
+    }
+    h2 {
+      font-size: 1.4rem;
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--secondary);
+      color: #111;
+    }
+    h3 {
+      font-size: 1.1rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--primary-dark);
+    }
+    h4 {
+      font-size: 0.95rem;
+      margin-top: 1rem;
+      margin-bottom: 0.4rem;
+      color: #333;
+    }
+    p, li { margin-bottom: 0.5rem; }
+    ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+    code {
+      background: #f3f4f6;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    pre {
+      background: #1f2937;
+      color: #e5e7eb;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+    pre code { background: none; padding: 0; color: inherit; }
+    .tag {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .tag-red { background:#fee2e2; color:#dc2626; }
+    .tag-yellow { background:#fef3c7; color:#d97706; }
+    .tag-green { background:#d1fae5; color:#059669; }
+    .tag-blue { background:#dbeafe; color:#2563eb; }
+    .tag-purple { background:#f3e8ff; color:#7e22ce; }
+    .tag-gray { background:#f3f4f6; color:#6b7280; }
+    .badge { display:inline-block; padding:0.1rem 0.4rem; border-radius:99px; font-size:0.7rem; font-weight:700; }
+    .badge-p0 { background:#fee2e2; color:#dc2626; }
+    .badge-p1 { background:#fef3c7; color:#d97706; }
+    .badge-p2 { background:#dbeafe; color:#2563eb; }
+    .badge-p3 { background:#f3f4f6; color:#6b7280; }
+    .card {
+      background: #fff;
+      border: 1px solid var(--secondary);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .card.p0 { border-left: 4px solid #dc2626; }
+    .card.p1 { border-left: 4px solid #d97706; }
+    .card.p2 { border-left: 4px solid #2563eb; }
+    .card.p3 { border-left: 4px solid #6b7280; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+    }
+    th, td {
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    th { background: #f9fafb; font-weight: 600; color: #111; }
+    tr:hover { background: #f9fafb; }
+    .flow-arrow { color: var(--primary); font-weight: bold; }
+    .diagram-box {
+      background: #fff;
+      border: 2px solid var(--secondary);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+      font-family: monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .file-path {
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #666;
+      background: #f9fafb;
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 4px;
+    }
+    .status-dot.ok { background: var(--success); }
+    .status-dot.warn { background: var(--warning); }
+    .status-dot.bad { background: var(--danger); }
+    .summary-bar {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    .summary-item {
+      flex: 1; min-width: 120px;
+      background: #fff;
+      border: 1px solid var(--secondary);
+      border-radius: 8px;
+      padding: 0.75rem;
+      text-align: center;
+    }
+    .summary-item .num {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+    .summary-item .label {
+      font-size: 0.7rem;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <h2>📋 專案分析</h2>
+  <div class="section-label">概覽</div>
+  <a href="#overview">專案總覽</a>
+  <a href="#stats">程式碼統計</a>
+  <a href="#tech">技術棧</a>
+  
+  <div class="section-label">架構</div>
+  <a href="#routes">路由結構</a>
+  <a href="#components">元件架構</a>
+  <a href="#state">狀態管理</a>
+  <a href="#firestore">Firestore Schema</a>
+  <a href="#functions">Netlify Functions</a>
+  
+  <div class="section-label">流程分析</div>
+  <a href="#flow-auth">認證流程</a>
+  <a href="#flow-booking">預約流程</a>
+  <a href="#flow-admin">管理後台流程</a>
+  <a href="#flow-payment">付款流程</a>
+  <a href="#flow-member">會員流程</a>
+  <a href="#flow-line">LINE 整合流程</a>
+  
+  <div class="section-label">問題清單</div>
+  <a href="#problems-p0">P0 - 緊急問題</a>
+  <a href="#problems-p1">P1 - 重要問題</a>
+  <a href="#problems-p2">P2 - 一般問題</a>
+  <a href="#problems-p3">P3 - 建議優化</a>
+  
+  <div class="section-label">金流/優惠/會員計算</div>
+  <a href="#pricing-cart">購物車價格計算</a>
+  <a href="#pricing-coupon">優惠券系統</a>
+  <a href="#pricing-followup">跟進服務定價</a>
+  <a href="#pricing-pass">季卡方案邏輯</a>
+  <a href="#pricing-points">集點/兌換邏輯</a>
+  <a href="#pricing-giftcard">商品卡系統</a>
+  <a href="#pricing-payment">付款流程</a>
+  
+  <div class="section-label">拯救計畫</div>
+  <a href="#roadmap">重整路線圖</a>
+</nav>
+
+<div class="main">
+
+<h1>🌳 TreeRing 美甲預約系統</h1>
+<p class="subtitle">完整專案分析文件 — 架構・流程・問題・拯救計畫</p>
+
+<!-- ===================== 概覽 ===================== -->
+<section id="overview">
+<h2>📌 專案總覽</h2>
+<p>
+  這是一個為美甲/美睫工作室開發的預約管理系統，名為 <strong>TreeRing</strong>（品牌名）。
+  專案使用 <strong>React + TypeScript + Vite</strong> 前端框架，搭配 <strong>Firebase</strong>（Auth + Firestore + Storage + Messaging）
+  作為後端服務，並部署在 <strong>Netlify</strong> 上（含 Serverless Functions）。
+</p>
+
+<p>
+  支援 LINE 與 Google 登入、多設計師管理、服務分類/選項、季卡（Season Pass）、
+  優惠券、集點卡、商品卡（Gift Card）、作品集展示、顧客評價、以及完整的後台管理功能。
+</p>
+
+<p>
+  <strong>⏳ 目前狀態：</strong>已上線運作中，但由於缺乏前期規劃，程式碼存在大量結構性問題。
+</p>
+</section>
+
+<!-- ===================== 統計 ===================== -->
+<section id="stats">
+<h2>📊 程式碼統計</h2>
+<div class="summary-bar">
+  <div class="summary-item"><div class="num">50+</div><div class="label">頁面/元件</div></div>
+  <div class="summary-item"><div class="num">20+</div><div class="label">Custom Hooks</div></div>
+  <div class="summary-item"><div class="num">12</div><div class="label">Netlify Functions</div></div>
+  <div class="summary-item"><div class="num">60+</div><div class="label">相依套件</div></div>
+  <div class="summary-item"><div class="num">~30K</div><div class="label">預估程式碼行數</div></div>
+</div>
+
+<h3>目錄結構</h3>
+<pre>
+nailres/
+├── src/                          # 前端原始碼
+│   ├── App.tsx                   # 路由定義 & Root Layout
+│   ├── main.tsx                  # 入口點
+│   ├── index.css                 # Tailwind + 全域樣式
+│   ├── components/               # 元件
+│   │   ├── admin/                #   後台元件 (20+ 個)
+│   │   ├── auth/                 #   認證相關 (Login, useGoogleAuth, RootRedirect)
+│   │   ├── booking/              #   預約流程 (8 個元件)
+│   │   ├── common/               #   共用元件 (BottomNav, Sidebar, Modal, etc.)
+│   │   ├── dashboard/            #   會員儀表板 (6 個元件)
+│   │   ├── home/                 #   首頁 (4 個元件)
+│   │   └── member/               #   會員中心 (1 個元件)
+│   ├── pages/                    # 頁面元件 (30+ 個)
+│   │   ├── admin/                #   後台頁面
+│   │   ├── booking/              #   預約相關頁面
+│   │   ├── liff/                 #   LINE LIFF 入口
+│   │   └── member/               #   會員頁面 (7 個)
+│   ├── store/                    # Zustand 狀態管理
+│   ├── hooks/                    # Custom Hooks (20+ 個)
+│   ├── lib/                      # Firebase, LIFF, SocialAuth 初始化
+│   ├── types/                    # TypeScript 類型定義
+│   ├── context/                  # React Context (Toast)
+│   └── utils/                    # 工具函式
+├── netlify/functions/            # Serverless Functions (12 個)
+├── public/                       # 靜態資源
+├── firestore.rules.txt           # Firestore 安全規則
+├── design-system-doc.md          # 設計系統文件
+├── problem.md                    # 已知問題文件
+└── PROJECT_LOG.md                # 專案開發日誌
+</pre>
+</section>
+
+<!-- ===================== 技術棧 ===================== -->
+<section id="tech">
+<h2>🛠️ 技術棧</h2>
+
+<table>
+  <tr><th>類別</th><th>技術</th><th>版本</th></tr>
+  <tr><td>前端框架</td><td>React + TypeScript</td><td>~19.1</td></tr>
+  <tr><td>建置工具</td><td>Vite</td><td>~7.1</td></tr>
+  <tr><td>CSS</td><td>Tailwind CSS v4</td><td>~4.1</td></tr>
+  <tr><td>路由</td><td>React Router DOM</td><td>~6.23</td></tr>
+  <tr><td>狀態管理</td><td>Zustand</td><td>~4.5</td></tr>
+  <tr><td>動畫</td><td>Framer Motion</td><td>~12.23</td></tr>
+  <tr><td>後端/資料庫</td><td>Firebase (Auth, Firestore, Storage, Messaging)</td><td>~10.14</td></tr>
+  <tr><td>後端管理</td><td>Firebase Admin SDK</td><td>~13.5</td></tr>
+  <tr><td>部署</td><td>Netlify (Hosting + Serverless Functions)</td><td>-</td></tr>
+  <tr><td>LINE 整合</td><td>LINE LIFF SDK + OAuth 2.1</td><td>~2.27</td></tr>
+  <tr><td>行事曆</td><td>FullCalendar (+ daygrid, timegrid, interaction)</td><td>~6.1</td></tr>
+  <tr><td>日曆選擇</td><td>react-day-picker / react-big-calendar</td><td>~9.11 / ~1.19</td></tr>
+  <tr><td>圖示</td><td>Heroicons + Lucide React</td><td>~2.2 / ~0.561</td></tr>
+  <tr><td>PWA</td><td>vite-plugin-pwa</td><td>~1.1</td></tr>
+  <tr><td>地圖</td><td>Leaflet + react-leaflet</td><td>~1.9 / ~5.0</td></tr>
+  <tr><td>圖片壓縮</td><td>browser-image-compression</td><td>~2.0</td></tr>
+  <tr><td>拖曳排序</td><td>@dnd-kit</td><td>~6.3 / ~10.0</td></tr>
+  <tr><td>滑動套件</td><td>Swiper</td><td>~12.0</td></tr>
+</table>
+
+<p class="tag tag-yellow">⚠️ 注意：專案同時安裝了 react-day-picker 和 react-big-calendar，用途重疊。</p>
+</section>
+
+<!-- ===================== 路由結構 ===================== -->
+<section id="routes">
+<h2>🗺️ 路由結構</h2>
+
+<p>路由定義在 <code class="file-path">src/App.tsx</code> 中，使用 <code>createBrowserRouter</code>。</p>
+
+<pre>
+┌─ /                              RootLayout (useAuth → Loading Check)
+│  ├─ /                           RootRedirect (判斷已登入 → redirect /dashboard)
+│  ├─ /portfolio                  作品集展示
+│  │
+│  ├─ [ProtectedRoute]            需登入才能訪問
+│  │  ├─ /dashboard               會員儀表板 (Home.tsx → 實際上顯示的是 Home)
+│  │  ├─ /booking                 預約頁面 (多步驟流程)
+│  │  ├─ /booking/pay/:bookingId  付款頁面
+│  │  ├─ /store                   店家資訊
+│  │  ├─ /member                  會員中心
+│  │  ├─ /member/history          預約紀錄
+│  │  ├─ /member/reschedule/:bookingId  改期
+│  │  ├─ /member/rewards          集點獎勵
+│  │  ├─ /member/pass             我的季卡
+│  │  ├─ /member/coupons          我的優惠券
+│  │  ├─ /member/purchase/:passId 購買季卡
+│  │  └─ /member/orders/:orderId/feedback  訂單評價
+│  │
+│  ├─ /liff                       LINE LIFF 入口 (Redirect handler)
+│  ├─ /orders/:bookingId          訂單詳情 (公開)
+│  └─ /orders/:orderId/feedback   (重複？也在 ProtectedRoute 內)
+│
+├─ /login                         登入頁面 (無需驗證)
+├─ /register                      註冊頁面 (已登入 → redirect)
+│
+└─ /admin [AdminRoute]            需要 admin/manager/designer 角色
+   └─ AdminLayout (Sidebar + MobileHeader)
+      ├─ /admin                    儀表板總覽
+      ├─ /admin/calendar           行事曆
+      ├─ /admin/hours              營業時間設定
+      ├─ /admin/orders             預約訂單管理
+      ├─ /admin/orders-pass        季卡訂單管理
+      ├─ /admin/orders/:orderId/edit  訂單編輯
+      ├─ /admin/customers          客戶管理
+      ├─ /admin/customers/:userId  客戶詳情
+      ├─ /admin/services           服務管理
+      ├─ /admin/portfolio          作品集管理
+      ├─ /admin/promotions         優惠活動
+      ├─ /admin/feedback           問題回報
+      ├─ /admin/staff              設計師管理
+      ├─ /admin/settings           一般設定 (含 Booking, Account, Notification, SeasonPass, Review)
+      └─ /admin/settings/images    首頁圖片設定
+</pre>
+
+<h3>路由問題</h3>
+<ul>
+  <li><span class="tag tag-red">BUG</span> <code class="file-path">BookingPage.tsx</code> 中 <code>CouponSelectorModal</code> 被渲染了<strong>兩次</strong>（同一個元件，相同 props） → 重複渲染 bug</li>
+  <li><span class="tag tag-red">BUG</span> <code>/orders/:orderId/feedback</code> 被定義在 <code>ProtectedRoute</code> 內<strong>和</strong>外部（外部是 LIFF 跳轉時不經登入使用）</li>
+  <li><span class="tag tag-yellow">WARN</span> 有兩組 <code>useAuth</code> hook：<code>src/hooks/useAuth.ts</code> 和 <code>src/useAuth.ts</code>（被 <code>App.tsx</code> 引用的是 hooks 下的版本）</li>
+  <li><span class="tag tag-yellow">WARN</span> 部分 admin 路徑（如 /admin/customers）在 AdminLayout 的 sidebar 中，但也被歸類在 Settings 的子路徑</li>
+</ul>
+</section>
+
+<!-- ===================== 元件架構 ===================== -->
+<section id="components">
+<h2>🧩 元件架構</h2>
+
+<h3>Layout 層級</h3>
+<pre>
+App (RouterProvider)
+└─ RootLayout (useAuth loader)
+   ├─ ToastProvider
+   ├─ PwaUpdatePrompt
+   ├─ ScrollToTop
+   └─ Suspense (lazy load)
+      └─ Outlet
+         │
+         ├─ UserLayout (Navbar + Sidebar + AnnouncementBanner + MainLayout)
+         │  └─ Outlet (pages: /dashboard, /booking, /member, etc.)
+         │
+         ├─ Login (獨立全屏頁面)
+         │
+         ├─ Register (RedirectIfLoggedIn wrapper)
+         │
+         └─ AdminLayout (Desktop Sidebar + MobileHeader + BottomNav)
+            └─ Outlet (pages: /admin/*)
+</pre>
+
+<h3>共用元件</h3>
+<table>
+  <tr><th>元件</th><th>路徑</th><th>說明</th></tr>
+  <tr><td>Button</td><td>src/components/common/Button.tsx</td><td>通用按鈕</td></tr>
+  <tr><td>Card</td><td>src/components/common/Card.tsx</td><td>通用卡片</td></tr>
+  <tr><td>Input</td><td>src/components/common/Input.tsx</td><td>通用輸入框</td></tr>
+  <tr><td>Modal</td><td>src/components/common/Modal.tsx</td><td>模態框</td></tr>
+  <tr><td>Sidebar</td><td>src/components/common/Sidebar.tsx</td><td>側邊選單（手機 drawer）</td></tr>
+  <tr><td>BottomNav</td><td>src/components/common/BottomNav.tsx</td><td>底部導航（手機）</td></tr>
+  <tr><td>Navbar</td><td>src/components/Navbar.tsx</td><td>頂部導航欄</td></tr>
+  <tr><td>LoadingSpinner</td><td>src/components/common/LoadingSpinner.tsx</td><td>載入動畫</td></tr>
+  <tr><td>ToastNotification</td><td>src/components/common/ToastNotification.tsx</td><td>提示訊息</td></tr>
+  <tr><td>ScrollToTop</td><td>src/components/common/ScrollToTop.tsx</td><td>路由切換自動滾頂</td></tr>
+  <tr><td>AnnouncementBanner</td><td>src/components/common/AnnouncementBanner.tsx</td><td>公告橫幅</td></tr>
+  <tr><td>PwaUpdatePrompt</td><td>src/components/PwaUpdatePrompt.tsx</td><td>PWA 更新提示</td></tr>
+</table>
+
+<h3>已知元件問題</h3>
+<ul>
+  <li><span class="tag tag-yellow">WARN</span> <code>App.css</code> 仍然保留著 Vite 預設的樣板內容（max-width: 1280px、logo-spin 動畫等），但實際 UI 使用的是 <code>index.css</code>，造成不必要的樣式殘留</li>
+  <li><span class="tag tag-yellow">WARN</span> <code>Button.tsx</code> 和 <code>Input.tsx</code> 自定義元件似乎未被廣泛使用，多數頁面直接使用原生 HTML 元素 + Tailwind classes</li>
+  <li><span class="tag tag-blue">INFO</span> <code>Sidebar.tsx</code> 中只對 admin 角色顯示「管理後臺」連結，未包含 manager/designer</li>
+</ul>
+</section>
+
+<!-- ===================== 狀態管理 ===================== -->
+<section id="state">
+<h2>🔁 狀態管理</h2>
+
+<h3>Zustand Store</h3>
+<table>
+  <tr><th>Store</th><th>檔案</th><th>用途</th></tr>
+  <tr><td><code>useAuthStore</code></td><td>src/store/authStore.ts</td><td>管理 currentUser, userProfile, authIsLoading, logout</td></tr>
+  <tr><td><code>useBookingStore</code></td><td>src/store/bookingStore.ts</td><td>管理購物車（cart），支援 persist（localStorage），含 addFollowUpToCart, updateFollowUpPrices</td></tr>
+</table>
+
+<h3>Context</h3>
+<table>
+  <tr><th>Context</th><th>檔案</th><th>用途</th></tr>
+  <tr><td><code>ToastContext</code></td><td>src/context/ToastContext.tsx</td><td>全域 Toast 通知系統</td></tr>
+</table>
+
+<h3>Data Fetching Hooks (Partial List)</h3>
+<table>
+  <tr><th>Hook</th><th>功能</th><th>資料來源</th></tr>
+  <tr><td><code>useAuth</code></td><td>監聽 Firebase Auth 狀態、建立使用者、取得 redirect 結果</td><td>onAuthStateChanged + Firestore onSnapshot</td></tr>
+  <tr><td><code>useBookings</code></td><td>取得使用者預約（支援 userId 參數查其他用戶）</td><td>API (get-my-bookings) 或 Firestore 直接查</td></tr>
+  <tr><td><code>useAllBookings</code></td><td>管理員取得所有預約（含即時監聽、衝突偵測、用戶名稱 enrich）</td><td>Firestore onSnapshot</td></tr>
+  <tr><td><code>useAvailableSlots</code></td><td>取得設計師可預約時段</td><td>API (get-available-slots)</td></tr>
+  <tr><td><code>useServices</code></td><td>取得所有服務項目</td><td>Firestore</td></tr>
+  <tr><td><code>useDesigners</code></td><td>取得所有設計師</td><td>Firestore</td></tr>
+  <tr><td><code>useUserCoupons</code></td><td>取得使用者優惠券</td><td>Firestore</td></tr>
+  <tr><td><code>useActivePass</code></td><td>取得使用者活躍季卡</td><td>Firestore</td></tr>
+  <tr><td><code>useCoupons</code></td><td>取得所有優惠券模板（管理員）</td><td>Firestore</td></tr>
+  <tr><td><code>useSeasonPasses</code></td><td>取得所有季卡方案</td><td>Firestore</td></tr>
+  <tr><td><code>usePortfolioItems</code></td><td>取得作品集</td><td>Firestore</td></tr>
+  <tr><td><code>useGlobalSettings</code></td><td>取得全域設定（含 serviceNotices, bookingNotice）</td><td>Firestore</td></tr>
+  <tr><td><code>useDesignerBookingInfo</code></td><td>取得設計師的閉館日與預約截止日</td><td>Firestore</td></tr>
+  <tr><td><code>useNotification</code></td><td>初始化 FCM 通知監聽</td><td>Firebase Messaging</td></tr>
+</table>
+
+<h3>狀態管理問題</h3>
+<ul>
+  <li><span class="tag tag-red">BUG</span> <code>useAuth.ts</code> 中的 <code>createUserProfile</code> 使用 <code>writeBatch.set()</code> 但非 <code>setDoc(..., {merge: true})</code>，可能覆蓋現有資料</li>
+  <li><span class="tag tag-yellow">WARN</span> <code>useBookings</code> hook 中有兩條路徑：有 userId→Firestore 直接查；無→透過 API。設計不一致</li>
+  <li><span class="tag tag-yellow">WARN</span> <code>useAllBookings</code> 中對每個 booking 都 await getDoc 查用戶名，可能 N+1 效能問題</li>
+  <li><span class="tag tag-yellow">WARN</span> 部分 hook 在元件中多次被調用，無 memoization 機制</li>
+</ul>
+</section>
+
+<!-- ===================== Firestore Schema ===================== -->
+<section id="firestore">
+<h2>🗄️ Firestore Schema</h2>
+
+<table>
+  <tr><th>Collection</th><th>說明</th><th>主要欄位</th></tr>
+  <tr>
+    <td><code>users/{userId}</code></td>
+    <td>使用者資料</td>
+    <td><code>email, profile: {displayName, avatarUrl}, role, createdAt, lastLogin, lineUserId, activePasses, loyaltyPoints, isDeleted</code></td>
+  </tr>
+  <tr>
+    <td><code>users/{userId}/userCoupons/{id}</code></td>
+    <td>子集合優惠券</td>
+    <td><code>couponId, code, title, status, value, type, minSpend, validUntil</code></td>
+  </tr>
+  <tr>
+    <td><code>designers/{designerId}</code></td>
+    <td>設計師檔案</td>
+    <td><code>name, linkedUserId, avatarUrl, description, bookingDeadline</code></td>
+  </tr>
+  <tr>
+    <td><code>designers/{id}/businessHours/{dateId}</code></td>
+    <td>設計師營業時間</td>
+    <td><code>date, isOpen, openTime, closeTime, breakStart, breakEnd, slots</code></td>
+  </tr>
+  <tr>
+    <td><code>services/{serviceId}</code></td>
+    <td>服務項目</td>
+    <td><code>name, category, price, duration, description, options, supportedDesigners, platinumDiscount, platinumPrice</code></td>
+  </tr>
+  <tr>
+    <td><code>serviceCategories/{categoryId}</code></td>
+    <td>服務分類</td>
+    <td><code>name, order, imageUrl</code></td>
+  </tr>
+  <tr>
+    <td><code>bookings/{bookingId}</code></td>
+    <td>預約紀錄</td>
+    <td><code>userId, designerId, serviceIds, serviceNames, items, dateTime, status, amount, duration, couponId, customerFeedback, passUsage, rescheduleCount</code></td>
+  </tr>
+  <tr>
+    <td><code>coupons/{couponId}</code></td>
+    <td>優惠券模板</td>
+    <td><code>title, code, type, value, minSpend, scopeType, scopeIds, isActive, isNewUserCoupon, usageCount</code></td>
+  </tr>
+  <tr>
+    <td><code>user_coupons/{docId}</code></td>
+    <td>根層級用戶優惠券</td>
+    <td><code>userId, couponId, code, title, status, isUsed, value, type, minSpend, scopeType, scopeIds, validFrom, validUntil, redeemedAt, usedAt, redemptionSource</code></td>
+  </tr>
+  <tr>
+    <td><code>season_passes/{passId}</code></td>
+    <td>季卡方案</td>
+    <td><code>name, description, price, contentItems, variants, isActive</code></td>
+  </tr>
+  <tr>
+    <td><code>orders/{orderId}</code></td>
+    <td>季卡訂單</td>
+    <td><code>userId, passId, amount, status, createdAt</code></td>
+  </tr>
+  <tr>
+    <td><code>redemption_items/{itemId}</code></td>
+    <td>點數兌換項目</td>
+    <td>管理員設定的兌換商品</td>
+  </tr>
+  <tr>
+    <td><code>point_transactions/{txId}</code></td>
+    <td>點數交易</td>
+    <td>用戶兌換紀錄</td>
+  </tr>
+  <tr>
+    <td><code>portolioItems/{itemId}</code></td>
+    <td>作品集</td>
+    <td><code>imageUrl, title, category, designerId</code></td>
+  </tr>
+  <tr>
+    <td><code>public_reviews/{reviewId}</code></td>
+    <td>公開評價</td>
+    <td><code>userId, bookingId, rating, comment, photos, designerName, serviceNames</code></td>
+  </tr>
+  <tr>
+    <td><code>feedback/{feedbackId}</code></td>
+    <td>問題回報</td>
+    <td>員工回報事項</td>
+  </tr>
+  <tr>
+    <td><code>gift_cards/{cardId}</code></td>
+    <td>商品卡模板</td>
+    <td>管理員設定的商品卡</td>
+  </tr>
+  <tr>
+    <td><code>user_giftcards/{docId}</code></td>
+    <td>用戶商品卡</td>
+    <td>類似 UserCoupon 結構</td>
+  </tr>
+  <tr>
+    <td><code>banners/{bannerId}</code></td>
+    <td>橫幅/輪播</td>
+    <td>首頁 Banner</td>
+  </tr>
+  <tr>
+    <td><code>settings/{settingId}</code></td>
+    <td>系統設定</td>
+    <td>各種設定值</td>
+  </tr>
+  <tr>
+    <td><code>globals/{document}</code></td>
+    <td>全域設定</td>
+    <td>含 serviceNotices, bookingNotice 等</td>
+  </tr>
+  <tr>
+    <td><code>loyaltyPointLogs/{logId}</code></td>
+    <td>點數紀錄（舊）</td>
+    <td>舊版點數紀錄</td>
+  </tr>
+  <tr>
+    <td><code>point_history/{historyId}</code></td>
+    <td>點數歷史（新）</td>
+    <td>新版點數歷史</td>
+  </tr>
+  <tr>
+    <td><code>temp_auth_tokens/{state}</code></td>
+    <td>暫存認證 Token</td>
+    <td>PWA LINE 登入用的 Firestore handoff 機制</td>
+  </tr>
+</table>
+
+<h3>Firestore Rules 問題</h3>
+<ul>
+  <li><span class="tag tag-red">SECURITY</span> <code>canAdminAllDesigners()</code> 包含 manager，manager 可以更新任何用戶的 <code>role</code> 欄位 → <strong>權限過大</strong></li>
+  <li><span class="tag tag-red">SECURITY</span> <code>/users/{userId}</code> 的 update 規則允許 <code>canAdminAllDesigners()</code> 修改任何欄位，包括 <code>role</code></li>
+  <li><span class="tag tag-yellow">WARN</span> <code>/bookings</code> 的 list 規則只允許員工列出，但前端 filter 會在客戶端進行，可能洩漏資料</li>
+  <li><span class="tag tag-yellow">WARN</span> <code>/user_coupons</code> 的 list 規則對員工無限制（無 userId filter check），員工可列出所有用戶優惠券</li>
+</ul>
+</section>
+
+<!-- ===================== Netlify Functions ===================== -->
+<section id="functions">
+<h2>⚡ Netlify Functions</h2>
+
+<table>
+  <tr><th>Function</th><th>路徑</th><th>用途</th></tr>
+  <tr><td><code>line-liff-auth</code></td><td>netlify/functions/line-liff-auth.ts</td><td>LIFF 登入驗證，發放 Firebase Custom Token</td></tr>
+  <tr><td><code>line-oauth-auth</code></td><td>netlify/functions/line-oauth-auth.ts</td><td>LINE OAuth 登入驗證，發放 Firebase Custom Token</td></tr>
+  <tr><td><code>line-webhook</code></td><td>netlify/functions/line-webhook.ts</td><td>LINE Messaging API Webhook</td></tr>
+  <tr><td><code>send-line-message</code></td><td>netlify/functions/send-line-message.ts</td><td>發送 LINE 通知訊息</td></tr>
+  <tr><td><code>get-my-bookings</code></td><td>netlify/functions/get-my-bookings.ts</td><td>取得用戶預約（bypass Firestore rules）</td></tr>
+  <tr><td><code>get-available-slots</code></td><td>netlify/functions/get-available-slots.ts</td><td>計算可預約時段</td></tr>
+  <tr><td><code>submit-payment</code></td><td>netlify/functions/submit-payment.ts</td><td>提交/確認付款</td></tr>
+  <tr><td><code>reschedule-booking</code></td><td>netlify/functions/reschedule-booking.ts</td><td>更改預約時間</td></tr>
+  <tr><td><code>notify-booking</code></td><td>netlify/functions/notify-booking.ts</td><td>預約通知（通知設計師/管理員）</td></tr>
+  <tr><td><code>delete-user</code></td><td>netlify/functions/delete-user.ts</td><td>刪除使用者（軟刪除 + Auth 刪除）</td></tr>
+  <tr><td><code>distribute-coupon</code></td><td>netlify/functions/distribute-coupon.ts</td><td>發送優惠券給用戶</td></tr>
+  <tr><td><code>distribute-giftcard</code></td><td>netlify/functions/distribute-giftcard.ts</td><td>發送商品卡給用戶</td></tr>
+  <tr><td><code>get-reviews</code></td><td>netlify/functions/get-reviews.ts</td><td>取得公開評價</td></tr>
+  <tr><td><code>migrate-reviews</code></td><td>netlify/functions/migrate-reviews.ts</td><td>遷移評價資料</td></tr>
+</table>
+
+<h3>Functions 問題</h3>
+<ul>
+  <li><span class="tag tag-red">BUG</span> <code>delete-user.ts</code> 中缺少對自身刪除的防護（可刪除自己）</li>
+  <li><span class="tag tag-red">BUG</span> <code>delete-user.ts</code> 中缺少對最後一個管理員的防護</li>
+  <li><span class="tag tag-red">BUG</span> LINE auth functions（line-liff-auth, line-oauth-auth）會在用戶 deleted === true 時重新激活帳號（設為 false）→ <strong>已刪除帳號可重新登入</strong></li>
+  <li><span class="tag tag-yellow">WARN</span> 付款 function 目前僅為佔位，未整合真實金流</li>
+</ul>
+</section>
+
+<!-- ===================== 認證流程 ===================== -->
+<section id="flow-auth">
+<h2>🔐 認證流程</h2>
+
+<h3>LINE 登入流程</h3>
+<div class="diagram-box">
+用戶點「LINE 登入」
+│
+├─ 判斷是否在 LINE 內建瀏覽器 (LIFF)？
+│  ├─ Yes → 導向 /liff?redirect=xxx
+│  │        → LiffEntry.tsx 初始化 LIFF
+│  │        → liff.login() → LIFF 取得 LINE Token
+│  │        → POST /api/line-liff-auth { idToken }
+│  │        → Firebase signInWithCustomToken
+│  │
+│  └─ No → 判斷是否 PWA？
+│     ├─ Yes (PWA)
+│     │  → 開啟 Popup 視窗進行 OAuth
+│     │  → 在 Firestore temp_auth_tokens/{state} 監聽 Token
+│     │  → Popup 完成後寫入 token → onSnapshot 收到 → signInWithCustomToken
+│     │
+│     └─ No (一般瀏覽器)
+│        → 直接 redirect 到 LINE OAuth URL
+│        → 回到登入頁面 (code + state)
+│        → POST /api/line-oauth-auth { code, redirectUri, state }
+│        → Firebase signInWithCustomToken
+│
+└─ 成功後 useAuth 監聽到 Firebase User
+   → Firestore onSnapshot users/{uid}
+   → 若不存在則 createUserProfile（含新用戶優惠券）
+   → setAuthState(user, profile)
+</div>
+
+<h3>Google 登入（管理員/設計師限定）</h3>
+<ul>
+  <li>僅允許 <code>admin</code>、<code>manager</code>、<code>designer</code> 角色使用</li>
+  <li>一般用戶使用 Google 登入會被拒絕並刪除 Auth 記錄（避免孤兒帳號）</li>
+</ul>
+
+<h3>自動註冊流程</h3>
+<div class="diagram-box">
+onAuthStateChanged → user 存在但 users/{uid} 不存在
+  → createUserProfile():
+     1. writeBatch 開始
+     2. 查詢 isNewUserCoupon === true 的優惠券
+     3. 若有 → 在 user_coupons 建立一筆新用戶優惠券
+     4. 在 users/{uid} 建立使用者文件
+     5. batch.commit()
+  → onSnapshot 再次觸發 → data 已存在
+  → setAuthState(user, profile)
+</div>
+
+<h3>認證流程問題</h3>
+<ul>
+  <li><span class="tag tag-red">BUG</span> 註冊邏輯有兩處實作：<code>Register.tsx</code> 和 <code>useAuth.ts</code>，可能重複發放新用戶優惠券</li>
+  <li><span class="tag tag-yellow">WARN</span> <code>createUserProfile</code> 使用 <code>batch.set()</code>（非 merge），若因 race condition 雙方同時寫入可能遺失資料</li>
+  <li><span class="tag tag-yellow">WARN</span> <code>ProtectedRoute</code> 使用 console.log 輸出除錯資訊到 production</li>
+</ul>
+</section>
+
+<!-- ===================== 預約流程 ===================== -->
+<section id="flow-booking">
+<h2>📅 預約流程</h2>
+
+<h3>前端多步驟流程</h3>
+<div class="diagram-box">
+Step 1: 選擇服務 (ServiceSelector)
+  ├─ 瀏覽服務分類 (Category Tabs)
+  ├─ 點擊服務 → 檢查 globalSettings.serviceNotices →
+  │    有 notice → 顯示 Notice Modal → 同意後打開 Options Sheet
+  │    無 notice → 直接打開 Options Sheet
+  ├─ ServiceOptionsSheet → 選擇加價購選項 → 加入購物車
+  ├─ CartSidebar (桌面)/ MobileCartBar (手機) 顯示購物車
+  └─ 「下一步」按鈕
+
+Step 2: 選擇設計師 (DesignerSelector)
+  └─ 根據 cart 中各服務的 supportedDesigners 交集過濾
+     └─ 「下一步」按鈕
+
+Step 3: 選擇日期與時間
+  ├─ CalendarSelector (react-day-picker)
+  │  └─ 閉館日標示、預約截止日限制
+  ├─ 選擇日期 → 日曆收合
+  │  └─ updateFollowUpPrices (跟進服務價格)
+  └─ TimeSlotSelector
+     └─ 顯示可預約時段
+
+Step 4: 確認與下單
+  ├─ 預約摘要（時間、服務、設計師）
+  ├─ 優惠券選擇 (CouponSelectorModal)
+  │  └─ 可輸入優惠碼領取
+  ├─ BookingForm（備註、價格顯示）
+  └─ 確認預約 → 檢查 bookingNotice → 顯示確認 Modal
+     └─ processBooking:
+        1. writeBatch 建立 booking 文件
+        2. 若有 coupon → 更新 user_coupons 狀態
+        3. batch.commit()
+        4. 發送 LINE 通知 (send-line-message + notify-booking)
+        5. 標記 follow-up 為已使用
+        6. clearCart()
+        7. redirect: pending_payment → /booking/pay/:id
+                     其他 → /dashboard
+</div>
+
+<h3>價格計算邏輯（完整拆解）</h3>
+
+<h4>📐 購物車 (Cart) 價格結構</h4>
+<p>定義於 <code class="file-path">src/store/bookingStore.ts</code> — <code>CartItem</code> 介面</p>
+<pre>
+CartItem = {
+  itemId: string          // 唯一識別碼
+  service: Service         // 服務定義 (含 price, duration, options)
+  selectedOptions: Record&lt;optionId, ServiceOptionItem[]&gt;  // 選擇的加價購項目
+  totalPrice: number       // = service.price + Σ(optionsPrice * qty)
+  totalDuration: number    // = service.duration + Σ(optionsDuration * qty)
+
+  // 跟進服務（Follow-up）專屬欄位
+  followUpId?: string
+  followUpDiscount?: number    // 折扣率 (e.g., 0.5 = 50% off)
+  originalFollowUp?: ActiveFollowUp
+}
+</pre>
+
+<h4>🧮 完整結帳價格計算流程</h4>
+<p>定義於 <code class="file-path">src/pages/BookingPage.tsx</code> 第 138-180 行 — <code>useMemo</code> 計算</p>
+<pre>
+計算順序 (由前往後疊加)：
+
+【STEP 1】Base Price（原始總價）
+  totalBasePrice = Σ cart[item].totalPrice
+                 = Σ (item.service.price + Σ(optionItem.price × qty))
+
+【STEP 2】Platinum 會員折扣（若 role === 'platinum'）
+  對每個 cart item:
+    serviceDef = services.find(s.id === item.service.id)
+
+    CASE A: serviceDef.platinumDiscount.type === 'percentage'
+      // ★ 折扣僅套用於服務原價 servicePrice，加購選項維持原價
+      → servicePrice = item.service.price
+      → optionsPrice = item.totalPrice - servicePrice
+      → itemFinalPrice = Math.floor(servicePrice × (value / 100)) + optionsPrice
+      // value = 折扣後百分比 (e.g., 70 = 70% = 打7折)
+      
+    CASE B: serviceDef.platinumDiscount.type === 'fixed'
+      // ★ 折扣僅從服務原價扣除，加購不受影響
+      → servicePrice = item.service.price
+      → optionsPrice = item.totalPrice - servicePrice
+      → itemFinalPrice = Math.max(0, servicePrice - value) + optionsPrice
+      // value = 固定折扣金額
+
+    CASE C: serviceDef.platinumPrice (deprecated, 向後兼容)
+      → optionsPrice = item.totalPrice - item.service.price
+      → itemFinalPrice = serviceDef.platinumPrice + optionsPrice
+      // 僅取代基礎價格，options 價格不變
+
+  totalDiscountedPrice = Σ itemFinalPrice
+  platinumDiscountAmount = totalBasePrice - totalDiscountedPrice
+
+【STEP 3】優惠券折扣 (Coupon Discount)
+  // 僅當 selectedCoupon !== null 且 totalDiscountedPrice >= minSpend
+
+  if (selectedCoupon.type === 'fixed')
+    couponDiscount = selectedCoupon.value  // 固定折 N 元
+
+  if (selectedCoupon.type === 'percentage')
+    couponDiscount = Math.floor(totalDiscountedPrice × (value / 100))
+    // value = 折扣百分比 (e.g., 20 = 20% off)
+
+  finalPrice = Math.max(0, totalDiscountedPrice - couponDiscount)
+  totalDiscountAmount = platinumDiscountAmount + couponDiscount
+
+【STEP 4】Result
+  finalOutput = {
+    totalDuration,     // 總服務時長 (分鐘)
+    originalPrice,     // 未折扣原始價格
+    finalPrice,        // 最終實付金額
+    discountAmount     // 總折扣金額
+  }
+</pre>
+
+<h4>📋 預約狀態 (status) 決定邏輯</h4>
+<pre>
+initialStatus 決定 (BookingPage.tsx lines ~345-355):
+
+  if (isActingOnBehalf)              → 'pending_confirmation'  // Admin 代客預約
+  else if (selectedPass)             → 'pending_confirmation'  // 使用季卡預約
+  else if (role === 'platinum')      → 'pending_confirmation'  // 白金會員免訂金
+  else                                → 'pending_payment'      // 一般用戶需付訂金
+
+Redirect 邏輯:
+  if (initialStatus === 'pending_payment')
+    → navigate('/booking/pay/:bookingId')  // 去付款頁
+  else
+    → navigate('/dashboard')               // 直接到儀表板
+</pre>
+
+<h4>🔄 後端狀態轉換 (updateBookingStatus)</h4>
+<p>定義於 <code class="file-path">src/utils/bookingActions.ts</code></p>
+<pre>
+updateBookingStatus(bookingId, newStatus):
+
+  1. 季卡扣減 (pass deduction)
+     Cond: newStatus === 'confirmed'
+           AND passUsage exists
+           AND passUsageDeducted !== true
+     Action: 查 user.activePasses → 找對應 passId
+             → contentItemsUsed 中的 serviceId → map 到 contentItem.id
+             → remainingUsages[usageKey] -= 1
+             → passUsageDeducted = true
+
+  2. 季卡退還 (pass refund)
+     Cond: newStatus === 'cancelled'
+           AND passUsage exists
+           AND (passUsageDeducted === true OR oldStatus === 'confirmed')
+     Action: 同 deduction 但反向 → remainingUsages[usageKey] += 1
+             → passUsageDeducted = false
+
+  3. 自動升級 (Auto Role Upgrade) ⚠️ 問題邏輯
+     Cond: newStatus === 'completed'
+           AND user.role === 'user'
+     Action: role = 'platinum'
+     // ⚠️ 這裡 role 同時當權限角色和會員等級用
+</pre>
+
+<h3>預約流程問題</h3>
+<ul>
+  <li><span class="tag tag-red">BUG</span> <code>BookingPage.tsx</code> 中 <code>CouponSelectorModal</code> 渲染了兩次（同元件、同 props）</li>
+  <li><span class="tag tag-red">BUG</span> 季卡扣減邏輯被註解掉，從 booking 建立時移至 admin 確認時扣減，但 <code>updateBookingStatus</code> 中的扣減邏輯可能重複執行</li>
+  <li><span class="tag tag-yellow">WARN</span> 跟進服務（follow-up）價格計算使用了 localStorage persist 的 cart，但 Timestamp 序列化/反序列化可能出錯</li>
+  <li><span class="tag tag-yellow">WARN</span> <code>processBooking</code> 中 LINE 通知使用 <code>fetch().catch()</code> 防火牆（fire and forget），無法確認通知是否成功</li>
+  <li><span class="tag tag-blue">INFO</span> BookingProgressBar 被註解掉，但元件仍然匯入</li>
+</ul>
+</section>
+
+<!-- ===================== 管理後台 ===================== -->
+<section id="flow-admin">
+<h2>⚙️ 管理後台流程</h2>
+
+<h3>角色權限</h3>
+<table>
+  <tr><th>角色</th><th>權限範圍</th></tr>
+  <tr><td><code>admin</code></td><td>完全控制：所有設定、用戶管理、角色變更、刪除用戶</td></tr>
+  <tr><td><code>manager</code></td><td>管理設計師、營業時間、服務、訂單、客戶（但不能改角色？實際 rules 允許）</td></tr>
+  <tr><td><code>designer</code></td><td>僅能管理自己的檔案、營業時間、查看自己的預約</td></tr>
+  <tr><td><code>platinum</code></td><td>高級會員（享有折扣）、<strong>但存為 role 而非會員等級</strong></td></tr>
+  <tr><td><code>user</code></td><td>一般消費者</td></tr>
+</table>
+
+<h3>後台 Sidebar 導航</h3>
+<pre>
+admin → 所有選單 (10 項)
+manager → 所有選單 (10 項)
+designer → 僅：總覽・行事曆・訂單管理・服務管理・作品集管理・優惠活動
+</pre>
+
+<h3>主要後台功能</h3>
+<table>
+  <tr><th>功能</th><th>說明</th></tr>
+  <tr><td>儀表板</td><td>摘要卡片（待確認、本月營收、完成數）+ 個人/全域切換 + 設計師篩選</td></tr>
+  <tr><td>行事曆</td><td>FullCalendar 整合，按狀態顏色區分，含衝突偵測、設計師篩選</td></tr>
+  <tr><td>訂單管理</td><td>按狀態分頁（全部/待確認/已確認/已完成/已取消），批量操作</td></tr>
+  <tr><td>客戶管理</td><td>列表 + 詳情頁，可修改角色（危險操作）、發放優惠券、調整點數、激活季卡</td></tr>
+  <tr><td>服務管理</td><td>CRUD + 分類管理 + 選項編輯 + 設計師綁定 + 拖曳排序</td></tr>
+  <tr><td>營業時間</td><td>每個設計師可獨立設定，含預約截止日</td></tr>
+  <tr><td>優惠活動</td><td>優惠券 CRUD、發送、集點卡設定、商品卡、兌換設定</td></tr>
+  <tr><td>作品集</td><td>CRUD + 圖片上傳</td></tr>
+  <tr><td>設定</td><td>帳號設定、預約設定、通知設定、季卡設定、評價設定</td></tr>
+  <tr><td>問題回報</td><td>Feedback 管理</td></tr>
+</table>
+
+<h3>後台問題</h3>
+<ul>
+  <li><span class="tag tag-red">BUG</span> Frontend 直接寫入用戶 role（<code>CustomerListPage.tsx</code>, <code>CustomerDetailPage.tsx</code>），繞過後端驗證與審計日誌</li>
+  <li><span class="tag tag-yellow">WARN</span> 部分頁面（如 OrderManagementPage）在手機與桌面間使用 createPortal 分別渲染 filter 按鈕，雙重維護</li>
+  <li><span class="tag tag-yellow">WARN</span> <code>AdminLayout.tsx</code> 中的 backAction 邏輯將多個路徑視為 Settings 子頁面，但實際它們是獨立導航項</li>
+  <li><span class="tag tag-blue">INFO</span> 儀表板數據計算使用 useMemo，但依賴多個非同步資料源，可能計算時資料尚未完全載入</li>
+</ul>
+</section>
+
+<!-- ===================== 付款流程 ===================== -->
+<section id="flow-payment">
+<h2>💳 付款流程</h2>
+
+<div class="diagram-box">
+預約建立 (status: pending_payment)
+  → navigate('/booking/pay/:bookingId')
+  → BookingPaymentPage
+     ├─ 讀取 booking 資料
+     ├─ 顯示金額與預約資訊
+     └─ 點擊「確認付款」
+        → POST /api/submit-payment
+           { bookingId, amount, ... }
+        → 更新 booking status → 'confirmed' (或 'pending_confirmation')
+        → LINE 通知
+        → navigate('/dashboard')
+</div>
+
+<h3>付款問題</h3>
+<ul>
+  <li><span class="tag tag-red">BUG</span> <strong>無實際金流</strong> ← 最大問題！ <code>submit-payment</code> function 僅是佔位，未整合任何第三方金流（如綠界、LINE Pay）</li>
+  <li><span class="tag tag-yellow">WARN</span> <code>pending_payment</code> 狀態的 booking 在未付款前不會顯示為已確認，但系統沒有付款逾時自動取消機制</li>
+  <li><span class="tag tag-yellow">WARN</span> 沒有統一的訂單狀態機轉換管理，各處直接更新 status</li>
+</ul>
+</section>
+
+<!-- ===================== 會員流程 ===================== -->
+<section id="flow-member">
+<h2>👤 會員流程</h2>
+
+<h3>會員中心 (/member) 子頁面</h3>
+<table>
+  <tr><th>路徑</th><th>功能</th></tr>
+  <tr><td><code>/member</code></td><td>會員首頁（含管理員按鈕）</td></tr>
+  <tr><td><code>/member/history</code></td><td>預約紀錄（即將到來 / 歷史紀錄分頁）</td></tr>
+  <tr><td><code>/member/reschedule/:bookingId</code></td><td>改期（重複使用 CalendarSelector + TimeSlotSelector + API）</td></tr>
+  <tr><td><code>/member/rewards</code></td><td>集點獎勵</td></tr>
+  <tr><td><code>/member/pass</code></td><td>我的季卡</td></tr>
+  <tr><td><code>/member/coupons</code></td><td>我的優惠券列表</td></tr>
+  <tr><td><code>/member/purchase/:passId</code></td><td>購買季卡</td></tr>
+</table>
+
+<h3>會員角色升級</h3>
+<div class="diagram-box">
+在 updateBookingStatus 中：
+當 status 改為 'completed' 時：
+  若 user.role === 'user'
+  → 自動升級為 'platinum'
+  （但這將 role 作為會員等級使用，與權限系統混淆）
+</div>
+
+<h3>會員流程問題</h3>
+<ul>
+  <li><span class="tag tag-red">BUG</span> <code>role</code> 同時代表<strong>權限角色</strong>（admin/manager/designer）和<strong>會員等級</strong>（user/platinum），概念混合導致：
+    <ul>
+      <li>完成訂單後 user → platinum 升級</li>
+      <li>platinum 可以訪問 /admin？→ 實際上 AdminRoute 檢查 ['admin','manager','designer']，所以 platinum 被擋住</li>
+      <li>但 Firestore rules 中沒有對 platinum 的特別處理，platinum 角色沒有額外權限</li>
+    </ul>
+  </li>
+  <li><span class="tag tag-yellow">WARN</span> 集點功能（MemberRewardsPage）大部分 UI 已建立但點數累積/兌換邏輯尚未完全實作</li>
+  <li><span class="tag tag-yellow">WARN</span> 季卡購買頁面（PurchasePassPage）UI 已建立但無真實金流</li>
+</ul>
+</section>
+
+<!-- ===================== LINE 整合流程 ===================== -->
+<section id="flow-line">
+<h2>💬 LINE 整合流程</h2>
+
+<h3>多種登入模式</h3>
+<ol>
+  <li><strong>LIFF 模式：</strong> LINE 內建瀏覽器 → 使用 LIFF SDK 初始化 → liff.login() → POST /api/line-liff-auth</li>
+  <li><strong>PWA Popup + Firestore Polling：</strong> PWA 模式 → 開啟 OAuth Popup → Popup 完成後寫 Token 到 Firestore → PWA 監聽 Token 變化 → signInWithCustomToken</li>
+  <li><strong>標準 Redirect：</strong> 一般瀏覽器 → redirect 到 LINE OAuth → 回到頁面帶 code/state → POST /api/line-oauth-auth</li>
+</ol>
+
+<h3>通知流程</h3>
+<div class="diagram-box">
+預約建立 → fetch('/api/send-line-message')
+  ├─ 發送 LINE Flex Message 給客戶（含預約資訊）
+  └─ fetch('/api/notify-booking')
+     └─ 發送通知給設計師/管理員
+
+訂單完成 → 發送 LINE 訊息含「給予評價」按鈕
+  └─ LIFF URL 帶 redirect=/orders/:orderId/feedback
+
+管理員手動發送訊息 → send-line-message Function
+</div>
+
+<h3>LINE 整合問題</h3>
+<ul>
+  <li><span class="tag tag-red">BUG</span> LINE auth functions 中已刪除用戶（deleted === true）可重新登入並被自動激活</li>
+  <li><span class="tag tag-yellow">WARN</span> LIFF 初始化發生在 UserLayout，但 /liff 路徑也在 UserLayout 外，可能導致 LIFF 未正確初始化</li>
+  <li><span class="tag tag-yellow">WARN</span> Firebase Cloud Messaging 已整合但實際使用情況不明</li>
+</ul>
+</section>
+
+<!-- ===================== 價格計算深度解析 ===================== -->
+<section id="pricing-cart">
+<h2>💰 金流/優惠/會員計算深度解析</h2>
+
+<div class="diagram-box" style="border-color:var(--primary); background:#fffef5;">
+╔══════════════════════════════════════════════════════════╗
+║              完整價格計算資料流程圖                       ║
+╠══════════════════════════════════════════════════════════╣
+║                                                        ║
+║  [選擇服務 + 加價購]                                    ║
+║    │                                                    ║
+║    ▼                                                    ║
+║  BookingStore.addToCart(service, selectedOptions)       ║
+║    │ → optionsPrice = Σ(item.price × qty)               ║
+║    │ → totalPrice = service.price + optionsPrice         ║
+║    │ → totalDuration = service.duration + Σ(optionsDura)║
+║    ▼                                                    ║
+║  [選擇跟進服務 Follow-Up]                                ║
+║    │ → addFollowUpToCart(followUp, discountRate, svc)   ║
+║    │ → price = Math.round(originalPrice × discountRate)  ║
+║    │ → 價格會隨日期變動 (updateFollowUpPrices)           ║
+║    ▼                                                    ║
+║  [選擇日期]  →  updateFollowUpPrices(date)              ║
+║    │ 根據 daysDiff 重新計算每個 follow-up 的 discountRate║
+║    ▼                                                    ║
+║  [STEP 2] Platinum 會員折扣 (role === 'platinum')       ║
+║    │ ├ percentage: final = Math.floor(svcPrice × val/100) + optPrice ║
+║    │ └ fixed:      final = Math.max(0, svcPrice - val) + optPrice      ║
+║    ▼                                                    ║
+║  [STEP 3] 優惠券折扣 (CouponSelectorModal)              ║
+║    │  檢查: minSpend、scopeType、validUntil              ║
+║    │ ├ fixed:      扣 coupon.value 元                   ║
+║    │ └ percentage: 扣 floor(price × value/100) 元       ║
+║    ▼                                                    ║
+║  [確認預約] processBooking()                            ║
+║    │ 1. writeBatch → booking doc                        ║
+║    │ 2. 更新 user_coupons 狀態                          ║
+║    │ 3. LINE 通知 (fire-and-forget)                     ║
+║    │ 4. 標記 follow-up 為 used                          ║
+║    │ 5. redirect: pending_payment → /booking/pay/:id    ║
+║    │            其他 → /dashboard                       ║
+║    ▼                                                    ║
+║  [管理員確認] updateBookingStatus → 'confirmed'          ║
+║    │ → 季卡扣減 (passUsage deduction)                   ║
+║    ▼                                                    ║
+║  [預約完成] updateBookingStatus → 'completed'           ║
+║    → 自動升級: user.role → 'platinum'                   ║
+║    → 預約取消: 退還季卡次數                             ║
+╚══════════════════════════════════════════════════════════╝
+</div>
+
+<h3>購物車價格計算</h3>
+<p>定義於 <code class="file-path">src/store/bookingStore.ts</code></p>
+
+<h4>CartItem 資料結構</h4>
+<pre>
+interface CartItem {
+  itemId: string           // `${Date.now()}-${Math.random()...}`
+  service: Service         // 服務定義 (含 price, duration, options)
+  selectedOptions: Record&lt;optionId, ServiceOptionItem[]&gt;
+  totalPrice: number       // service.price + Σ(optionItem.price × qty)
+  totalDuration: number    // service.duration + Σ(optionItem.duration × qty)
+  
+  // Follow-up 專屬
+  followUpId?: string
+  followUpDiscount?: number
+  originalFollowUp?: ActiveFollowUp
+}
+</pre>
+
+<h4>addToCart(service, selectedOptions) 價格計算</h4>
+<pre>
+optionsPrice   = 0
+optionsDuration = 0
+for each (optionItem of Object.values(selectedOptions).flat()):
+  qty = optionItem.quantity || 1
+  optionsPrice     += optionItem.price × qty
+  optionsDuration  += (optionItem.duration || 0) × qty
+
+newItem.totalPrice    = service.price + optionsPrice
+newItem.totalDuration = service.duration + optionsDuration
+</pre>
+
+<h4>addFollowUpToCart(followUp, discountRate, service) 價格計算</h4>
+<pre>
+discountedPrice = Math.round(followUp.originalPrice × discountRate)
+
+newItem = {
+  service: { ...service, name: followUp.followUpName, price: discountedPrice },
+  totalPrice: discountedPrice,
+  totalDuration: service.duration,
+  followUpDiscount: discountRate
+}
+</pre>
+
+<h4>updateFollowUpPrices(bookingDate) — 隨日期變動價格</h4>
+<pre>
+for each cart item:
+  if (!item.originalFollowUp) skip  // 不是 follow-up
+
+  completedDate = followUp.completedAt.toDate()
+  daysDiff = floor((bookingDate - completedDate) / (1000 × 60 × 60 × 24))
+
+  // 根據 daysDiff 找適用的 tier
+  sortedTiers = [...followUp.pricingTiers].sort(a.withinDays - b.withinDays)
+  
+  discountRate = sortedTiers[last]?.discountRate || 1  // 預設無折扣
+  for (tier of sortedTiers):
+    if (daysDiff <= tier.withinDays):
+      discountRate = tier.discountRate
+      break
+
+  newPrice = Math.round(followUp.originalPrice × discountRate)
+  item.totalPrice = newPrice
+  item.followUpDiscount = discountRate
+</pre>
+
+<h4>🛒 最終結帳金額計算 (BookingPage.tsx, lines 138-180)</h4>
+<pre>
+// STEP 1: 原始總價
+totalBasePrice = Σ cart[item].totalPrice
+
+// STEP 2: Platinum 折扣 (只對 platinum role 執行)
+totalDiscountedPrice = Σ computeItemFinalPrice(item)
+
+function computeItemFinalPrice(item):
+  if (actingUserProfile?.role !== 'platinum')
+    return item.totalPrice  // 無折扣
+
+  serviceDef = services.find(s.id === item.service.id)
+  if (!serviceDef) return item.totalPrice
+
+  // Case A: 百分比折扣 (新機制)
+  // ★ 折扣僅套用於服務原價，加購選項維持原價
+  if (serviceDef.platinumDiscount?.type === 'percentage'):
+    servicePrice = item.service.price
+    optionsPrice = item.totalPrice - servicePrice
+    return Math.floor(servicePrice × value / 100) + optionsPrice
+    // e.g., value=70 → 服務價7折 + 加購原價
+
+  // Case B: 固定金額折扣 (新機制)
+  // ★ 折扣僅從服務原價扣除，加購不受影響
+  if (serviceDef.platinumDiscount?.type === 'fixed'):
+    servicePrice = item.service.price
+    optionsPrice = item.totalPrice - servicePrice
+    return Math.max(0, servicePrice - value) + optionsPrice
+    // e.g., value=200 → 服務價減200 + 加購原價
+
+  // Case C: 獨立白金價格 (deprecated 舊機制)
+  if (serviceDef.platinumPrice):
+    optionsPrice = item.totalPrice - item.service.price
+    return serviceDef.platinumPrice + optionsPrice
+
+  return item.totalPrice
+
+// STEP 3: 優惠券折扣
+if (selectedCoupon && totalDiscountedPrice >= selectedCoupon.minSpend):
+  if (selectedCoupon.type === 'fixed'):
+    couponDiscount = selectedCoupon.value
+  if (selectedCoupon.type === 'percentage'):
+    couponDiscount = Math.floor(totalDiscountedPrice × selectedCoupon.value / 100)
+  
+  finalPrice = Math.max(0, totalDiscountedPrice - couponDiscount)
+else:
+  finalPrice = totalDiscountedPrice
+  couponDiscount = 0
+
+// STEP 4: 結果
+totalDiscountAmount = (totalBasePrice - totalDiscountedPrice) + couponDiscount
+finalResult = { totalDuration, originalPrice: totalBasePrice, finalPrice, discountAmount: totalDiscountAmount }
+</pre>
+
+<h4>⏭️ 預約狀態決定</h4>
+<pre>
+initialStatus =
+  isActingOnBehalf           → 'pending_confirmation'   // Admin 代客
+  selectedPass               → 'pending_confirmation'   // 季卡
+  actingUserProfile.role === 'platinum' → 'pending_confirmation'  // 白金會員免訂金
+  否則                       → 'pending_payment'        // 一般用戶
+
+Redirect:
+  pending_payment  → /booking/pay/:bookingId
+  其他             → /dashboard
+</pre>
+
+<h4>🔁 後端狀態轉換 (updateBookingStatus)</h4>
+<pre>
+updateBookingStatus(bookingId, newStatus):
+
+  1️⃣ 季卡扣減 (confirmed + passUsage + !deducted)
+    查 user.activePasses → 找 pass.passId === bookingData.passUsage.passId
+    → contentItemsUsed 的 serviceId → 映射到 contentItem.id
+    → remainingUsages[usageKey] -= 1
+    → passUsageDeducted = true
+
+  2️⃣ 季卡退還 (cancelled + passUsage + (deducted || oldStatus=='confirmed'))
+    反向操作: remainingUsages[usageKey] += 1
+    → passUsageDeducted = false
+
+  ⚠️ 問題: refund 條件檢查 bookingData.status === 'confirmed' 但
+     bookingData 是 getDoc 拿到的最新資料，不是更新前的狀態
+
+  3️⃣ 自動升級 (completed)
+    if (user.role === 'user') → user.role = 'platinum'
+    ⚠️ 這個邏輯混合了 role(權限) 和 membership tier(會員等級)
+</pre>
+</section>
+
+<!-- ===================== 優惠券系統 ===================== -->
+<section id="pricing-coupon">
+<h3>🎫 優惠券系統完整解析</h3>
+
+<h4>資料模型</h4>
+<p><code class="file-path">src/types/coupon.ts</code></p>
+<pre>
+// 優惠券模板 (coupons collection)
+interface Coupon {
+  id: string
+  code: string             // 優惠碼 (e.g., "VIP2024")
+  title: string            // 顯示名稱
+  details: string          // 詳細說明
+  rules: string            // 使用規則
+  type: 'fixed' | 'percentage'
+  value: number            // 折扣數值 (元 或 %)
+  minSpend: number         // 最低消費
+  scopeType: 'all' | 'category' | 'service' | 'designer'
+  scopeIds: string[]       // 適用範圍 ID 列表
+  validFrom/validUntil: Timestamp
+  usageLimit: number       // 總發行量 (-1 = 不限)
+  userLimit: number        // 每人限領次數
+  usageCount: number       // 已使用次數
+  isActive: boolean
+  isClaimable: boolean     // 是否可透過優惠碼領取
+  isNewUserCoupon?: boolean // 新人專屬
+}
+
+// 用戶持有的優惠券實例 (user_coupons collection)
+interface UserCoupon {
+  id: string               // 實例 ID
+  couponId: string          // 模板 ID
+  code: string              // 唯一碼 (e.g., "VIP2024-X9Y2")
+  title: string
+  status: 'active' | 'used' | 'expired'
+  value, type, minSpend, scopeType, scopeIds, details  // 繼承自模板
+  validFrom, validUntil: Timestamp
+  redemptionSource?: string // 來源 (new_user_gift / code_claim / admin_issue / 兌換名稱)
+  redeemedAt?: Timestamp    // 使用時間
+}
+</pre>
+
+<h4>優惠券領取流程 (useCouponClaim)</h4>
+<pre>
+claimCoupon(code):
+  1. 查 coupons 集合: where('code', '==', code.trim())
+  2. 檢查 template.isClaimable !== false
+  3. 檢查 userLimit: 查 user_coupons 中同 couponId 的數量
+  4. runTransaction:
+     a. 再讀 coupon template 確認 isActive / validFrom / validUntil / usageCount
+     b. 建立 user_coupon 實例
+        → code = `${data.code}-${randomSuffix}`
+        → status = 'active'
+        → redemptionSource = 'code_claim'
+     c. ⚠️ usageCount ++ 被註解掉 (Firestore rules 不允許用戶寫入 coupons)
+</pre>
+
+<h4>新用戶優惠券發放 (useAuth.ts createUserProfile)</h4>
+<pre>
+createUserProfile(firebaseUser):
+  1. 查 coupons: where('isNewUserCoupon', '==', true), where('isActive', '==', true)
+  2. 若有 → writeBatch:
+     a. 建立 user_coupon (code = `${coupon.code}-${randomSuffix}`, 
+        validUntil = 90 天後, redemptionSource = 'new_user_gift')
+     b. 建立 users/{uid} 文件
+     ⚠️ 批次寫入: batch.set(userDocRef, newUserProfile)
+       非 merge，若 race condition 可能覆蓋
+</pre>
+
+<h4>優惠券適用性檢查 (CouponSelectorModal)</h4>
+<pre>
+availableCoupons = userCoupons.filter(coupon => {
+  1. 狀態檢查:
+     - status === 'used' 或 isUsed === true → 排除
+     - status === 'active' 或 (無 status 且 !isUsed) → 保留
+  2. 過期檢查:
+     - coupon.validUntil.toDate() < now → 排除
+  3. 最低消費:
+     - currentPrice < coupon.minSpend → 排除
+  4. 範圍檢查 (scopeType):
+     - 'all'       → 全部可用
+     - 'category'  → selectedServices.some(s => scopeIds.includes(s.category))
+     - 'service'   → selectedServices.some(s => scopeIds.includes(s.id))
+     - 'designer'  → selectedDesigner ? scopeIds.includes(selectedDesigner.id) : false
+})
+</pre>
+
+<h4>管理員發送優惠券 (CouponDistribution)</h4>
+<pre>
+發送對象選擇:
+  - 'all'        → 全體會員
+  - 'new'        → 過去7天註冊
+  - 'role'       → 依會員等級 (user/platinum/admin)
+  - 'pass'       → 持有特定季卡的用戶
+  - 'specific'   → 搜尋指定用戶
+
+API: POST /api/distribute-coupon { couponId, targets: [{ type, ids }] }
+API: POST /api/distribute-giftcard { giftCardId, targets: [{ type, ids }] }
+</pre>
+
+<h4>優惠券問題</h4>
+<ul>
+  <li><span class="tag tag-red">BUG</span> 優惠券 usageCount 因 Firestore rules 限制無法更新（被註解掉），總發行量控制失效</li>
+  <li><span class="tag tag-yellow">WARN</span> 發送優惠券時 targets 處理將 pass/role 等在前端過濾後當 specific 送出，後端無驗證</li>
+  <li><span class="tag tag-yellow">WARN</span> CouponSelectorModal 在 BookingPage 被渲染兩次</li>
+  <li><span class="tag tag-blue">INFO</span> UserCoupon 同時有 status 和 isUsed 兩個欄位（舊版兼容），邏輯較複雜</li>
+</ul>
+</section>
+
+<!-- ===================== 跟進服務定價 ===================== -->
+<section id="pricing-followup">
+<h3>🔄 跟進服務定價 (Follow-Up Pricing)</h3>
+<p>定義於 <code class="file-path">src/types/service.ts</code> 和 <code class="file-path">src/hooks/useUserFollowUps.ts</code></p>
+
+<pre>
+// 跟進服務設定 (在 service 上)
+interface FollowUpConfig {
+  enabled: boolean
+  name: string                 // e.g., "補睫毛"
+  description?: string
+  validDays: number            // 最大有效天數
+  pricingTiers: FollowUpPricingTier[]
+}
+
+// 價格區間
+interface FollowUpPricingTier {
+  withinDays: number    // 天數門檻 (e.g., 14 = 2週內)
+  discountRate: number  // 折扣率 (e.g., 0.5 = 50%)
+  label?: string        // e.g., "2週內"
+}
+
+// 用戶持有的跟進服務資格
+interface ActiveFollowUp {
+  id: string
+  serviceId: string
+  followUpName: string      // e.g., "補睫毛"
+  originalPrice: number      // 原價
+  completedAt: Timestamp     // 原始預約完成時間
+  expiresAt: Timestamp       // 截止日
+  pricingTiers: FollowUpPricingTier[]
+  status: 'active' | 'used' | 'expired'
+}
+</pre>
+
+<h4>價格計算範例</h4>
+<pre>
+假設: 睫毛嫁接原價 $1500
+
+跟進服務 tiers:
+  - 7天內: 0.5 → $750  (5折)
+  - 14天內: 0.7 → $1050 (7折)
+  - 21天內: 0.9 → $1350 (9折)
+
+getFollowUpPrice(followUp, bookingDate):
+  1. daysDiff = (bookingDate - completedDate) / 天
+  2. 排序 tiers (由小到大)
+  3. 若 daysDiff > 最後 tier: 過期 → 回原價
+  4. 找第一個 daysDiff <= tier.withinDays
+  5. price = Math.round(originalPrice × discountRate)
+</pre>
+
+<h4>跟進服務問題</h4>
+<ul>
+  <li><span class="tag tag-yellow">WARN</span> Timestamp 透過 localStorage persist 後，toDate() 可能失效，updateFollowUpPrices 中需要特殊處理</li>
+  <li><span class="tag tag-yellow">WARN</span> 跟進服務與季卡不能同時使用，但系統無明確衝突檢查</li>
+</ul>
+</section>
+
+<!-- ===================== 季卡方案邏輯 ===================== -->
+<section id="pricing-pass">
+<h3>🎟️ 季卡方案邏輯 (Season Pass)</h3>
+
+<h4>資料模型</h4>
+<pre>
+// 季卡方案定義 (season_passes collection)
+interface SeasonPass {
+  id: string
+  name: string
+  duration: string              // "3個月"
+  variants: SeasonPassVariant[]  // 價格方案
+  contentItems: PlanContentItem[]  // 包含內容
+  color: string
+  isActive: boolean
+}
+
+interface SeasonPassVariant {
+  name: string                   // "120本", "150本"
+  price: number
+  originalPrice?: number         // 原價 (顯示折扣用)
+}
+
+interface PlanContentItem {
+  id: string
+  name: string
+  category: '服務' | '權益'
+  serviceId?: string             // 連結的服務 ID
+  quantity?: number              // 次數
+  monthlyLimit?: number          // 每月限制
+  benefitType: 'standalone' | 'upgrade' | 'discount' | 'giftcard'
+  appliesTo?: string             // upgrade 適用的服務
+  upgradeOptionId?: string       // 附加選項 ID
+  discountAmount?: number        // 折扣金額
+  couponId?: string              // 折扣券模板
+  giftCardId?: string            // 商品卡模板
+}
+
+// 用戶持有的活躍季卡 (users/{uid}.activePasses)
+interface ActivePass {
+  passId: string
+  passName: string
+  variantName?: string
+  purchaseDate: Timestamp
+  expiryDate: Timestamp
+  remainingUsages: Record&lt;contentItemId, number&gt;  // 剩餘次數
+}
+</pre>
+
+<h4>季卡啟用邏輯 (useSeasonPasses.activatePass)</h4>
+<pre>
+activatePass(userId, passId, variantName):
+  1. 讀 season_passes/{passId} 取得定義
+  2. 解析 duration:
+     - "3個月"  → monthsToAdd = 3
+     - "1年"    → monthsToAdd = 12
+     - 預設 3 個月
+  3. 初始化 remainingUsages:
+     - category 服務 + quantity → qty 次
+     - category 權益 → -1 (無次數限制)
+  4. 建立 ActivePass 寫入 users/{uid}.activePasses
+  5. 計算點數: pointsEarned = Math.floor(price / 1000)
+  6. 更新 user: activePasses += arrayUnion(newActivePass)
+                 loyaltyPoints += increment(pointsEarned)
+  7. 建立 point_history 紀錄
+</pre>
+
+<h4>季卡扣減邏輯 (updateBookingStatus)</h4>
+<pre>
+條件: status 改為 'confirmed'
+      AND booking.passUsage exists
+      AND booking.passUsageDeducted !== true
+
+執行:
+  1. 查 user.activePasses 找 pass.passId === booking.passUsage.passId
+  2. 查 season_passes/{passId} 取得 serviceId ↔ contentItem.id 對應
+  3. 對每個 contentItemsUsed 的 serviceId:
+     usageKey = contentItem.id (對應 serviceId)
+     if (remainingUsages[usageKey] > 0) remainingUsages[usageKey] -= 1
+  4. 寫回 user.activePasses = updatedPasses
+  5. booking.passUsageDeducted = true
+
+退款:
+  條件: status 改為 'cancelled'
+        AND passUsage exists
+        AND (passUsageDeducted === true OR oldStatus === 'confirmed')
+  執行: 反向操作 (remainingUsages += 1, passUsageDeducted = false)
+</pre>
+
+<h4>季卡問題</h4>
+<ul>
+  <li><span class="tag tag-red">BUG</span> 季卡扣減邏輯原本 BookingPage 建立時有但被註解掉，移到 updateBookingStatus 後，若管理員用前端 updateDoc 而不是 updateBookingStatus，扣減不會執行</li>
+  <li><span class="tag tag-yellow">WARN</span> 退款時僅根據 passId 找 pass（可能多個同類型季卡），缺少 purchaseDate 比對</li>
+  <li><span class="tag tag-yellow">WARN</span> purchasePassPage 有 UI 但無真實金流</li>
+</ul>
+</section>
+
+<!-- ===================== 集點/兌換邏輯 ===================== -->
+<section id="pricing-points">
+<h3>⭐ 集點/兌換邏輯 (Loyalty Points & Redemption)</h3>
+
+<h4>點數獲取方式</h4>
+<pre>
+1. 購買季卡:
+   → activatePass() 中: pointsEarned = Math.floor(price / 1000)
+   → loyaltyPoints += increment(pointsEarned)
+
+2. ⚠️ 訂單完成自動給點:
+   → 在 updateBookingStatus('completed') 中未實作
+   → 僅在 OrderManagementPage.tsx 中有 grantLoyaltyPoints 函數
+     但為手動觸發，非自動
+
+3. 管理員手動調整:
+   → PointAdjustmentModal.tsx
+   → 直接 updateDoc users/{uid} { loyaltyPoints: increment(x) }
+</pre>
+
+<h4>點數兌換邏輯 (useRedemption)</h4>
+<pre>
+redeemReward(reward):
+  1. runTransaction:
+     a. 讀 users/{uid} 取得最新 loyaltyPoints
+     b. 檢查 currentPoints >= reward.points
+     c. 若 reward.linkedCouponId → 讀 coupons/{id} 取得模板
+     d. 若 reward.linkedGiftCardId → 讀 gift_cards/{id} 取得模板
+     e. 扣點: loyaltyPoints = currentPoints - reward.points
+     f. 建立 point_transactions 紀錄
+     g. 若 linkedCoupon → 建立 user_coupon (效期 90 天)
+     h. 若 linkedGiftCard → 建立 user_giftcard
+</pre>
+
+<h4>兌換項目資料結構</h4>
+<pre>
+// redemption_items collection
+interface RedemptionItem {
+  id: string
+  title: string
+  points: number
+  colorTheme: 'orange' | 'blue' | 'green' | 'pink' | 'gray'
+  isActive: boolean
+  redemptionType: 'coupon' | 'giftcard'
+  linkedCouponId?: string
+  linkedGiftCardId?: string
+}
+</pre>
+
+<h4>集點設定 (LoyaltySettings)</h4>
+<pre>
+儲存在 globals/settings.loyaltySettings:
+
+interface LoyaltySettings {
+  pointsPerAmount: number   // 每消費 N 元 = 1 點 (預設 100)
+  rules: string              // 集點規則說明文字
+}
+
+⚠️ 但 pointsPerAmount 實際上未在任何點數計算中使用
+</pre>
+
+<h4>集點問題</h4>
+<ul>
+  <li><span class="tag tag-red">BUG</span> 訂單完成後自動給點邏輯不存在，僅管理員可手動給點</li>
+  <li><span class="tag tag-yellow">WARN</span> pointsPerAmount 設定未與實際點數計算掛鉤</li>
+  <li><span class="tag tag-yellow">WARN</span> 同時存在 loyaltyPointLogs（舊）和 point_history（新）兩個 collection</li>
+  <li><span class="tag tag-blue">INFO</span> 點數兌換使用 transaction 確保一致性，但缺少併發衝突處理</li>
+</ul>
+</section>
+
+<!-- ===================== 商品卡系統 ===================== -->
+<section id="pricing-giftcard">
+<h3>💳 商品卡系統 (Gift Card)</h3>
+
+<pre>
+// 商品卡模板 (gift_cards collection)
+interface GiftCard {
+  id: string
+  name: string              // "美甲護理套組"
+  description: string
+  imageUrl?: string
+  isActive: boolean
+}
+
+// 用戶持有的商品卡 (user_giftcards collection)
+interface UserGiftCard {
+  id: string
+  userId: string
+  giftCardId: string
+  name: string
+  status: 'active' | 'redeemed'
+  createdAt: Timestamp
+  redeemedAt?: Timestamp
+}
+</pre>
+
+<p>商品卡可透過以下方式發放：</p>
+<ol>
+  <li><strong>管理員手動發送</strong> — CouponDistribution 組件 → POST /api/distribute-giftcard</li>
+  <li><strong>點數兌換</strong> — RedemptionSettings 設定 linkedGiftCardId → useRedemption.redeemReward</li>
+  <li><strong>季卡內容</strong> — PlanForm 中 contentItem.benefitType === 'giftcard'</li>
+</ol>
+</section>
+
+<!-- ===================== 付款流程詳解 ===================== -->
+<section id="pricing-payment">
+<h3>💳 付款流程詳解</h3>
+
+<h4>預約訂金付款流程</h4>
+<pre>
+1. 用戶建立預約 → status: 'pending_payment'
+2. redirect → /booking/pay/:bookingId
+
+BookingPaymentPage:
+  ├─ 讀取 booking 資料 (getDoc)
+  ├─ 讀取 globalSettings.bankInfo (匯款資訊)
+  ├─ 顯示:
+  │  ├─ 預約摘要 (日期/時間/服務/設計師)
+  │  ├─ 訂金金額 (固定顯示 $1,000)
+  │  ├─ 銀行匯款資訊 (可複製帳號)
+  │  └─ 輸入「匯款帳號末五碼」
+  │
+  └─ 點擊「確認已匯款」:
+      → POST /api/submit-payment { bookingId, note }
+      → 更新 booking status (在 function 內處理)
+      → 發送 LINE 通知 (payment_report)
+      → 顯示成功畫面
+
+⚠️ submit-payment function 目前為佔位
+   實際上只記錄 note，無任何金流驗證
+</pre>
+
+<h4>季卡購買付款</h4>
+<pre>
+/member/purchase/:passId → PurchasePassPage
+  ├─ 選擇 variant (價格方案)
+  ├─ 產生 orders/{orderId} (status: 'pending_payment')
+  │  paymentMethod: 'transfer' (僅匯款)
+  ├─ 顯示匯款資訊
+  └─ 管理員手動確認 → updateOrderStatus(orderId, 'completed')
+      → activatePass(userId, passId, variantName)
+
+也無真實金流整合
+</pre>
+
+<h4>金流問題</h4>
+<ul>
+  <li><span class="tag tag-red">BUG P0-3</span> 完全無真實金流整合（綠界/LINE Pay/TapPay 等）</li>
+  <li><span class="tag tag-yellow">WARN</span> 訂金固定顯示 $1,000 而非 booking.amount 或其他動態金額</li>
+  <li><span class="tag tag-yellow">WARN</span> submit-payment 無 idempotency key，用戶可重複點擊</li>
+  <li><span class="tag tag-yellow">WARN</span> 無付款逾時自動取消機制 (pending_payment 會永遠卡住)</li>
+</ul>
+
+<h4>Cheat Sheet: 所有價格計算公式一覽</h4>
+<pre>
+情境                         | 計算公式                                     | 檔案
+────────────────────────────────────────────────────────────────────────────
+基本服務價格                  | service.price                                | types/service.ts
+加價購價格                   | Σ(optionItem.price × qty)                   | bookingStore.ts
+購物車單項價格               | service.price + Σ(optionItem.price × qty)   | bookingStore.addToCart
+白金%折扣                    | floor(servicePrice × val/100) + optionsPrice  | BookingPage.tsx
+白金固定折扣                 | max(0, servicePrice - val) + optionsPrice        | BookingPage.tsx
+白金專屬價格                 | platinumPrice + Σ(optionPrice)              | BookingPage.tsx
+優惠券固定折扣               | 扣 coupon.value 元                           | BookingPage.tsx
+優惠券%折扣                  | floor(price × coupon.value / 100)            | BookingPage.tsx
+跟進服務折扣                 | Math.round(originalPrice × discountRate)     | useUserFollowUps.ts
+跟進服務即時價格             | 根據 daysDiff 選 tier                       | bookingStore.updateFollowUpPrices
+季卡購買點數                 | Math.floor(price / 1000)                    | useSeasonPasses.activatePass
+季卡效期計算                 | "N個月" → addMonth(N), "N年" → addYear(N)  | useSeasonPasses.activatePass
+點數兌換                     | user.loyaltyPoints - reward.points          | useRedemption.ts
+訂單總金額                   | totalDiscountedPrice - couponDiscount        | BookingPage.tsx useMemo
+付款頁面訂金                 | 固定 $1,000 (非動態)                        | BookingPaymentPage.tsx
+</pre>
+</section>
+
+<!-- ===================== P0 問題 ===================== -->
+<section id="problems-p0">
+<h2>🚨 P0 - 緊急問題（需立即修復）</h2>
+
+<div class="card" style="border-left: 4px solid #10b981; background: #f0fdf4;">
+  <h4><span class="status-dot ok"></span> P0-1：已刪除帳號可透過 LINE 登入重新激活 <span class="tag tag-green">✅ 已修復</span></h4>
+  <p><strong>來源：</strong> line-liff-auth.ts, line-oauth-auth.ts</p>
+  <p><strong>說明：</strong> 當 users/{uid}.deleted === true 時，LINE auth function 會將 deleted 設回 false，role 設回 'user'，讓已刪除用戶重新獲得訪問權限。</p>
+  <p><strong>修復方式：</strong> 在兩個 LINE auth functions 的 login 流程開頭加入 <code>if (userData?.deleted)</code> 檢查，返回 HTTP 403 與錯誤訊息「此帳號已被刪除，無法登入。」。同時簡化了新用戶建立流程，不再處理 reactivation 路徑。</p>
+  <p><strong>修改檔案：</strong> <code class="file-path">netlify/functions/line-liff-auth.ts</code>、<code class="file-path">netlify/functions/line-oauth-auth.ts</code></p>
+</div>
+
+<div class="card" style="border-left: 4px solid #10b981; background: #f0fdf4;">
+  <h4><span class="status-dot ok"></span> P0-2：Manager 可直接修改任何用戶的 Role 權限 <span class="tag tag-green">✅ 已修復</span></h4>
+  <p><strong>來源：</strong> firestore.rules.txt — canAdminAllDesigners() 包含 manager</p>
+  <p><strong>說明：</strong> Firestore 規則中 manager 可以更新 users/{userId} 的任何欄位，包括 role。這意味著 manager 可以將自己升級為 admin，或將其他設計師降級。</p>
+  <p><strong>修復方式：</strong> 將 users/{userId} 的 update 規則拆分為三層權限：</p>
+  <ul>
+    <li><code>isTrulyAdmin()</code> — 可修改任何欄位（含 role）</li>
+    <li><code>isManager() && !affectedKeys('role')</code> — 不可修改 role</li>
+    <li><code>user self && !affectedKeys('role')</code> — 不可修改 role（原有邏輯）</li>
+  </ul>
+  <p><strong>修改檔案：</strong> <code class="file-path">firestore.rules.txt</code></p>
+</div>
+
+<div class="card p0">
+  <h4><span class="status-dot bad"></span> P0-3：無實際金流整合 <span class="tag tag-gray">跳過</span></h4>
+  <p><strong>來源：</strong> submit-payment.ts</p>
+  <p><strong>說明：</strong> pending_payment 狀態的預約無法實際收款，submit-payment function 僅是佔位，未串接任何第三方金流服務。</p>
+  <p><strong>影響：</strong> ⚠️ 預約系統無法收費，商業模式無法運作。</p>
+  <p><strong>備註：</strong> 使用者決定跳過，因金流需要手續費，暫不處理。</p>
+</div>
+
+<div class="card p0">
+  <h4><span class="status-dot warn"></span> P0-4：Role 同時代表權限角色和會員等級 <span class="tag tag-gray">暫緩</span></h4>
+  <p><strong>來源：</strong> 整體架構設計問題</p>
+  <p><strong>說明：</strong> <code>role</code> 欄位混合了 admin/manager/designer（權限角色）和 user/platinum（會員等級），導致 upgrade 邏輯（user→platinum）與權限檢查混淆。</p>
+  <p><strong>建議修復：</strong> 新增 membershipTier 或 level 欄位專門存會員等級，role 只存權限角色。</p>
+  <p><strong>備註：</strong> 暫緩處理。</p>
+</div>
+</section>
+
+<!-- ===================== P1 問題 ===================== -->
+<section id="problems-p1">
+<h2>🔴 P1 - 重要問題</h2>
+
+<div class="card" style="border-left: 4px solid #10b981; background: #f0fdf4;">
+  <h4><span class="status-dot ok"></span> P1-1：註冊邏輯重複（Register.tsx vs useAuth.ts） <span class="tag tag-green">✅ 已修復</span></h4>
+  <p>兩處都會建立用戶文件和發放新用戶優惠券，可能重複發券。</p>
+  <p><strong>修復方式：</strong> 從 <code>Register.tsx</code> 中移除了重複的 <code>setDoc(users/{uid})</code> 和 <code>distributeNewUserCoupon()</code> 呼叫。統一由 <code>useAuth.ts</code> 的 <code>onAuthStateChanged</code> + <code>createUserProfile</code>（使用 writeBatch 原子寫入）處理所有使用者建立與發券邏輯，消除 race condition 風險。</p>
+  <p><strong>修改檔案：</strong> <code class="file-path">src/pages/Register.tsx</code></p>
+</div>
+
+<div class="card p1">
+  <h4>P1-2：角色修改直接從 Frontend 寫入 Firestore</h4>
+  <p>CustomerListPage.tsx 和 CustomerDetailPage.tsx 直接呼叫 <code>updateDoc(users/{id}, { role })</code>，無後端驗證、無審計日誌。</p>
+  <p><strong>建議：</strong> 建立專用 Netlify Function /api/update-user-role 進行 server-side 驗證與記錄。</p>
+</div>
+
+<div class="card" style="border-left: 4px solid #10b981; background: #f0fdf4;">
+  <h4><span class="status-dot ok"></span> P1-3：delete-user function 缺少安全防護 <span class="tag tag-green">✅ 已修復</span></h4>
+  <p>無防止自刪機制、無防止刪除最後一個管理員機制。</p>
+  <p><strong>修復方式：</strong> 新增兩道安全防護：</p>
+  <ul>
+    <li><strong>防自刪（Guard 1）：</strong> <code>targetUserId === requesterUid</code> 時返回 400 錯誤「不能刪除自己的帳號。」</li>
+    <li><strong>防最後管理員被刪（Guard 2）：</strong> 若目標角色為 <code>admin</code> 或 <code>manager</code>，查詢系統中所有非 soft-deleted 的 admin/manager 數量。若 ≤ 1，返回錯誤「無法刪除最後一位管理員/管理設計師。」</li>
+  </ul>
+  <p><strong>修改檔案：</strong> <code class="file-path">netlify/functions/delete-user.ts</code></p>
+</div>
+
+<div class="card p1">
+  <h4>P1-4：CouponSelectorModal 在 BookingPage 中被渲染兩次</h4>
+  <p><code>BookingPage.tsx</code> 約第 700 行處，<code>CouponSelectorModal</code> 元件被寫了兩次（相同 props），導致重複渲染和可能的雙重 Modal。</p>
+</div>
+
+<div class="card p1">
+  <h4>P1-5：季卡扣減邏輯混亂</h4>
+  <p>BookingPage 建立時原本有扣減邏輯（已註解），移至 <code>updateBookingStatus</code> 在 admin 確認時執行。但 <code>updateBookingStatus</code> 中的扣減邏輯檢查 <code>passUsageDeducted</code> 標誌。退款邏輯也有類似問題。</p>
+</div>
+
+<div class="card" style="border-left: 4px solid #10b981; background: #f0fdf4;">
+  <h4><span class="status-dot ok"></span> P1-6：useAllBookings N+1 查詢問題 <span class="tag tag-green">✅ 已修復</span></h4>
+  <p>對每個 booking 都 await getDoc 查詢用戶名稱，若一次載入 100 筆預約則產生 100+ 次 Firestore 讀取。</p>
+  <p><strong>修復方式：</strong> 改為先收集所有 unique userId → 使用 <code>Promise.all</code> 一次讀取所有用戶 → 建立 <code>Map&lt;userId, displayName&gt;</code> → 後續同步查詢 Map。從 N 次 getDoc 降為 M 次（M = 唯一用戶數，通常 M ≪ N）。同時 <code>rawBookings.map</code> 改為同步操作。</p>
+  <p><strong>修改檔案：</strong> <code class="file-path">src/hooks/useAllBookings.ts</code></p>
+</div>
+
+<div class="card p1">
+  <h4>P1-7：Firestore Rules 中 user_coupons 缺少 userId 過濾</h4>
+  <p>員工列出所有 user_coupons 時無 userId 限制，可看到所有用戶的優惠券。</p>
+</div>
+
+<div class="card p1">
+  <h4>P1-8：付款逾時無自動取消機制</h4>
+  <p>pending_payment 狀態的預約若用戶未付款，會永遠卡在該狀態。需建立 Cloud Function 定期清理。</p>
+</div>
+</section>
+
+<!-- ===================== P2 問題 ===================== -->
+<section id="problems-p2">
+<h2>🟡 P2 - 一般問題</h2>
+
+<div class="card p2">
+  <h4>P2-1：雙 useAuth 檔案</h4>
+  <p><code>src/hooks/useAuth.ts</code> 和 <code>src/useAuth.ts</code> 同時存在，應刪除未使用的版本。</p>
+</div>
+
+<div class="card p2">
+  <h4>P2-2：重複的 Booking 查詢模式</h4>
+  <p>useBookings 對應 API 或 Firestore 兩種模式，設計不一致。建議統一。</p>
+</div>
+
+<div class="card p2">
+  <h4>P2-3：App.css 殘留 Vite 預設樣式</h4>
+  <p>仍包含 logo-spin 動畫、#root 的 max-width: 1280px 等未使用樣式。</p>
+</div>
+
+<div class="card p2">
+  <h4>P2-4：booking 頁面中有多處未清理的 console.log</h4>
+  <p>生產環境中輸出除錯資訊。包含 ProtectedRoute、AdminRoute、BookingPage 等。</p>
+</div>
+
+<div class="card p2">
+  <h4>P2-5：重複的套件（react-day-picker vs react-big-calendar vs FullCalendar）</h4>
+  <p>安裝了三個行事曆/日曆相關套件，應整合為一個。</p>
+</div>
+
+<div class="card p2">
+  <h4>P2-6：LINE 通知 fire-and-forget 模式</h4>
+  <p>fetch LINE 通知時使用 <code>.catch()</code> 忽略錯誤，無法確認通知是否成功送達。</p>
+</div>
+
+<div class="card p2">
+  <h4>P2-7：部分頁面路徑響應式不一致</h4>
+  <p>部分管理頁面在手機和桌面使用不同的元件/佈局模式（createPortal），增加維護成本。</p>
+</div>
+
+<div class="card p2">
+  <h4>P2-8：Follow-up 服務價格序列化問題</h4>
+  <p>bookingStore 使用 persist（localStorage），Timestamp 物件在序列化/反序列化時可能出錯，updateFollowUpPrices 中處理了多種格式。</p>
+</div>
+
+<div class="card p2">
+  <h4>P2-9：無輸入驗證</h4>
+  <p>各表單缺少基本的輸入驗證（手機號碼格式、Email 格式、必填欄位檢查等）。</p>
+</div>
+
+<div class="card p2">
+  <h4>P2-10：前台 HeadlessUI 已安裝但未見大量使用</h4>
+  <p>@headlessui/react 已安裝但多數元件使用自定義 Modal/Button。</p>
+</div>
+</section>
+
+<!-- ===================== P3 問題 ===================== -->
+<section id="problems-p3">
+<h2>🟢 P3 - 建議優化</h2>
+
+<div class="card p3">
+  <h4>P3-1：建立 Error Boundary</h4>
+  <p>目前無全域 Error Boundary，任何元件 crash 會導致白屏。</p>
+</div>
+
+<div class="card p3">
+  <h4>P3-2：建立統一的 API Client</h4>
+  <p>目前 API 呼叫散落在各元件和 hooks 中，無統一的錯誤處理、認證 header 注入、請求/響應攔截。</p>
+</div>
+
+<div class="card p3">
+  <h4>P3-3：引入 React Query / TanStack Query</h4>
+  <p>大量手動管理 loading/error/data 狀態、無 cache 機制、無自動 refetch。可考慮引入 TanStack Query 統一管理。</p>
+</div>
+
+<div class="card p3">
+  <h4>P3-4：加入 ESLint 嚴格規則與 Pre-commit Hook</h4>
+  <p>目前 ESLint 配置較寬鬆，無 pre-commit hook 確保程式碼品質。</p>
+</div>
+
+<div class="card p3">
+  <h4>P3-5：建立自動化測試</h4>
+  <p>目前無任何單元測試、整合測試或 E2E 測試。</p>
+</div>
+
+<div class="card p3">
+  <h4>P3-6：統一時間處理</h4>
+  <p>部分地方使用 date-fns，部分使用原生 Date，部分使用 Firestore Timestamp。建議統一時間處理方式。</p>
+</div>
+
+<div class="card p3">
+  <h4>P3-7：副作用分離</h4>
+  <p>BookingPage.tsx 超過 500 行，包含了 UI 渲染、業務邏輯、API 呼叫、狀態管理等所有職責。建議拆分為多個自定義 hook 或元件。</p>
+</div>
+
+<div class="card p3">
+  <h4>P3-8：建立 TypeScript strict 模式</h4>
+  <p>大量使用 <code>any</code> 型別、as 型別斷言。應啟用 strict 模式並補齊型別。</p>
+</div>
+
+<div class="card p3">
+  <h4>P3-9：優化 PWA 離線支援</h4>
+  <p>vite-plugin-pwa 已設定但 service worker 的行為未充分測試，離線支援範圍不明。</p>
+</div>
+
+<div class="card p3">
+  <h4>P3-10：建立 Firebase Emulator 測試環境</h4>
+  <p>開發時直接操作 production Firestore，存在資料安全風險。</p>
+</div>
+
+<div class="card p3">
+  <h4>P3-11：Package.json 中 firestore 套件非官方</h4>
+  <p>已安裝 <code>firestore: ^1.1.6</code> 這不是 Firebase 官方套件（正確應是 firebase/firestore），可能是不需要的依賴。</p>
+</div>
+
+<div class="card p3">
+  <h4>P3-12：管理後台 Sidebar 與 BottomNav 不一致</h4>
+  <p>Desktop sidebar 有 10 個導航項，但 mobile bottom nav 選項不同，使用者體驗不連貫。</p>
+</div>
+</section>
+
+<!-- ===================== 拯救計畫 ===================== -->
+<section id="roadmap">
+<h2>🛠️ 重整路線圖（「拯救屎山」計畫）</h2>
+
+<p>以下是建議的逐步重構計畫，按優先級排列：</p>
+
+<h3>Phase 1：緊急止血 (1-2 週) <span class="tag tag-green" style="margin-left:8px;">✅ 已完成 1.1, 1.2, 1.5, 1.6</span></h3>
+<table>
+  <tr><th>#</th><th>任務</th><th>說明</th><th>狀態</th></tr>
+  <tr><td>1.1</td><td><span class="badge badge-p0">P0</span> 修復 LINE 登入激活已刪除帳號</td><td>line-liff-auth / line-oauth-auth 中檢查 deleted flag</td><td style="color:#059669;">✅ 已完成</td></tr>
+  <tr><td>1.2</td><td><span class="badge badge-p0">P0</span> 修復 Firestore Rules 權限</td><td>role 變更僅限 admin；manager 限制更新欄位</td><td style="color:#059669;">✅ 已完成</td></tr>
+  <tr><td>1.3</td><td><span class="badge badge-p0">P0</span> 分離 role 和 membership tier</td><td>新增 membershipTier 欄位，role 僅存權限角色</td><td style="color:#d97706;">暫緩</td></tr>
+  <tr><td>1.4</td><td><span class="badge badge-p1">P1</span> 刪除重複的 CouponSelectorModal</td><td>BookingPage.tsx 中移除重複渲染</td><td>待處理</td></tr>
+  <tr><td>1.5</td><td><span class="badge badge-p1">P1</span> delete-user function 加入安全防護</td><td>防自刪、防最後管理員被刪</td><td style="color:#059669;">✅ 已完成</td></tr>
+  <tr><td>1.6</td><td>修復白金折扣連加購品項一併打折</td><td>折扣僅套用 service.price，optionsPrice 維持原價</td><td style="color:#059669;">✅ 已完成</td></tr>
+</table>
+
+
+
+<h3>Phase 2：架構整頓 (2-4 週)</h3>
+<table>
+  <tr><th>#</th><th>任務</th><th>說明</th></tr>
+  <tr><td>2.1</td><td>後端集中化 Role 管理</td><td>建立 /api/update-user-role function，前端不再直接寫入 role</td></tr>
+  <tr><td>2.2</td><td>統一的 API Client</td><td>建立 axios/fetch wrapper，統一 error handling + 認證</td></tr>
+  <tr><td>2.3</td><td>移除重複 useAuth</td><td>清理 src/useAuth.ts</td></tr>
+  <tr><td>2.4</td><td>優化 useAllBookings N+1</td><td>使用 collection group query 或 denormalize user name</td></tr>
+  <tr><td>2.5</td><td>整合 BookingPage 邏輯</td><td>將 500+ 行邏輯拆分為可測試的 hooks</td></tr>
+  <tr><td>2.6</td><td>統一註冊/入職流程</td><td>合併 Register.tsx 和 useAuth.ts 中的 createUserProfile</td><td style="color:#059669;">✅ 已完成</td></tr>
+</table>
+
+<h3>Phase 3：功能完善 (4-8 週)</h3>
+<table>
+  <tr><th>#</th><th>任務</th><th>說明</th></tr>
+  <tr><td>3.1</td><td><strong>金流整合（最優先商業功能）</strong></td><td>串接綠界 / LINE Pay / TapPay</td></tr>
+  <tr><td>3.2</td><td>付款逾時自動取消機制</td><td>Cloud Function 定期清理過期 pending_payment</td></tr>
+  <tr><td>3.3</td><td>集點功能完整實作</td><td>訂單完成自動給點 + 兌換流程</td></tr>
+  <tr><td>3.4</td><td>優惠券在預約流程中使用</td><td>前台預約時選擇優惠券</td></tr>
+</table>
+
+<h3>Phase 4：品質提升 (持續)</h3>
+<table>
+  <tr><th>#</th><th>任務</th><th>說明</th></tr>
+  <tr><td>4.1</td><td>加入 Error Boundary</td><td>防止白屏</td></tr>
+  <tr><td>4.2</td><td>加入單元測試</td><td>Vitest + React Testing Library</td></tr>
+  <tr><td>4.3</td><td>TypeScript Strict 模式</td><td>減少 any 使用</td></tr>
+  <tr><td>4.4</td><td>清理未用套件與程式碼</td><td>App.css、重複的 calendar lib 等</td></tr>
+  <tr><td>4.5</td><td>建立 Firebase Emulator 開發環境</td><td>避免開發時影響 production 資料</td></tr>
+  <tr><td>4.6</td><td>建立 CI/CD Pipeline</td><td>自動測試 + lint + type check</td></tr>
+</table>
+
+<h3>快速修復 Cheat Sheet</h3>
+<pre>
+# 問題                                  # 檔案                          # 修複方式                   # 狀態
+──────────────────────────────────────────────────────────────────────────────────────────────────────
+已刪除帳號可重新登入                    line-liff-auth.ts               檢查 deleted flag 返回 403    ✅ 已修復
+                                       line-oauth-auth.ts                                           ✅ 已修復
+Manager 權限過大                        firestore.rules.txt             僅 admin 可改 role            ✅ 已修復
+Role 混合會員等級                       全域                           新增 membershipTier           暫緩
+白金折扣連加購一併打折                   BookingPage.tsx                分離 servicePrice/optionsPrice ✅ 已修復
+CouponSelectorModal 重複渲染            BookingPage.tsx                刪除重複行                    待處理
+註冊邏輯重複                            Register.tsx, useAuth.ts       合併為單一機制                待處理
+角色直接前端修改                        CustomerListPage.tsx            改為後端 API                 待處理
+                                       CustomerDetail.tsx
+delete-user 無安全防護                   delete-user.ts                 加入自刪/最後管理員檢查        待處理
+無金流                                  submit-payment.ts              跳過（金流手續費問題）        跳過
+付款逾時無取消                          (無)                           新增 Cloud Function            待處理
+useAllBookings N+1 問題                 useAllBookings.ts               denormalize 或 batch query    待處理
+BookingPage 過大 (500+ 行)              BookingPage.tsx                 拆分 hooks                   待處理
+重複的 console.log 在 production        多個檔案                        刪除或使用 debug 模式         待處理
+多個 calendar 套件                      package.json                   整合為一個                    待處理
+App.css 殘留 Vite 預設樣式              App.css                         刪除                         待處理
+firestore 非官方套件                    package.json                    移除                         待處理
+</pre>
+</section>
+
+<!-- ===================== Footer ===================== -->
+<hr style="margin:3rem 0 1rem; border-color:var(--secondary);" />
+<p style="text-align:center; color:#999; font-size:0.8rem;">
+  TreeRing Nailres 專案分析文件 · Generated by Codebuff AI · <%= new Date().toISOString().split('T')[0] %>
+</p>
+<p style="text-align:center; font-size:0.75rem; color:#bbb;">
+  已識別 <span style="color:#dc2626;font-weight:700;">4 個 P0</span> · 
+  <span style="color:#d97706;font-weight:700;">8 個 P1</span> · 
+  <span style="color:#2563eb;font-weight:700;">10 個 P2</span> · 
+  <span style="color:#6b7280;font-weight:700;">12 個 P3</span> 問題
+  · <span style="color:#059669;font-weight:700;">已修復 6 個</span>
+</p>
+
+</div>
+
+<script>
+  // Sidebar active link tracking
+  document.querySelectorAll('.sidebar a').forEach(a => {
+    a.addEventListener('click', () => {
+      document.querySelectorAll('.sidebar a').forEach(el => el.classList.remove('active'));
+      a.classList.add('active');
+    });
+  });
+  // Auto-highlight on scroll
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        document.querySelectorAll('.sidebar a').forEach(a => {
+          a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>

@@ -143,25 +143,43 @@ const BookingPage = () => {
     let totalBasePrice = 0;
     let totalDiscountedPrice = 0;
 
+    // === 業務邏輯：服務與加購折扣分離 ===
+    // 白金折扣僅套用於 service.price（服務原價），加購選項維持原價
     cart.forEach(item => {
-      const itemBasePrice = item.totalPrice;
+      const servicePrice = item.service.price;
+      const optionsPrice = item.totalPrice - servicePrice;
+      const itemBasePrice = item.totalPrice; // 原始總價（僅用於無折扣回退）
       totalBasePrice += itemBasePrice;
-      let itemFinalPrice = itemBasePrice;
+      
+      let itemFinalPrice: number;
 
       if (actingUserProfile?.role === 'platinum') {
         const serviceDef = services.find(s => s.id === item.service.id);
+        
         if (serviceDef?.platinumDiscount) {
           const { type, value } = serviceDef.platinumDiscount;
+          
           if (type === 'percentage') {
-            itemFinalPrice = Math.floor(itemBasePrice * (value / 100));
+            // 折扣只套用在服務原價，加購維持原價
+            // 例：服務 $1000 + 加購 $300、折扣 70% → 1000*0.7 + 300 = $1000
+            itemFinalPrice = Math.floor(servicePrice * (value / 100)) + optionsPrice;
           } else if (type === 'fixed') {
-            itemFinalPrice = Math.max(0, itemBasePrice - value);
+            // 折扣只從服務原價扣除，加購不受影響
+            // 例：服務 $1000 + 加購 $300、折扣 $400 → max(0, 1000-400) + 300 = $900
+            itemFinalPrice = Math.max(0, servicePrice - value) + optionsPrice;
+          } else {
+            itemFinalPrice = itemBasePrice; // 未知折扣類型，回退為原價
           }
         } else if (serviceDef?.platinumPrice) {
-          const optionsPrice = item.totalPrice - item.service.price;
-          itemFinalPrice = (serviceDef.platinumPrice) + optionsPrice;
+          // 既有邏輯：platinumPrice 取代 service.price，加購維持原價
+          itemFinalPrice = serviceDef.platinumPrice + optionsPrice;
+        } else {
+          itemFinalPrice = itemBasePrice; // 無折扣定義
         }
+      } else {
+        itemFinalPrice = itemBasePrice; // 非白金會員
       }
+      
       totalDiscountedPrice += itemFinalPrice;
     });
 
@@ -962,14 +980,6 @@ const BookingPage = () => {
         </div>
       )}
 
-      <CouponSelectorModal
-        isOpen={isCouponModalOpen}
-        onClose={() => setIsCouponModalOpen(false)}
-        onSelect={handleCouponSelect}
-        selectedServices={cart.map(item => item.service)}
-        selectedDesigner={selectedDesigner}
-        currentPrice={originalPrice}
-      />
       <CouponSelectorModal
         isOpen={isCouponModalOpen}
         onClose={() => setIsCouponModalOpen(false)}

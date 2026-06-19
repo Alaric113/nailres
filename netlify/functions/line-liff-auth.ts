@@ -97,25 +97,27 @@ const handler: Handler = async (event: HandlerEvent) => {
       avatarUrl: pictureUrl || lineProfile.picture,
     };
 
-    // Treat as NEW USER if document doesn't exist OR if it was soft-deleted
-    if (!userDoc.exists || userData?.deleted) {
-      // --- NEW USER / REACTIVATION FLOW ---
-      console.log(`Creating new user (or reactivating): ${verifiedLineUserId}`);
+    // BLOCK deleted users from reactivating (P0-1 Security Fix)
+    if (userData?.deleted) {
+      console.log(`[line-liff-auth] Blocked login for deleted user: ${verifiedLineUserId}`);
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ message: '此帳號已被刪除，無法登入。' }),
+      };
+    }
 
-      // A. Create/Overwrite User Document
-      // We use set() without merge to ensure a clean slate, removing 'deleted' flags etc.
-      // BUT we might want to keep some history? 
-      // If we want to keep history, we should use { merge: true } but explicitly set deleted: false.
-      // However, to ensure they get "fresh" status, let's reset key fields.
-      
+    // Treat as NEW USER if document doesn't exist
+    if (!userDoc.exists) {
+      // --- NEW USER CREATION FLOW ---
+      console.log(`Creating new user: ${verifiedLineUserId}`);
+
       const newUserData = {
         lineUserId: verifiedLineUserId,
         profile: profileData,
-        createdAt: userDoc.exists ? userData?.createdAt : timestamp, // Keep original creation date if reactivating? Or reset? Let's keep original.
+        createdAt: timestamp,
         updatedAt: timestamp,
-        role: 'user', // Reset Role
-        deleted: false, // Reactivate
-        deletedAt: admin.firestore.FieldValue.delete(), // Remove deletion timestamp
+        role: 'user',
+        deleted: false,
       };
 
       await userRef.set(newUserData, { merge: true });

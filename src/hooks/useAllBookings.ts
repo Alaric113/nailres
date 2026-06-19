@@ -70,37 +70,40 @@ export const useAllBookings = (dateRange: { start: Date; end: Date } | null, des
           }
         }
 
-        const enrichedBookingsPromises = rawBookings.map(async (booking) => {
-          let userName: string = '未知使用者'; // Default value
-
-          // Fetch user data
-          if (booking.userId) {
-            const userDocRef = doc(db, 'users', booking.userId);
+        // P1-6: Batch-fetch all unique users to solve N+1 query problem
+        // Instead of doing getDoc for EACH booking, collect unique userIds and fetch them all at once
+        const uniqueUserIds = [...new Set(rawBookings.map(b => b.userId).filter((id): id is string => !!id))];
+        const userEntries = await Promise.all(
+          uniqueUserIds.map(async (uid) => {
+            const userDocRef = doc(db, 'users', uid);
             const userDocSnap = await getDoc(userDocRef);
             if (userDocSnap.exists()) {
-              const userData = userDocSnap.data() as UserDocument; // Cast to UserDocument
-              userName = userData.profile?.displayName || '未知使用者';
-            } else {
-              userName = '使用者已刪除';
+              const userData = userDocSnap.data() as UserDocument;
+              return [uid, userData.profile?.displayName || '未知使用者'] as const;
             }
-          } else {
+            return [uid, '使用者已刪除'] as const;
+          })
+        );
+        const userMap = new Map<string, string>(userEntries);
+
+        const enrichedBookings = rawBookings.map((booking) => {
+          let userName: string = '未知使用者';
+          if (booking.userId && userMap.has(booking.userId)) {
+            userName = userMap.get(booking.userId)!;
+          } else if (booking.userId && !userMap.has(booking.userId)) {
             userName = '無使用者ID';
           }
 
           return {
             ...booking,
             userName,
-            // serviceName and serviceDuration are now directly available from BookingDocument
-            // We join serviceNames for display and use the total duration
             serviceName: booking.serviceNames.join('、'),
             serviceDuration: booking.duration,
             isConflicting: conflictingIds.has(booking.id),
-            dateTime: (booking.dateTime as Timestamp).toDate(), // Convert Timestamp to Date
-            createdAt: (booking.createdAt as Timestamp).toDate(), // Convert Timestamp to Date
+            dateTime: (booking.dateTime as Timestamp).toDate(),
+            createdAt: (booking.createdAt as Timestamp).toDate(),
           };
         });
-
-        const enrichedBookings = await Promise.all(enrichedBookingsPromises);
         setBookings(enrichedBookings);
       } catch (err) {
         console.error("Error enriching bookings data:", err);

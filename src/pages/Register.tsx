@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { auth } from '../lib/firebase';
 import { handleSocialSignIn } from '../lib/socialAuth';
-import { distributeNewUserCoupon } from '../utils/userActions';
-import type { UserDocument } from '../types/user';
 
 const Register = () => {
   console.log("Rendering Register component");
@@ -28,22 +25,9 @@ const Register = () => {
         displayName: name,
       });
 
-      // Create user document in Firestore
-      const newUserProfile: UserDocument = {
-        email: user.email || '',
-        profile: {
-          displayName: name,
-          avatarUrl: '',
-        },
-        role: 'user',
-        createdAt: serverTimestamp(),
-        lastLogin: serverTimestamp(),
-      };
-
-      await setDoc(doc(db, 'users', user.uid), newUserProfile);
-
-      // Distribute New User Coupon
-      await distributeNewUserCoupon(user.uid);
+      // P1-1: User profile creation and new user coupon distribution
+      // are handled automatically by useAuth.ts's onAuthStateChanged listener.
+      // Do NOT duplicate them here — removing to avoid race conditions.
       
     } catch (err: any) {
       console.error('Registration Error:', err);

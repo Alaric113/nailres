@@ -102,12 +102,47 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         console.log(`[delete-user] Admin ${requesterUid} request delete for ${targetUserId}`);
 
-        // 7. Perform Deletion
-        // A. Firestore (Soft Delete to preserve history)
+        // === P1-3 Safety Guards ===
+
+        // Guard 1: Prevent self-deletion
+        if (targetUserId === requesterUid) {
+            console.warn(`[delete-user] Self-deletion blocked for ${requesterUid}`);
+            return { statusCode: 400, body: JSON.stringify({ message: '不能刪除自己的帳號。' }) };
+        }
+
+        // 7. Fetch target user data
         const userRef = db.collection('users').doc(targetUserId);
         const userSnap = await userRef.get();
         const userData = userSnap.data();
 
+        // Guard 2: Prevent deleting the last admin
+        // Check if the target is an admin/manager before counting them
+        const targetRole = userSnap.exists ? userData?.role : null;
+        if (targetRole === 'admin' || targetRole === 'manager') {
+            // Count remaining admins & managers
+            const allUsersSnapshot = await db.collection('users').get();
+            let adminManagerCount = 0;
+            allUsersSnapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.role === 'admin' || data.role === 'manager') {
+                    // Only count non-deleted users (but target might still be active)
+                    if (!data.deleted) {
+                        adminManagerCount++;
+                    }
+                }
+            });
+
+            if (adminManagerCount <= 1) {
+                console.warn(`[delete-user] Cannot delete last admin/manager (${targetUserId})`);
+                return {
+                    statusCode: 400,
+                    body: JSON.stringify({ message: '無法刪除最後一位管理員/管理設計師。' }),
+                };
+            }
+        }
+
+        // 8. Perform Deletion
+        // A. Firestore (Soft Delete to preserve history)
         if (userSnap.exists) {
             await userRef.update({
                 deleted: true,

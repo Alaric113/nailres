@@ -167,20 +167,28 @@ const handler: Handler = async (event: HandlerEvent) => {
       avatarUrl: pictureUrl,
     };
 
-    // Treat as NEW USER if document doesn't exist OR if it was soft-deleted
-    if (!userDoc.exists || userData?.deleted) {
-      // --- NEW USER / REACTIVATION FLOW ---
-      console.log(`Creating new user (or reactivating OAuth): ${lineUserId}`);
+    // BLOCK deleted users from reactivating (P0-1 Security Fix)
+    if (userData?.deleted) {
+      console.log(`[line-oauth-auth] Blocked login for deleted user: ${lineUserId}`);
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ message: '此帳號已被刪除，無法登入。' }),
+      };
+    }
 
-      // A. Create/Overwrite User Document
+    // Treat as NEW USER if document doesn't exist
+    if (!userDoc.exists) {
+      // --- NEW USER CREATION FLOW ---
+      console.log(`Creating new user (OAuth): ${lineUserId}`);
+
+      // A. Create User Document
       const newUserData = {
         lineUserId: lineUserId,
         profile: profileData,
-        createdAt: userDoc.exists ? userData?.createdAt : timestamp,
+        createdAt: timestamp,
         updatedAt: timestamp,
-        role: 'user', // Reset Role
-        deleted: false, // Reactivate
-        deletedAt: admin.firestore.FieldValue.delete(),
+        role: 'user',
+        deleted: false,
       };
 
       await userRef.set(newUserData, { merge: true });

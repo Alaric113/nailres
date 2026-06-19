@@ -51,8 +51,13 @@ service cloud.firestore {
       allow list: if isStaff();
       // 使用者可建立自己的文件，但角色必須是 'user'
       allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'user';
-      // 使用者可更新自己除了 'role' 以外的資料；管理員/管理設計師可更新任何資料，包括修改角色
-      allow update: if (isAuthenticated() && request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) || canAdminAllDesigners();
+      // 更新規則 (P0-2 Security Fix):
+      // - admin: 可修改任何欄位 (含 role)
+      // - manager: 可修改非 role 的任何欄位（管理設計師可管理會員資料但不能變更權限）
+      // - user self: 可修改自己非 role 的欄位
+      allow update: if isTrulyAdmin() ||
+        (isAuthenticated() && request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) ||
+        (isManager() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
       // 不允許刪除使用者文件
       allow delete: if false;
 
