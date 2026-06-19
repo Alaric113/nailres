@@ -60,8 +60,8 @@ const CustomerListPage = () => {
       return true;
     }
     const term = searchTerm.toLowerCase();
-    const displayName = user.profile.displayName?.toLowerCase() || '';
-    const email = user.email.toLowerCase();
+    const displayName = (user.profile.displayName || '').toLowerCase();
+    const email = (user.email || '').toLowerCase();
     return displayName.includes(term) || email.includes(term);
   });
 
