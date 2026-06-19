@@ -13,7 +13,7 @@ interface LoyaltyCardProps {
 
 // Skeleton Component for Loyalty Card
 const LoyaltyCardSkeleton = () => (
-  <div className="relative overflow-hidden bg-gray-200 rounded-2xl shadow-xl p-6 sm:p-8 h-full min-h-[220px] flex flex-col animate-pulse">
+  <div className="relative overflow-hidden bg-gray-200 rounded-2xl shadow-xl p-6 sm:p-8 h-full min-h-[220px] max-w-[480px] flex flex-col animate-pulse">
     <div className="flex items-center justify-between mb-4 px-3">
       <div className="flex items-center gap-3 sm:gap-4">
         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-300" />
@@ -139,7 +139,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
 
   return (
     <div
-      className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col bg-center bg-no-repeat"
+      className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px]  max-w-[480px] flex flex-col bg-center bg-no-repeat"
       style={{
         backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
         backgroundSize: '100% 100%',
@@ -157,7 +157,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
         </>
       )}
 
-      <div className="relative z-10 flex flex-col justify-between h-full px-3 min-h-[160px]">
+      <div className="relative z-10 flex flex-col justify-between h-full px-3 min-h-[160px] ">
         {/* Card Header: User Info & Tier */}
         <div className="flex items-center justify-between ">
           <div className="flex items-center gap-3 sm:gap-4">
