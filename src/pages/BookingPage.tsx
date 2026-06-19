@@ -190,7 +190,7 @@ const BookingPage = () => {
       const itemDiscountableBase = (svcDiscountable ? servicePrice : 0) + discountableOptionsPrice;
       // 不可折扣部分：isDiscountable === false 的服務 + 不可折扣加購
       const itemNonDiscountableBase = (!svcDiscountable ? servicePrice : 0) + nonDiscountableOptionsPrice;
-
+      
       let itemFinalDiscountableBase = itemDiscountableBase; // 預設：無折扣
       let itemDiscountedOptionsPrice = discountableOptionsPrice; // 預設：無折扣
 
@@ -260,6 +260,7 @@ const BookingPage = () => {
       : Math.floor(Math.max(0, couponDiscountBase) * (selectedCoupon.value / 100));
     const final = Math.max(0, totalDiscountedPrice - couponDiscount);
     const totalDiscount = computedPlatinumDiscount + couponDiscount;
+    
 
     return {
       totalDuration: duration,
