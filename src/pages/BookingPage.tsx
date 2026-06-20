@@ -176,7 +176,7 @@ const BookingPage = () => {
       const nonDiscountableOptionsPrice = allOptions
         .filter(o => o.isDiscountable !== true)
         .reduce((sum, o) => sum + (o.price * (o.quantity || 1)), 0);
-      const optionsPrice = discountableOptionsPrice + nonDiscountableOptionsPrice;
+      //const optionsPrice = discountableOptionsPrice + nonDiscountableOptionsPrice;
 
       aggregatedServicePrice += servicePrice;
       aggregatedDiscountableOpts += discountableOptionsPrice;
