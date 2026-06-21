@@ -118,10 +118,10 @@ const CouponSelectorModal = ({ isOpen, onClose, onSelect, selectedServices, sele
                 <div
                   key={coupon.id}
                   onClick={() => { onSelect(coupon); onClose(); }}
-                  className="p-4 border-2 border-pink-200 bg-pink-50 rounded-lg cursor-pointer hover:border-pink-400 transition-colors"
+                  className="p-4 border-2 border-[#9F9586] bg-[#FAF9F6] rounded-lg cursor-pointer hover:border-pink-400 transition-colors"
                 >
                   <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-lg text-pink-700">{coupon.title}</h3>
+                    <h3 className="font-bold text-lg text-[#9F9586]">{coupon.title}</h3>
                     <p className="font-bold text-lg text-green-600">{getDiscountText(coupon)}</p>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">{coupon.details}</p>
