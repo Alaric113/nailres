@@ -197,7 +197,13 @@ const BookingPage = () => {
       if (actingUserProfile?.role === 'platinum') {
         const serviceDef = services.find(s => s.id === item.service.id);
 
-        if (serviceDef?.platinumDiscount) {
+        const isFollowUp = !!item.followUpId
+
+
+          if(isFollowUp){
+            itemFinalDiscountableBase = itemDiscountableBase
+            itemDiscountedOptionsPrice = discountableOptionsPrice
+          }else if (serviceDef?.platinumDiscount) {
           const { type, value } = serviceDef.platinumDiscount;
 
           if (type === 'percentage') {
@@ -477,6 +483,7 @@ const BookingPage = () => {
           serviceName: item.service.name,
           price: item.totalPrice, // This is unit total price
           duration: item.totalDuration,
+          isFollowUp: !!item.followUpId,
           options: transformedOptions
         };
       });

@@ -112,7 +112,7 @@ export const issueFollowUpEligibility = async (
         serviceIds: string[]; 
         dateTime: Timestamp; 
         amount: number;
-        items?: { serviceId: string; price: number }[]; // Include items with actual prices
+        items?: { serviceId: string; price: number ;isFollowUp?:boolean}[]; // Include items with actual prices
     }
 ): Promise<number> => {
     try {
@@ -121,8 +121,13 @@ export const issueFollowUpEligibility = async (
 
         // Check each service in the booking
         for (const serviceId of booking.serviceIds) {
+            const isFollowUpItem = booking.items?.some(
+                item => item.serviceId === serviceId && item.isFollowUp === true
+            );
+            if (isFollowUpItem) continue; // 如果是售後服務，跳過，不產生新資格
             const serviceDoc = await getDoc(doc(db, 'services', serviceId));
             if (!serviceDoc.exists()) continue;
+            
 
             const service = { id: serviceDoc.id, ...serviceDoc.data() } as Service;
             

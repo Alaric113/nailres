@@ -33,6 +33,7 @@ export interface BookingDocument {
   duration: number;
   couponId?: string | null;
   couponName?: string | null;
+  isFollowUp?:boolean;
   customerFeedback?: CustomerFeedback; // Optional feedback
   rescheduleCount?: number; // Track number of times rescheduled
 
