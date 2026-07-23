@@ -81,7 +81,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
             rows={3}
-            className="w-full rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-[#9F9586] focus:ring-[#9F9586] text-sm transition-all"
+            className="w-full rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-[#9F9586] focus:ring-[#9F9586] text-sm transition-all p-3"
             placeholder="有特殊需求嗎？例如：需要卸甲、指定美甲師..."
           ></textarea>
         </div>

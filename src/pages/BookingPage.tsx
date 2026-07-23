@@ -25,6 +25,7 @@ import { markFollowUpsAsUsed } from '../utils/userActions';
 import {
   TicketIcon,
   ChevronRightIcon,
+  ChevronDownIcon,
   CalendarDaysIcon,
   UserCircleIcon,
   PencilSquareIcon
@@ -38,6 +39,7 @@ import liff from '@line/liff';
 import { isLiffBrowser } from '../lib/liff';
 
 
+import { useUserCoupons } from '../hooks/useUserCoupons';
 import { useActivePass } from '../hooks/useActivePass';
 
 import { useSeasonPasses } from '../hooks/useSeasonPasses';
@@ -64,6 +66,7 @@ const BookingPage = () => {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false); // NEW STATE
+  const [isServicesExpanded, setIsServicesExpanded] = useState(true);
   // Service Notice Modal State
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [noticeModalContent, setNoticeModalContent] = useState<string[]>([]);
@@ -79,6 +82,7 @@ const BookingPage = () => {
   const { userProfile: currentUserProfile, currentUser } = useAuthStore();
   const { settings: globalSettings } = useGlobalSettings();
   const { services } = useServices();
+  const { userCoupons } = useUserCoupons();
 
   // === NEW: Admin Booking on Behalf Logic ===
   const behalfOfUserId = query.get('behalfOf');
@@ -282,6 +286,19 @@ const BookingPage = () => {
       };
   }, [cart, selectedCoupon, actingUserProfile, services]);
 
+  // Count available coupons for the badge hint
+  const availableCouponCount = useMemo(() => {
+    if (!userCoupons.length || cart.length === 0) return 0;
+    const now = new Date();
+    return userCoupons.filter(c => {
+      if (c.status === 'used' || (c as any).isUsed) return false;
+      if (c.status && c.status !== 'active') return false;
+      if (c.validUntil && c.validUntil.toDate() < now) return false;
+      if (originalPrice < (c.minSpend || 0)) return false;
+      return true;
+    }).length;
+  }, [userCoupons, originalPrice, cart.length]);
+
   const allowedDesignerIds = useMemo(() => {
     const restrictionSets: string[][] = [];
     cart.forEach(item => {
@@ -400,7 +417,7 @@ const BookingPage = () => {
       updateFollowUpPrices(date);
       setTimeout(() => {
         setIsCalendarExpanded(false);
-      }, 300);
+      }, 100);
     }
   };
 
@@ -864,33 +881,82 @@ const BookingPage = () => {
                   <p className="text-lg font-bold text-[#9F9586]">
                     {selectedTime && format(selectedTime, 'HH:mm')}
                   </p>
+                  <div className="flex items-center gap-1.5 mt-2 bg-[#FAF9F6] rounded-lg px-3 py-1.5 text-sm">
+                    <svg className="w-4 h-4 text-[#9F9586]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-gray-500">預計所需時間</span>
+                    <span className="font-bold text-gray-800 ml-auto">
+                      {Math.floor(totalDuration / 60) > 0 && `${Math.floor(totalDuration / 60)} 小時 `}
+                      {totalDuration % 60 > 0 && `${totalDuration % 60} 分鐘`}
+                    </span>
+                  </div>
                 </div>
                 <div className="h-px bg-gray-100"></div>
                 <div>
-                  <h3 className="text-sm text-gray-500 font-medium">已選服務</h3>
-                  <div className="mt-2 space-y-2">
-                    {cart.map(item => (
-                      <div key={item.itemId} className="flex flex-col text-sm border-b border-dashed border-gray-100 pb-2 last:border-0 last:pb-0">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-900 font-bold">{item.service.name}</span>
-                          <div className="text-right">
-                            <span className="text-gray-500">${item.totalPrice}</span>
-                          </div>
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1 space-y-0.5">
-                          <span>服務原價 $<span className="font-medium">{item.service.price}</span></span>
-                          {Object.values(item.selectedOptions).flat().length > 0 && (
-                            <span className="ml-2">+ 加購 $<span className="font-medium">{item.totalPrice - item.service.price}</span></span>
-                          )}
-                          {/* Show options list */}
-                          {Object.values(item.selectedOptions).flat().length > 0 && (
-                            <div className="text-gray-400 mt-0.5">
-                              {Object.values(item.selectedOptions).flat().map(o => o.name).join(', ')}
+                  {/* Collapsible header */}
+                  <div
+                    onClick={() => setIsServicesExpanded(!isServicesExpanded)}
+                    className="flex items-center justify-between cursor-pointer select-none group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm text-gray-500 font-medium group-hover:text-gray-700 transition-colors">已選服務</h3>
+                      <span className="text-xs bg-[#9F9586]/10 text-[#9F9586] px-2 py-0.5 rounded-full font-medium">
+                        {cart.length} 項
+                      </span>
+                    </div>
+                    <ChevronDownIcon className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isServicesExpanded ? 'rotate-180' : ''}`} />
+                  </div>
+
+                  {/* Condensed summary when collapsed */}
+                  {!isServicesExpanded && (
+                    <div className="mt-2 text-sm text-gray-400">
+                      {cart.map(item => item.service.name).join('、')}
+                    </div>
+                  )}
+
+                  {/* Expandable service list */}
+                  <div className={`grid transition-all duration-300 ease-in-out ${isServicesExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                    <div className="overflow-hidden">
+                      <div className="mt-3 space-y-2">
+                        {cart.map(item => (
+                          <div key={item.itemId} className="flex flex-col text-sm bg-gray-50 rounded-xl p-3 border border-gray-100">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {item.followUpId && (
+                                  <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium shrink-0">售後</span>
+                                )}
+                                <span className="text-gray-900 font-bold truncate">{item.service.name}</span>
+                              </div>
+                              <div className="text-right shrink-0 ml-2">
+                                <span className="text-gray-700 font-medium">${item.totalPrice}</span>
+                              </div>
                             </div>
-                          )}
-                        </div>
+                            <div className="text-xs text-gray-400 mt-1.5 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span>原價 $<span className="font-medium">{item.service.price}</span></span>
+                                {Object.values(item.selectedOptions).flat().length > 0 && (
+                                  <span className="text-gray-300">|</span>
+                                )}
+                                {Object.values(item.selectedOptions).flat().length > 0 && (
+                                  <span>加購 $<span className="font-medium">{item.totalPrice - item.service.price}</span></span>
+                                )}
+                              </div>
+                              {/* Show options list */}
+                              {Object.values(item.selectedOptions).flat().length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {Object.values(item.selectedOptions).flat().map((o, i) => (
+                                    <span key={i} className="inline-flex items-center bg-white px-2 py-0.5 rounded-md border border-gray-200 text-gray-500">
+                                      {o.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
                   </div>
                 </div>
                 {/* Designer Info */}
@@ -917,21 +983,52 @@ const BookingPage = () => {
               {/* Coupon Selector */}
               <button
                 onClick={() => setIsCouponModalOpen(true)}
-                className="w-full flex justify-between items-center p-4 bg-[#FAF9F6] border border-dashed border-[#9F9586]/30 rounded-xl mb-6 hover:bg-[#F5F3EF] transition-colors group"
+                className={`w-full flex justify-between items-center p-4 rounded-xl mb-6 transition-all group relative ${
+                  selectedCoupon
+                    ? 'bg-[#FAF9F6] border border-dashed border-[#9F9586]/30 hover:bg-[#F5F3EF]'
+                    : availableCouponCount > 0
+                      ? 'bg-amber-50 border-2 border-amber-300 hover:bg-amber-100 shadow-sm'
+                      : 'bg-[#FAF9F6] border border-dashed border-[#9F9586]/30 hover:bg-[#F5F3EF]'
+                }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="bg-white p-2 rounded-full shadow-sm text-[#9F9586]">
+                  <div className={`p-2 rounded-full shadow-sm ${
+                    selectedCoupon
+                      ? 'bg-white text-[#9F9586]'
+                      : availableCouponCount > 0
+                        ? 'bg-amber-100 text-amber-600'
+                        : 'bg-white text-[#9F9586]'
+                  }`}>
                     <TicketIcon className="h-5 w-5" />
                   </div>
                   <div className="text-left">
-                    <p className="font-medium text-gray-900 text-sm">
-                      {selectedCoupon ? selectedCoupon.title : '使用優惠券'}
-                    </p>
-                    {/* Show discount amount if there is ANY discount (Member or Coupon) */}
-                    {discountAmount > 0 && <p className="text-xs text-[#9F9586] font-medium">共折抵 NT$ {discountAmount}</p>}
+                    <div className="flex items-center gap-2">
+                      <p className={`font-medium text-sm ${
+                        selectedCoupon ? 'text-gray-900' : availableCouponCount > 0 ? 'text-amber-800' : 'text-gray-900'
+                      }`}>
+                        {selectedCoupon ? selectedCoupon.title : '使用優惠券'}
+                      </p>
+                      {/* Badge for available coupons */}
+                      {!selectedCoupon && availableCouponCount > 0 && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-white animate-pulse">
+                          {availableCouponCount} 張可用
+                        </span>
+                      )}
+                    </div>
+                    {selectedCoupon && discountAmount > 0 && (
+                      <p className="text-xs text-[#9F9586] font-medium">共折抵 NT$ {discountAmount}</p>
+                    )}
+                    {!selectedCoupon && availableCouponCount > 0 && (
+                      <p className="text-xs text-amber-600 font-medium">點擊查看優惠，節省更多！</p>
+                    )}
+                    {!selectedCoupon && availableCouponCount === 0 && (
+                      <p className="text-xs text-gray-400">暫無可用優惠券</p>
+                    )}
                   </div>
                 </div>
-                <ChevronRightIcon className="h-4 w-4 text-gray-400 group-hover:text-[#9F9586]" />
+                <ChevronRightIcon className={`h-4 w-4 ${
+                  !selectedCoupon && availableCouponCount > 0 ? 'text-amber-500' : 'text-gray-400'
+                } group-hover:text-[#9F9586]`} />
               </button>                <BookingForm
                   originalPrice={originalPrice}
                   discountAmount={discountAmount}

@@ -115,6 +115,7 @@ const RootRedirect = () => {
 
 **目前狀態：**
 - `useAuth.ts`（前端 hook）和 `line-liff-auth.ts`（後端 function）都包含建立使用者的邏輯
+- 可能造成 race condition 或重複寫入
 
 **改動方向：**
 - 以後端（`line-liff-auth.ts`）作為使用者建立的主要來源

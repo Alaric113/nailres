@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { Designer } from '../../types/designer';
-import LoadingSpinner from '../common/LoadingSpinner';
 import { UserCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,6 +10,17 @@ interface DesignerSelectorProps {
   selectedDesigner: Designer | null;
   allowedDesignerIds?: string[]; // Optional: if provided, only show these designers
 }
+
+// Skeleton card for loading state
+const DesignerCardSkeleton = () => (
+  <div className="w-full p-4 rounded-xl shadow-sm border-2 border-gray-200 bg-white flex items-center animate-pulse">
+    <div className="flex-shrink-0 w-16 h-16 rounded-full bg-gray-200 mr-4" />
+    <div className="flex-1 space-y-2">
+      <div className="h-5 bg-gray-200 rounded w-1/3" />
+      <div className="h-3 bg-gray-100 rounded w-1/2" />
+    </div>
+  </div>
+);
 
 const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, selectedDesigner, allowedDesignerIds }) => {
   const [designers, setDesigners] = useState<Designer[]>([]);
@@ -43,7 +53,18 @@ const DesignerSelector: React.FC<DesignerSelectorProps> = ({ onDesignerSelect, s
     fetchDesigners();
   }, [allowedDesignerIds]);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) {
+    return (
+      <div className="space-y-4 p-4">
+        <h3 className="font-serif font-bold text-gray-900 text-xl text-center mb-6">選擇設計師</h3>
+        <div className="grid grid-cols-1 gap-4">
+          {[1, 2, 3].map(i => (
+            <DesignerCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (error) return <p className="text-red-500 text-center p-4">{error}</p>;
   if (designers.length === 0) return <p className="text-gray-500 text-center p-4">目前沒有可預約的設計師。</p>;
 

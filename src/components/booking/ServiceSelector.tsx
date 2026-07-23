@@ -6,7 +6,6 @@ import { useGlobalSettings } from '../../hooks/useGlobalSettings';
 import type { Service } from '../../types/service';
 import type { ActivePass } from '../../types/user';
 import { useAuthStore } from '../../store/authStore';
-import LoadingSpinner from '../common/LoadingSpinner';
 import CartSidebar from './CartSidebar';
 import MobileCartBar from './MobileCartBar';
 import FollowUpServiceCard from './FollowUpServiceCard';
@@ -52,35 +51,9 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
     const { followUps } = useUserFollowUps();
 
     const [activeCategory, setActiveCategory] = useState<string>('全部');
-    const [imagesLoaded, setImagesLoaded] = useState(false);
     const [selectedFollowUp, setSelectedFollowUp] = useState<ActiveFollowUp | null>(null);
 
-    // Get all service images that need to be loaded
-    const serviceImages = services.filter(s => s.available && s.imageUrl).map(s => s.imageUrl!);
-    const totalImages = serviceImages.length;
-
-    // Preload all images
-    useEffect(() => {
-        if (totalImages === 0) {
-            setImagesLoaded(true);
-            return;
-        }
-
-        setImagesLoaded(false);
-
-        const imagePromises = serviceImages.map(src => {
-            return new Promise<void>((resolve) => {
-                const img = new Image();
-                img.onload = () => resolve();
-                img.onerror = () => resolve(); // Still resolve on error to not block loading
-                img.src = src;
-            });
-        });
-
-        Promise.all(imagePromises).then(() => {
-            setImagesLoaded(true);
-        });
-    }, [services]);
+    // Images are loaded lazily via loading="lazy" on each <img> tag — no preloading needed
 
     // Initialize active category from URL or Default
     useEffect(() => {
@@ -104,7 +77,23 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
     };
 
     if (isLoading) {
-        return <div className="flex justify-center p-4"><LoadingSpinner /></div>;
+        return (
+            <div className="max-w-4xl mx-auto p-4 space-y-8">
+                {['skeleton-section-1', 'skeleton-section-2'].map(key => (
+                    <div key={key} className="pb-8 border-b border-gray-100 last:border-0">
+                        <div className="flex items-center gap-4 mb-6 px-2">
+                            <div className="h-7 bg-gray-200 rounded w-24 animate-pulse" />
+                            <div className="h-px bg-gray-100 flex-1" />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {[1, 2, 3, 4].map(i => (
+                                <ServiceCardSkeleton key={i} />
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
     }
 
     if (error) {
@@ -246,25 +235,7 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
                     )}
 
                     <div className="max-w-3xl mx-auto p-4 space-y-8">
-                        {/* Show skeletons while loading images */}
-                        {!imagesLoaded ? (
-                            <>
-                                {['skeleton-1', 'skeleton-2'].map(key => (
-                                    <div key={key} className="pb-8 border-b border-gray-100 last:border-0">
-                                        <div className="flex items-center gap-4 mb-6 px-2">
-                                            <div className="h-7 bg-gray-200 rounded w-24 animate-pulse" />
-                                            <div className="h-px bg-gray-100 flex-1" />
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {[1, 2, 3, 4].map(i => (
-                                                <ServiceCardSkeleton key={i} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </>
-                        ) : (
-                            categoriesToShow.map(category => {
+                        {categoriesToShow.map(category => {
                                 // Determine which services to show for this category
                                 const categoryServices = category === '季卡專屬'
                                     ? planOnlyServices
@@ -373,8 +344,7 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClic
                                         </div>
                                     </div>
                                 );
-                            })
-                        )}
+                            })}
                     </div>
                 </div>
             </div>

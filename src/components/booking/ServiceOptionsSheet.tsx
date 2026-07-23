@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import type { Service, ServiceOption, ServiceOptionItem } from '../../types/service';
 import { useBookingStore } from '../../store/bookingStore';
-
+import { useToast } from '../../context/ToastContext';
 import { isLiffBrowser } from '../../lib/liff';
 
 interface ServiceOptionsSheetProps {
@@ -14,6 +14,7 @@ interface ServiceOptionsSheetProps {
 
 const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClose, service }) => {
     const addToCart = useBookingStore(state => state.addToCart);
+    const { showToast } = useToast();
 
     // State to track selected options: optionId -> array of selected Item objects
     const [selections, setSelections] = useState<Record<string, ServiceOptionItem[]>>({});
@@ -105,11 +106,12 @@ const ServiceOptionsSheet: React.FC<ServiceOptionsSheetProps> = ({ isOpen, onClo
         const missingRequired = displayOptions.filter(opt => opt.required && (!selections[opt.id] || selections[opt.id].length === 0));
 
         if (missingRequired.length > 0) {
-            alert(`請選擇: ${missingRequired.map(o => o.name).join(', ')}`);
+            showToast(`請選擇: ${missingRequired.map(o => o.name).join(', ')}`, 'error');
             return;
         }
 
         addToCart(service, selections);
+        showToast(`${service.name} 已加入訂單`, 'success');
         setSelections({}); // Reset
         onClose();
     };
