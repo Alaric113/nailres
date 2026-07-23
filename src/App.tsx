@@ -54,15 +54,8 @@ import ScrollToTop from './components/common/ScrollToTop';
 import { useNotification } from './hooks/useNotification'; // New Import
 
 function RootLayout() {
-  const { isCheckingRedirect } = useAuth();
-
-  const { authIsLoading } = useAuthStore();
-  
+  useAuth();
   useNotification(); // Initialize FCM listener
-
-  if (authIsLoading || isCheckingRedirect) {
-    return <LoadingSpinner size='lg' text='正在載入中...' fullScreen />;
-  }
 
   return (
     <ToastProvider>

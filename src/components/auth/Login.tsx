@@ -6,7 +6,6 @@ import { useToast } from '../../context/ToastContext';
 import { signInWithCustomToken, signInWithPopup, signOut, deleteUser } from 'firebase/auth';
 import { auth, db, googleProvider } from '../../lib/firebase'; // Added db, googleProvider
 import { doc, onSnapshot, deleteDoc, getDoc } from 'firebase/firestore'; // Added constants
-import { isLiffBrowser } from '../../lib/liff';
 import { generateNonce, generateState } from '../../utils/lineAuth';
 import { motion } from 'framer-motion';
 
@@ -120,53 +119,44 @@ export const Login = () => {
     setIsSubmitting(true);
     setFailedAuth(false);
     try {
-      if (isLiffBrowser()) {
-        const redirectPath = encodeURIComponent(location.pathname + location.search);
-        navigate(`/liff?redirect=${redirectPath}`);
+      if (!LINE_CHANNEL_ID) throw new Error('LINE Channel ID not configured.');
+      
+      const state = generateState();
+      const nonce = generateNonce();
+      localStorage.setItem('line_oauth_state', state);
+      
+      const redirectUri = window.location.origin + location.pathname;
+      const authUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${LINE_CHANNEL_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile%20openid%20email&state=${state}&nonce=${nonce}`;
+
+      if (isPwa()) {
+          // Setup popup approach for PWA 
+          const popup = window.open(authUrl, 'line_login_popup', 'width=500,height=600');
+          
+          // Firestore Polling Mechanism for PWA
+          const tokenRef = doc(db, 'temp_auth_tokens', state);
+          const unsubscribe = onSnapshot(tokenRef, async (snapshot) => {
+              if (snapshot.exists()) {
+                  const data = snapshot.data();
+                  if (data?.token) {
+                      console.log("Received token from Firestore handoff!");
+                      await signInWithCustomToken(auth, data.token);
+                      
+                      // Cleanup
+                      unsubscribe();
+                      await deleteDoc(tokenRef);
+                      localStorage.removeItem('line_oauth_state');
+                      if (popup) popup.close();
+                      navigate('/', { replace: true });
+                  }
+              }
+          });
       } else {
-        if (!LINE_CHANNEL_ID) throw new Error('LINE Channel ID not configured.');
-        
-        const state = generateState();
-        const nonce = generateNonce();
-        localStorage.setItem('line_oauth_state', state);
-        
-        const redirectUri = window.location.origin + location.pathname;
-        const authUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${LINE_CHANNEL_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile%20openid%20email&state=${state}&nonce=${nonce}`;
-
-        if (isPwa()) {
-            // Setup popup approach for PWA 
-            const popup = window.open(authUrl, 'line_login_popup', 'width=500,height=600');
-            
-            // --- NEW: Firestore Polling Mechanism ---
-            const tokenRef = doc(db, 'temp_auth_tokens', state);
-            const unsubscribe = onSnapshot(tokenRef, async (snapshot) => {
-                if (snapshot.exists()) {
-                    const data = snapshot.data();
-                    if (data?.token) {
-                        console.log("Received token from Firestore handoff!");
-                        await signInWithCustomToken(auth, data.token);
-                        
-                        // Cleanup
-                        unsubscribe();
-                        await deleteDoc(tokenRef);
-                        localStorage.removeItem('line_oauth_state');
-                        if (popup) popup.close();
-                        navigate('/', { replace: true });
-                    }
-                }
-            });
-            // ----------------------------------------
-
-            // Optional: Timeout checking? If user closes popup without login.
-            // For now, simple listener is enough.
-        } else {
-            // Standard Redirect
-            window.location.href = authUrl;
-        }
+          // Standard Redirect
+          window.location.href = authUrl;
       }
     } catch (error: any) {
       console.error(error);
-      setFailedAuth(true); // Technically init failed
+      setFailedAuth(true);
       showToast('登入初始化失敗', 'error');
       setIsSubmitting(false);
     }
