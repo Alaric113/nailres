@@ -1,6 +1,5 @@
 import React from 'react';
-import { useDesignerAvailableSlots } from '../../hooks/useDesignerAvailableSlots'; // NEW IMPORT
-import LoadingSpinner from '../common/LoadingSpinner';
+import { useDesignerAvailableSlots } from '../../hooks/useDesignerAvailableSlots';
 import { format } from 'date-fns';
 
 interface TimeSlotSelectorProps {
@@ -18,16 +17,28 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({ selectedDesignerId,
     return <div className="p-8 text-center text-text-light bg-secondary-light/30 rounded-xl border border-dashed border-secondary-dark/30 font-light">請先選擇設計師、服務項目與日期。</div>;
   }
 
-  if (loading) {
-    return <div className="flex justify-center p-4"><LoadingSpinner /></div>;
-  }
-
   if (error) {
     return <p className="text-red-500 text-center">{error}</p>;
   }
 
-  if (availableSlots.length === 0) {
+  if (!loading && availableSlots.length === 0) {
     return <div className="p-8 text-center text-text-light bg-secondary-light/30 rounded-xl border border-dashed border-secondary-dark/30 font-light">該日期已無可預約時段，請嘗試其他日期。</div>;
+  }
+
+  // Skeleton while loading
+  if (loading) {
+    return (
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            className="py-3 px-2 border rounded-lg bg-gray-100 border-gray-200 animate-pulse"
+          >
+            <div className="h-4 bg-gray-200 rounded mx-auto w-12" />
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (

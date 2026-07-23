@@ -849,7 +849,7 @@ const BookingPage = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
+                  transition={{ duration: 0.15, delay: 0 }}
                   className="bg-white rounded-2xl p-4 shadow-sm border border-[#EFECE5]"
                 >
                   <h3 className="font-serif font-bold text-gray-900 mb-4 px-1">

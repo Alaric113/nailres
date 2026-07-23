@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { initializeLiff } from '../../lib/liff';
@@ -17,6 +17,9 @@ const LiffEntry = () => {
     const [errorMessage, setErrorMessage] = useState('');
     const [progressText, setProgressText] = useState('正在為您登入...');
 
+    // Prevent double init with a ref
+    const hasInitStarted = useRef(false);
+
     // Timeout watchdog
     useEffect(() => {
         let timeoutId: NodeJS.Timeout;
@@ -30,7 +33,15 @@ const LiffEntry = () => {
         return () => clearTimeout(timeoutId);
     }, [status]);
 
+    // Single init effect - only depends on location
     useEffect(() => {
+        // If init already started, skip (prevents double execution from auth changes)
+        if (hasInitStarted.current) {
+            console.log('[LiffEntry] Init already started, skipping...');
+            return;
+        }
+        hasInitStarted.current = true;
+
         console.log('[LiffEntry] Mounted. Location:', location.pathname, location.search);
         const queryParams = new URLSearchParams(location.search);
         
@@ -61,8 +72,10 @@ const LiffEntry = () => {
         const init = async () => {
              console.log('[LiffEntry] init() started. Code:', code ? 'Yes' : 'No', 'State:', state ? 'Yes' : 'No');
             try {
-                if (currentUser) {
-                    console.log('[LiffEntry] User already logged in. Redirecting...');
+                // Check if Firebase auth already resolved (persisted session)
+                const { currentUser: existingUser } = useAuthStore.getState();
+                if (existingUser) {
+                    console.log('[LiffEntry] Firebase already logged in. Redirecting...');
                     setStatus('redirecting');
                     setProgressText('登入成功，正在跳轉...');
                     navigate(redirectPath, { replace: true });
@@ -83,7 +96,15 @@ const LiffEntry = () => {
                    setProgressText('準備 LINE 登入...');
                 }
 
-                // --- NEW: Handle Implicit LIFF Login (In-App Browser) ---
+                // Check again after LIFF init - Firebase might have resolved while we were waiting
+                const { currentUser: currentAfterLiff } = useAuthStore.getState();
+                if (currentAfterLiff) {
+                    console.log('[LiffEntry] Firebase now logged in (resolved during LIFF init). Redirecting...');
+                    navigate(redirectPath, { replace: true });
+                    return;
+                }
+
+                // --- Handle Implicit LIFF Login (In-App Browser) ---
                 if (liff.isLoggedIn() && !code) {
                      console.log('[LiffEntry] LIFF is logged in. Getting ID Token...');
                      setStatus('verifying');
@@ -111,7 +132,6 @@ const LiffEntry = () => {
                      }
 
                      console.log('[LiffEntry] Sending ID Token to backend...');
-                     // Note: using line-liff-auth endpoint
                      const response = await fetch('/api/line-liff-auth', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -133,14 +153,12 @@ const LiffEntry = () => {
                       console.log('[LiffEntry] Got custom token. Signing in...');
                       await signInWithCustomToken(auth, firebaseCustomToken);
                       console.log('[LiffEntry] Sign in complete.');
-                      // The main useEffect will handle the redirect once currentUser is set
                       return;
                 }
-                // --------------------------------------------------------
 
                 // If not logged in AND no code, we need to trigger login
                 if (!liff.isLoggedIn() && !code) {
-                     console.log('[LiffEntry] Triggering OAuth redirct...');
+                     console.log('[LiffEntry] Triggering OAuth redirect...');
                      const authState = generateState();
                      const nonce = generateNonce();
                      sessionStorage.setItem('line_auth_state', authState);
@@ -209,13 +227,25 @@ const LiffEntry = () => {
             }
         };
 
-        // Defer init slightly to ensure rendering happens
-        setTimeout(() => {
-             if (!currentUser) init();
-             else navigate(redirectPath, { replace: true });
-        }, 100);
+        // Start init immediately (no setTimeout delay)
+        init();
 
-    }, [currentUser, navigate, location]);
+    }, [location]); // Only depend on location, NOT currentUser
+
+    // Separate effect to handle redirect when auth state changes (after init is done)
+    useEffect(() => {
+        // Only redirect if init has already started and user is logged in
+        if (hasInitStarted.current && currentUser && status !== 'redirecting') {
+            const queryParams = new URLSearchParams(location.search);
+            let redirectPath = queryParams.get('redirect') || '/booking';
+            setStatus('redirecting');
+            setProgressText('登入成功，正在跳轉...');
+            const timer = setTimeout(() => {
+                navigate(redirectPath, { replace: true });
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [currentUser]); // Only run when currentUser changes
 
     if (status === 'error') {
         return (
