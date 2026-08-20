@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 import { useBookings } from '../hooks/useBookings';
+import usePortfolioItems from '../hooks/usePortfolioItems';
 import { 
   Sparkles, 
   Calendar, 
@@ -11,7 +12,7 @@ import {
   Image as ImageIcon, 
   ChevronRight, 
   ShieldCheck, 
-  MapPin, 
+  MapPin,
   Heart, 
   Award,
   ArrowRight,
@@ -30,6 +31,7 @@ import 'swiper/css/autoplay';
 const Home = () => {
   const { userProfile, currentUser } = useAuthStore();
   const { bookings } = useBookings();
+  const { portfolioItems } = usePortfolioItems();
   const navigate = useNavigate();
 
   const [homepageImages, setHomepageImages] = useState<{
@@ -77,7 +79,20 @@ const Home = () => {
     return '晚安';
   };
 
-  // Core Services Data
+  // Helper to find image for category: homepageImages first, then fallback to latest Portfolio item
+  const getCategoryImage = (categoryKeywords: string[], specificHomepageImages?: string[]) => {
+    if (specificHomepageImages && specificHomepageImages.length > 0 && specificHomepageImages[0]) {
+      return specificHomepageImages[0];
+    }
+    const match = portfolioItems.find(item => 
+      item.isActive && 
+      item.imageUrls?.length > 0 && 
+      categoryKeywords.some(kw => item.category?.includes(kw))
+    );
+    return match?.imageUrls?.[0] || '';
+  };
+
+  // Core Services Data with automatic portfolio image fallback
   const coreServices = [
     {
       id: 'nails',
@@ -86,7 +101,8 @@ const Home = () => {
       desc: '日本頂級凝膠・法式暈染手繪・客製養甲',
       price: '$1,000 起',
       category: '質感美甲',
-      image: homepageImages.nailImages?.[0] || 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=800&auto=format&fit=crop',
+      image: getCategoryImage(['美甲', '甲'], homepageImages.nailImages),
+      icon: '💅',
       tag: '人氣首選',
     },
     {
@@ -96,7 +112,8 @@ const Home = () => {
       desc: '極細羽柔單根・多層次山茶花・根根分明',
       price: '$1,000 起',
       category: '日式美睫',
-      image: homepageImages.lashImages?.[0] || 'https://images.unsplash.com/photo-1583001931096-959e9a1a6223?q=80&w=800&auto=format&fit=crop',
+      image: getCategoryImage(['美睫', '睫'], homepageImages.lashImages),
+      icon: '👁️',
       tag: '自然空氣感',
     },
     {
@@ -106,27 +123,71 @@ const Home = () => {
       desc: '半永久柔霧定妝・原生毛流感・客製眼眉比例',
       price: '$5,500 起',
       category: '韓式霧眉',
-      image: homepageImages.browImages?.[0] || 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=80&w=800&auto=format&fit=crop',
+      image: getCategoryImage(['霧眉', '眉'], homepageImages.browImages),
+      icon: '✨',
       tag: '素顏神器',
     },
   ];
 
-  // Gallery images with filter
-  const galleryImages = [
-    ...(activeCategoryTab === 'all' || activeCategoryTab === 'nail' ? homepageImages.nailImages.map(img => ({ url: img, category: '美甲' })) : []),
-    ...(activeCategoryTab === 'all' || activeCategoryTab === 'lash' ? homepageImages.lashImages.map(img => ({ url: img, category: '美睫' })) : []),
-    ...(activeCategoryTab === 'all' || activeCategoryTab === 'brow' ? homepageImages.browImages.map(img => ({ url: img, category: '霧眉' })) : []),
-  ].filter(item => Boolean(item.url));
+  // Gallery images with filter - Combined from homepageImages and real Portfolio collection
+  const galleryImages = useMemo(() => {
+    const list: { url: string; category: string }[] = [];
+    const seenUrls = new Set<string>();
 
-  // Fallback images if database images are empty
-  const defaultGallery = [
-    { url: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=600&auto=format&fit=crop', category: '美甲' },
-    { url: 'https://images.unsplash.com/photo-1583001931096-959e9a1a6223?q=80&w=600&auto=format&fit=crop', category: '美睫' },
-    { url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=80&w=600&auto=format&fit=crop', category: '霧眉' },
-    { url: 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?q=80&w=600&auto=format&fit=crop', category: '美甲' },
-  ];
+    // 1. Add from homepageImages
+    if (activeCategoryTab === 'all' || activeCategoryTab === 'nail') {
+      (homepageImages.nailImages || []).forEach(img => {
+        if (img && !seenUrls.has(img)) {
+          seenUrls.add(img);
+          list.push({ url: img, category: '美甲' });
+        }
+      });
+    }
+    if (activeCategoryTab === 'all' || activeCategoryTab === 'lash') {
+      (homepageImages.lashImages || []).forEach(img => {
+        if (img && !seenUrls.has(img)) {
+          seenUrls.add(img);
+          list.push({ url: img, category: '美睫' });
+        }
+      });
+    }
+    if (activeCategoryTab === 'all' || activeCategoryTab === 'brow') {
+      (homepageImages.browImages || []).forEach(img => {
+        if (img && !seenUrls.has(img)) {
+          seenUrls.add(img);
+          list.push({ url: img, category: '霧眉' });
+        }
+      });
+    }
 
-  const displayedGallery = galleryImages.length > 0 ? galleryImages : defaultGallery;
+    // 2. Fallback / Add from real Portfolio items
+    portfolioItems.forEach(item => {
+      if (!item.isActive || !item.imageUrls || item.imageUrls.length === 0) return;
+
+      let catLabel = '美甲';
+      if (item.category?.includes('睫')) catLabel = '美睫';
+      else if (item.category?.includes('眉')) catLabel = '霧眉';
+
+      const matchesTab = 
+        activeCategoryTab === 'all' ||
+        (activeCategoryTab === 'nail' && catLabel === '美甲') ||
+        (activeCategoryTab === 'lash' && catLabel === '美睫') ||
+        (activeCategoryTab === 'brow' && catLabel === '霧眉');
+
+      if (matchesTab) {
+        item.imageUrls.forEach(url => {
+          if (url && !seenUrls.has(url)) {
+            seenUrls.add(url);
+            list.push({ url, category: catLabel });
+          }
+        });
+      }
+    });
+
+    return list;
+  }, [homepageImages, portfolioItems, activeCategoryTab]);
+
+  const displayedGallery = galleryImages;
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] pb-24 md:pb-16 text-text-main selection:bg-primary/20">
@@ -253,25 +314,37 @@ const Home = () => {
                 className="w-[78vw] max-w-[280px] shrink-0 snap-center md:w-auto group bg-white rounded-2xl overflow-hidden border border-[#EFECE5] shadow-soft hover:shadow-strong transition-all duration-300 flex flex-col cursor-pointer active:scale-[0.98]"
               >
                 {/* Photo Header */}
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-secondary-dark">
-                  <img
-                    src={service.image}
-                    alt={service.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
-                  
-                  {/* Category Pill Tag */}
-                  <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 bg-white/90 backdrop-blur-md text-gray-900 text-[10px] font-bold rounded-full shadow-sm">
-                    {service.tag}
-                  </span>
+                {service.image ? (
+                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-secondary-dark">
+                    <img
+                      src={service.image}
+                      alt={service.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
+                    
+                    {/* Category Pill Tag */}
+                    <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 bg-white/90 backdrop-blur-md text-gray-900 text-[10px] font-bold rounded-full shadow-sm">
+                      {service.tag}
+                    </span>
 
-                  {/* Starting Price Badge */}
-                  <span className="absolute bottom-2 right-2.5 px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-serif font-bold rounded-full border border-white/20">
-                    {service.price}
-                  </span>
-                </div>
+                    {/* Starting Price Badge */}
+                    <span className="absolute bottom-2 right-2.5 px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-serif font-bold rounded-full border border-white/20">
+                      {service.price}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-[#FAF9F6] to-[#EFECE5] flex items-center justify-center border-b border-[#EFECE5]">
+                    <span className="text-4xl">{service.icon}</span>
+                    <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 bg-white text-gray-900 text-[10px] font-bold rounded-full shadow-sm">
+                      {service.tag}
+                    </span>
+                    <span className="absolute bottom-2 right-2.5 px-2.5 py-0.5 bg-[#9F9586] text-white text-[11px] font-serif font-bold rounded-full">
+                      {service.price}
+                    </span>
+                  </div>
+                )}
 
                 {/* Body Content */}
                 <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
@@ -309,100 +382,102 @@ const Home = () => {
         {/* ========================================================================= */}
         {/* 5. FEATURED GALLERY & WORKS SLIDER                                       */}
         {/* ========================================================================= */}
-        <section className="space-y-3">
-          <div className="flex flex-row items-center justify-between gap-2 px-1">
-            <div className="flex items-center gap-2">
-              <ImageIcon className="w-4 h-4 text-[#9F9586]" />
-              <h2 className="text-base sm:text-lg font-serif font-bold text-gray-900 tracking-tight">
-                精選作品鑑賞
-              </h2>
-            </div>
+        {displayedGallery.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex flex-row items-center justify-between gap-2 px-1">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-[#9F9586]" />
+                <h2 className="text-base sm:text-lg font-serif font-bold text-gray-900 tracking-tight">
+                  精選作品鑑賞
+                </h2>
+              </div>
 
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-[#EFECE5] shadow-subtle shrink-0">
-              {[
-                { key: 'all', label: '全部' },
-                { key: 'nail', label: '美甲' },
-                { key: 'lash', label: '美睫' },
-                { key: 'brow', label: '霧眉' },
-              ].map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveCategoryTab(tab.key as any)}
-                  className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                    activeCategoryTab === tab.key
-                      ? 'bg-[#9F9586] text-white shadow-sm'
-                      : 'text-gray-500 hover:text-gray-900'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Swiper Works Carousel */}
-          <div className="relative">
-            <Swiper
-              modules={[Autoplay]}
-              spaceBetween={10}
-              slidesPerView={2.3}
-              loop={displayedGallery.length > 3}
-              speed={1000}
-              autoplay={{
-                delay: 2500,
-                disableOnInteraction: false,
-                pauseOnMouseEnter: true
-              }}
-              breakpoints={{
-                640: {
-                  slidesPerView: 3.3,
-                  spaceBetween: 14,
-                },
-                1024: {
-                  slidesPerView: 4.3,
-                  spaceBetween: 16,
-                },
-              }}
-              className="w-full py-0.5"
-            >
-              {displayedGallery.map((item, index) => (
-                <SwiperSlide key={index}>
-                  <Link
-                    to="/portfolio"
-                    className="block aspect-square rounded-xl overflow-hidden shadow-soft hover:shadow-medium transition-all group relative border border-[#EFECE5] bg-secondary-dark active:scale-95"
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-[#EFECE5] shadow-subtle shrink-0">
+                {[
+                  { key: 'all', label: '全部' },
+                  { key: 'nail', label: '美甲' },
+                  { key: 'lash', label: '美睫' },
+                  { key: 'brow', label: '霧眉' },
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveCategoryTab(tab.key as any)}
+                    className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                      activeCategoryTab === tab.key
+                        ? 'bg-[#9F9586] text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
                   >
-                    <img
-                      src={item.url}
-                      alt={`作品展示 ${index + 1}`}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
-                      <span className="text-white text-[11px] font-bold flex items-center gap-1">
-                        <Eye className="w-3 h-3" />
-                        細節
-                      </span>
-                    </div>
-                    <span className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/40 backdrop-blur-md text-white text-[9px] font-bold rounded">
-                      {item.category}
-                    </span>
-                  </Link>
-                </SwiperSlide>
-              ))}
-            </Swiper>
-          </div>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          <div className="text-center pt-0.5">
-            <button
-              onClick={() => navigate('/portfolio')}
-              className="inline-flex items-center gap-1 text-xs font-bold text-[#9F9586] hover:text-[#8A8173] transition-colors cursor-pointer"
-            >
-              <span>瀏覽完整作品藝廊 (Portfolio)</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </section>
+            {/* Swiper Works Carousel */}
+            <div className="relative">
+              <Swiper
+                modules={[Autoplay]}
+                spaceBetween={10}
+                slidesPerView={2.3}
+                loop={displayedGallery.length > 3}
+                speed={1000}
+                autoplay={{
+                  delay: 2500,
+                  disableOnInteraction: false,
+                  pauseOnMouseEnter: true
+                }}
+                breakpoints={{
+                  640: {
+                    slidesPerView: 3.3,
+                    spaceBetween: 14,
+                  },
+                  1024: {
+                    slidesPerView: 4.3,
+                    spaceBetween: 16,
+                  },
+                }}
+                className="w-full py-0.5"
+              >
+                {displayedGallery.map((item, index) => (
+                  <SwiperSlide key={index}>
+                    <Link
+                      to="/portfolio"
+                      className="block aspect-square rounded-xl overflow-hidden shadow-soft hover:shadow-medium transition-all group relative border border-[#EFECE5] bg-secondary-dark active:scale-95"
+                    >
+                      <img
+                        src={item.url}
+                        alt={`作品展示 ${index + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
+                        <span className="text-white text-[11px] font-bold flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          細節
+                        </span>
+                      </div>
+                      <span className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/40 backdrop-blur-md text-white text-[9px] font-bold rounded">
+                        {item.category}
+                      </span>
+                    </Link>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
+
+            <div className="text-center pt-0.5">
+              <button
+                onClick={() => navigate('/portfolio')}
+                className="inline-flex items-center gap-1 text-xs font-bold text-[#9F9586] hover:text-[#8A8173] transition-colors cursor-pointer"
+              >
+                <span>瀏覽完整作品藝廊 (Portfolio)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* ========================================================================= */}
         {/* 6. BRAND VALUE & PHILOSOPHY (COMPACT 2x2 GRID ON MOBILE)                   */}

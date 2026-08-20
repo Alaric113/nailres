@@ -1,406 +1,415 @@
 import { useState, useMemo } from "react";
 import { isSameMonth } from "date-fns";
 import {
-    useAllOrders,
-    useSeasonPassOrder,
+  useAllOrders,
+  useSeasonPassOrder,
 } from "../../hooks/useSeasonPassOrder";
 import { useSeasonPasses } from "../../hooks/useSeasonPasses";
 import { useActivePassStats } from "../../hooks/useActivePassStats";
 import {
-    MagnifyingGlassIcon,
-    CheckCircleIcon,
-    XCircleIcon,
-    BanknotesIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  BanknotesIcon,
+  CreditCardIcon,
+  ClockIcon
 } from "@heroicons/react/24/outline";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import type { OrderStatus, SeasonPassOrder } from "../../types/order";
 import OrderTypeTabs from "../../components/admin/OrderTypeTabs";
+import { useToast } from "../../context/ToastContext";
 
-// Stats Card Component
+// Stats KPI Card Component
 const StatCard = ({
-    title,
-    value,
-    icon: Icon,
-    color,
-    bgColor,
-    subtext,
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  color,
+  bgColor,
 }: {
-    title: string;
-    value: string | number;
-    icon: any;
-    color: string;
-    bgColor: string;
-    subtext?: string;
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  icon: any;
+  color: string;
+  bgColor: string;
 }) => (
-    <div className={`bg-white ${Icon ? "p-6" : "p-2"} rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 ${Icon ? 'min-w-[200px]' : 'justify-center'} flex-shrink-0`}>
-        {Icon && (
-            <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center ${bgColor} ${color}`}
-            >
-                <Icon className="w-6 h-6" />
-            </div>
-        )}
-        <div>
-            <p className="text-sm font-medium text-gray-500">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            {subtext && <p className="text-xs text-gray-400 mt-0.5">{subtext}</p>}
-        </div>
+  <div className="w-full min-w-0 max-w-full bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-[#EFECE5] shadow-soft flex items-center justify-between overflow-hidden">
+    <div className="space-y-0.5 sm:space-y-1 min-w-0 flex-1 pr-2">
+      <p className="text-[11px] sm:text-xs font-medium text-text-light truncate">{title}</p>
+      <p className="text-lg sm:text-2xl font-serif font-bold text-gray-900 truncate">{value}</p>
+      {subtitle && <p className="text-[9px] sm:text-[10px] text-text-light/80 truncate">{subtitle}</p>}
     </div>
+    <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center ${bgColor} ${color} shrink-0`}>
+      <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+    </div>
+  </div>
 );
 
 const PassOrderManagementPage = () => {
-    const { orders, loading: loadingOrders } = useAllOrders();
-    const { updateOrderStatus } = useSeasonPassOrder();
-    const { activatePass, passes: allPassDefinitions } = useSeasonPasses();
-    const { stats: activePassStats } = useActivePassStats();
+  const { orders, loading: loadingOrders } = useAllOrders();
+  const { updateOrderStatus } = useSeasonPassOrder();
+  const { activatePass, passes: allPassDefinitions } = useSeasonPasses();
+  const { stats: activePassStats } = useActivePassStats();
+  const { showToast } = useToast();
 
-    const [filterStatus, setFilterStatus] = useState<OrderStatus | "all">("all");
-    const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<OrderStatus | "all">("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-    // Calculate Monthly Revenue
-    const monthlyRevenue = useMemo(() => {
-        const now = new Date();
-        return orders
-            .filter((o) => {
-                if (o.status !== "completed" || !o.createdAt) return false;
-                const orderDate = new Date(o.createdAt.seconds * 1000);
-                return isSameMonth(orderDate, now);
-            })
-            .reduce((sum, o) => sum + o.price, 0);
-    }, [orders]);
+  // Calculate Monthly Revenue
+  const monthlyRevenue = useMemo(() => {
+    const now = new Date();
+    return orders
+      .filter((o) => {
+        if (o.status !== "completed" || !o.createdAt) return false;
+        const orderDate = new Date(o.createdAt.seconds * 1000);
+        return isSameMonth(orderDate, now);
+      })
+      .reduce((sum, o) => sum + o.price, 0);
+  }, [orders]);
 
-    const filteredOrders = orders.filter((order) => {
-        const matchesStatus =
-            filterStatus === "all" || order.status === filterStatus;
-        const matchesSearch =
-            (order.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (order.userEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (order.passName || '').includes(searchTerm);
+  const pendingCount = useMemo(() => {
+    return orders.filter(o => o.status === "pending_payment").length;
+  }, [orders]);
 
-        return matchesStatus && matchesSearch;
-    });
+  const totalActivePasses = useMemo(() => {
+    return Object.values(activePassStats).reduce((sum, count) => sum + count, 0);
+  }, [activePassStats]);
 
-    const handleConfirmPayment = async (order: SeasonPassOrder) => {
-        if (
-            !window.confirm(
-                `確認收到款項，並開通 ${order.userName} 的 ${order.passName} 嗎？`
-            )
-        )
-            return;
+  const filteredOrders = orders.filter((order) => {
+    const matchesStatus =
+      filterStatus === "all" || order.status === filterStatus;
+    const matchesSearch =
+      (order.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.userEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.passName || '').includes(searchTerm);
 
-        try {
-            // 1. Activate Pass for User
-            await activatePass(order.userId, order.passId, order.variantName);
+    return matchesStatus && matchesSearch;
+  });
 
-            // 2. Update Order Status
-            await updateOrderStatus(order.id, "completed");
+  const handleConfirmPayment = async (order: SeasonPassOrder) => {
+    if (
+      !window.confirm(
+        `確認收到款項，並為 ${order.userName} 開通「${order.passName} (${order.variantName})」嗎？`
+      )
+    )
+      return;
 
-            alert("訂單已完成，季卡已開通！");
-        } catch (error) {
-            console.error(error);
-            alert("處理失敗，請查看控制台日誌");
-        }
-    };
+    setProcessingId(order.id);
+    try {
+      // 1. Activate Pass for User
+      await activatePass(order.userId, order.passId, order.variantName);
 
-    // Clean up any stray console logs if needed, user added one in previous step
-    // console.log(activePassStats);
+      // 2. Update Order Status
+      await updateOrderStatus(order.id, "completed");
 
-    const handleCancelOrder = async (orderId: string) => {
-        if (!window.confirm("確定要取消此訂單嗎？")) return;
-        try {
-            await updateOrderStatus(orderId, "cancelled");
-        } catch (error) {
-            console.error(error);
-            alert("取消失敗");
-        }
-    };
+      showToast(`已成功開通 ${order.userName} 的季卡方案！`, "success");
+    } catch (error) {
+      console.error("季卡開通失敗:", error);
+      showToast("開通處理失敗，請稍後再試", "error");
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
-    if (loadingOrders) return <LoadingSpinner fullScreen />;
+  const handleCancelOrder = async (orderId: string) => {
+    if (!window.confirm("確定要取消此季卡購買訂單嗎？")) return;
+    setProcessingId(orderId);
+    try {
+      await updateOrderStatus(orderId, "cancelled");
+      showToast("訂單已取消", "success");
+    } catch (error) {
+      console.error(error);
+      showToast("取消失敗", "error");
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
-    return (
-        <div className="p-4 sm:p-6 pb-24">
-            <div className="max-w-md mb-6">
-                <OrderTypeTabs />
-            </div>
+  const getStatusBadge = (status: OrderStatus) => {
+    switch (status) {
+      case "completed":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            已完成開通
+          </span>
+        );
+      case "pending_payment":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            待收款審核
+          </span>
+        );
+      case "cancelled":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-500 border border-gray-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+            已取消
+          </span>
+        );
+      default:
+        return status;
+    }
+  };
 
-            {/* Stats Section */}
-            <section className="flex flex-col overflow-x-auto gap-4 pb-4 mb-2 hide-scrollbar snap-x">
-                {/* Monthly Revenue */}
-                <div className="snap-center">
-                    <StatCard
-                        title="本月季卡營收"
-                        value={`$${monthlyRevenue.toLocaleString()}`}
-                        icon={BanknotesIcon}
-                        bgColor="bg-green-50"
-                        color="text-green-600"
-                    />
-                </div>
+  if (loadingOrders) return <div className="flex justify-center items-center h-full min-h-[50vh] bg-[#FAF9F6]"><LoadingSpinner text="載入季卡訂單中..." /></div>;
 
-                <div className="grid grid-cols-3 gap-4">
-                    {/* Active Pass Stats (All Defined Passes) */}
-                    {allPassDefinitions.map((pass) => {
-                        const count = activePassStats[pass.name] || 0;
-                        return (
-                            <div key={pass.id} className="snap-center">
-                                <StatCard
-                                    title={`${pass.name}`}
-                                    value={`${count} 張`}
-                                    icon={""}
-                                    bgColor="bg-amber-50"
-                                    color="text-amber-600"
-                                />
-                            </div>
-                        );
-                    })}
-                </div>
-            </section>
-
-            {/* Filters (Modified to remove duplicate OrderTypetabs if needed, but I kept it above) */}
-
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="relative flex-1 max-w-md">
-                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="搜尋用戶、Email 或方案名稱..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9F9586] focus:border-transparent"
-                    />
-                </div>
-                <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-                    {(["all", "pending_payment", "completed", "cancelled"] as const).map(
-                        (status) => (
-                            <button
-                                key={status}
-                                onClick={() => setFilterStatus(status)}
-                                className={`px-4 py-2 text-sm font-medium ${filterStatus === status
-                                    ? "bg-[#9F9586] text-white"
-                                    : "bg-white text-gray-600 hover:bg-gray-50 border-l first:border-l-0 border-gray-200"
-                                    }`}
-                            >
-                                {status === "all"
-                                    ? "全部"
-                                    : status === "pending_payment"
-                                        ? "待付款"
-                                        : status === "completed"
-                                            ? "已完成"
-                                            : "已取消"}
-                            </button>
-                        )
-                    )}
-                </div>
-            </div>
-
-            {/* Mobile Card View (md:hidden) */}
-            <div className="grid grid-cols-1 gap-4 md:hidden">
-                {filteredOrders.length === 0 ? (
-                    <div className="text-center p-8 text-gray-500 bg-white rounded-xl border border-gray-200">
-                        無符合條件的訂單
-                    </div>
-                ) : (
-                    filteredOrders.map((order) => (
-                        <div
-                            key={order.id}
-                            className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4"
-                        >
-                            {/* Header: Date & Status */}
-                            <div className="flex justify-between items-start">
-                                <span className="text-xs text-gray-500">
-                                    {order.createdAt?.seconds
-                                        ? new Date(order.createdAt.seconds * 1000).toLocaleString(
-                                            "zh-TW",
-                                            {
-                                                month: "numeric",
-                                                day: "numeric",
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            }
-                                        )
-                                        : "刚刚"}
-                                </span>
-                                <span
-                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${order.status === "completed"
-                                        ? "bg-green-100 text-green-800 border-green-200"
-                                        : order.status === "pending_payment"
-                                            ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                                            : "bg-gray-100 text-gray-800 border-gray-200"
-                                        }`}
-                                >
-                                    {order.status === "completed"
-                                        ? "已完成"
-                                        : order.status === "pending_payment"
-                                            ? "待付款"
-                                            : "已取消"}
-                                </span>
-                            </div>
-
-                            {/* User Info */}
-                            <div className="flex items-center gap-3 border-b border-gray-50 pb-3">
-                                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-lg">
-                                    {order.userName.charAt(0)}
-                                </div>
-                                <div>
-                                    <div className="font-bold text-gray-900">
-                                        {order.userName}
-                                    </div>
-                                    <div className="text-xs text-gray-400">{order.userEmail}</div>
-                                </div>
-                            </div>
-
-                            {/* Pass Details */}
-                            <div>
-                                <div className="flex justify-between items-baseline mb-1">
-                                    <span className="font-bold text-[#9F9586] text-lg">
-                                        {order.passName}
-                                    </span>
-                                    <span className="font-bold text-gray-900">
-                                        ${order.price.toLocaleString()}
-                                    </span>
-                                </div>
-                                <span className="inline-block px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
-                                    {order.variantName}
-                                </span>
-                            </div>
-
-                            {/* Payment Note */}
-                            {order.paymentNote && (
-                                <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-600">
-                                    <span className="font-bold text-xs text-gray-400 block mb-1">
-                                        備註
-                                    </span>
-                                    {order.paymentNote}
-                                </div>
-                            )}
-
-                            {/* Actions */}
-                            {order.status === "pending_payment" && (
-                                <div className="flex gap-3 mt-2 pt-3 border-t border-gray-100">
-                                    <button
-                                        onClick={() => handleCancelOrder(order.id)}
-                                        className="flex-1 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
-                                    >
-                                        取消訂單
-                                    </button>
-                                    <button
-                                        onClick={() => handleConfirmPayment(order)}
-                                        className="flex-1 py-2 bg-[#1a1a1a] text-white rounded-lg hover:bg-black text-sm font-bold shadow-md active:scale-95 transition-all flex items-center justify-center gap-1"
-                                    >
-                                        <CheckCircleIcon className="w-4 h-4" />
-                                        確認收款
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    ))
-                )}
-            </div>
-
-            {/* Desktop Table View (hidden md:block) */}
-            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-[#FAF9F6] text-gray-600 font-medium text-sm">
-                        <tr>
-                            <th className="p-4 border-b">訂單時間</th>
-                            <th className="p-4 border-b">用戶</th>
-                            <th className="p-4 border-b">購買方案</th>
-                            <th className="p-4 border-b">金額</th>
-                            <th className="p-4 border-b">備註</th>
-                            <th className="p-4 border-b">狀態</th>
-                            <th className="p-4 border-b text-right">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody className="text-sm text-gray-700 divide-y divide-gray-100">
-                        {filteredOrders.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} className="p-8 text-center text-gray-500">
-                                    無符合條件的訂單
-                                </td>
-                            </tr>
-                        ) : (
-                            filteredOrders.map((order) => (
-                                <tr
-                                    key={order.id}
-                                    className="hover:bg-gray-50 group transition-colors"
-                                >
-                                    <td className="p-4">
-                                        {order.createdAt?.seconds
-                                            ? new Date(order.createdAt.seconds * 1000).toLocaleString(
-                                                "zh-TW"
-                                            )
-                                            : "刚刚"}
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="font-bold text-gray-900">
-                                            {order.userName}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                            {order.userEmail}
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="font-bold text-[#9F9586]">
-                                            {order.passName}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                            {order.variantName}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-base font-bold">
-                                        ${order.price.toLocaleString()}
-                                    </td>
-                                    <td
-                                        className="p-4 text-gray-500 max-w-[200px] truncate"
-                                        title={order.paymentNote}
-                                    >
-                                        {order.paymentNote || "-"}
-                                    </td>
-                                    <td className="p-4">
-                                        <span
-                                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${order.status === "completed"
-                                                ? "bg-green-100 text-green-800 border-green-200"
-                                                : order.status === "pending_payment"
-                                                    ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                                                    : "bg-gray-100 text-gray-800 border-gray-200"
-                                                }`}
-                                        >
-                                            {order.status === "completed"
-                                                ? "已完成"
-                                                : order.status === "pending_payment"
-                                                    ? "待付款"
-                                                    : "已取消"}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        {order.status === "pending_payment" && (
-                                            <div className="flex justify-end gap-2">
-                                                <button
-                                                    onClick={() => handleCancelOrder(order.id)}
-                                                    className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                                    title="取消訂單"
-                                                >
-                                                    <XCircleIcon className="w-5 h-5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleConfirmPayment(order)}
-                                                    className="px-3 py-1 bg-[#1a1a1a] text-white text-xs rounded hover:bg-black flex items-center gap-1 shadow-sm"
-                                                    title="確認收款並開通"
-                                                >
-                                                    <CheckCircleIcon className="w-4 h-4" />
-                                                    <span>確認收款</span>
-                                                </button>
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+  return (
+    <div className="min-h-full bg-[#FAF9F6] pb-24 md:pb-16 pt-2 md:pt-4 w-full max-w-full overflow-x-hidden text-text-main">
+      <main className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4 sm:space-y-6 w-full min-w-0">
+        
+        {/* 1. Header & Navigation */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <OrderTypeTabs />
         </div>
-    );
+
+        {/* 2. KPI Statistics Ribbon */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <StatCard
+            title="本月季卡營收"
+            value={`$${monthlyRevenue.toLocaleString()}`}
+            subtitle="本月已完成季卡銷售額"
+            icon={BanknotesIcon}
+            bgColor="bg-emerald-50"
+            color="text-emerald-700"
+          />
+          <StatCard
+            title="待審核收款"
+            value={`${pendingCount} 筆`}
+            subtitle="尚未開通之待付款訂單"
+            icon={ClockIcon}
+            bgColor={pendingCount > 0 ? "bg-amber-50" : "bg-gray-50"}
+            color={pendingCount > 0 ? "text-amber-700" : "text-gray-500"}
+          />
+          <StatCard
+            title="現行有效季卡總數"
+            value={`${totalActivePasses} 張`}
+            subtitle={`涵蓋 ${allPassDefinitions.length} 種方案項目`}
+            icon={CreditCardIcon}
+            bgColor="bg-[#9F9586]/10"
+            color="text-[#9F9586]"
+          />
+        </section>
+
+        {/* 3. Main Content Container */}
+        <div className="bg-white rounded-3xl shadow-soft border border-[#EFECE5] overflow-hidden flex flex-col min-h-[60vh]">
+          
+          {/* Search & Status Tabs Bar */}
+          <div className="p-4 sm:p-5 border-b border-[#EFECE5] bg-white space-y-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              
+              {/* Search Bar */}
+              <div className="relative flex-1 max-w-md">
+                <input
+                  type="text"
+                  placeholder="搜尋用戶姓名、Email 或方案名稱..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 bg-[#FAF9F6] rounded-2xl border border-[#EFECE5] text-xs sm:text-sm text-text-main placeholder:text-text-light/60 focus:outline-none focus:border-[#9F9586] focus:ring-1 focus:ring-[#9F9586] transition-all"
+                />
+                <MagnifyingGlassIcon className="w-4 h-4 text-text-light absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full cursor-pointer"
+                  >
+                    <XMarkIcon className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter Tabs */}
+              <div className="flex items-center gap-1 bg-[#FAF9F6] p-1 rounded-2xl border border-[#EFECE5] shrink-0 self-start md:self-auto">
+                {[
+                  { key: "all", label: "全部訂單" },
+                  { key: "pending_payment", label: "待付款" },
+                  { key: "completed", label: "已完成" },
+                  { key: "cancelled", label: "已取消" },
+                ].map(status => (
+                  <button
+                    key={status.key}
+                    onClick={() => setFilterStatus(status.key as any)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      filterStatus === status.key
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+
+            </div>
+          </div>
+
+          {/* Mobile Card View (md:hidden) */}
+          <div className="p-4 bg-[#FAF9F6]/40 md:hidden space-y-3">
+            {filteredOrders.length === 0 ? (
+              <div className="text-center py-16 text-text-light bg-white rounded-3xl border border-dashed border-[#EFECE5] p-6">
+                無符合條件的季卡訂單
+              </div>
+            ) : (
+              filteredOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="bg-white rounded-3xl p-5 shadow-soft border border-[#EFECE5] space-y-4"
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs text-text-light font-mono">
+                      {order.createdAt?.seconds
+                        ? new Date(order.createdAt.seconds * 1000).toLocaleString("zh-TW", {
+                            month: "numeric",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "剛才"}
+                    </span>
+                    {getStatusBadge(order.status)}
+                  </div>
+
+                  <div className="flex items-center gap-3 border-b border-[#EFECE5] pb-3">
+                    <div className="w-10 h-10 rounded-2xl bg-[#9F9586]/10 text-[#9F9586] font-bold text-base flex items-center justify-center">
+                      {order.userName?.charAt(0) || "客"}
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-900 text-sm">{order.userName}</div>
+                      <div className="text-xs text-text-light">{order.userEmail}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-baseline">
+                    <div>
+                      <span className="font-serif font-bold text-[#9F9586] text-base block">
+                        {order.passName}
+                      </span>
+                      <span className="inline-block px-2 py-0.5 rounded-lg text-xs bg-[#FAF9F6] border border-[#EFECE5] text-gray-600 mt-1">
+                        {order.variantName}
+                      </span>
+                    </div>
+                    <span className="font-serif font-bold text-gray-900 text-lg">
+                      ${order.price.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {order.paymentNote && (
+                    <div className="bg-[#FAF9F6] p-3 rounded-2xl border border-[#EFECE5] text-xs text-gray-700">
+                      <span className="font-bold text-gray-400 block mb-0.5">付款備註</span>
+                      {order.paymentNote}
+                    </div>
+                  )}
+
+                  {order.status === "pending_payment" && (
+                    <div className="flex gap-2 pt-2 border-t border-[#EFECE5]">
+                      <button
+                        onClick={() => handleCancelOrder(order.id)}
+                        disabled={processingId === order.id}
+                        className="flex-1 py-2.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition-all cursor-pointer"
+                      >
+                        取消訂單
+                      </button>
+                      <button
+                        onClick={() => handleConfirmPayment(order)}
+                        disabled={processingId === order.id}
+                        className="flex-1 py-2.5 bg-[#9F9586] hover:bg-[#8A8173] text-white text-xs font-bold rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <CheckCircleIcon className="w-4 h-4" />
+                        <span>確認收款並開通</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View (hidden md:block) */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-[#FAF9F6] text-gray-700 font-bold text-xs border-b border-[#EFECE5]">
+                <tr>
+                  <th className="p-4 pl-6">訂單時間</th>
+                  <th className="p-4">用戶資訊</th>
+                  <th className="p-4">購買方案與規格</th>
+                  <th className="p-4">金額</th>
+                  <th className="p-4">備註</th>
+                  <th className="p-4">狀態</th>
+                  <th className="p-4 pr-6 text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody className="text-xs text-gray-800 divide-y divide-[#EFECE5]/70">
+                {filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-12 text-center text-text-light">
+                      無符合條件的季卡訂單
+                    </td>
+                  </tr>
+                ) : (
+                  filteredOrders.map((order) => (
+                    <tr key={order.id} className="hover:bg-[#FAF9F6]/60 transition-colors">
+                      <td className="p-4 pl-6 text-text-light font-mono">
+                        {order.createdAt?.seconds
+                          ? new Date(order.createdAt.seconds * 1000).toLocaleString("zh-TW")
+                          : "剛才"}
+                      </td>
+                      <td className="p-4">
+                        <div className="font-bold text-gray-900">{order.userName}</div>
+                        <div className="text-text-light text-[11px]">{order.userEmail}</div>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-bold text-[#9F9586]">{order.passName}</div>
+                        <div className="text-text-light text-[11px]">{order.variantName}</div>
+                      </td>
+                      <td className="p-4 font-serif font-bold text-sm text-gray-900">
+                        ${order.price.toLocaleString()}
+                      </td>
+                      <td className="p-4 text-text-light max-w-[180px] truncate" title={order.paymentNote}>
+                        {order.paymentNote || "-"}
+                      </td>
+                      <td className="p-4">
+                        {getStatusBadge(order.status)}
+                      </td>
+                      <td className="p-4 pr-6 text-right">
+                        {order.status === "pending_payment" && (
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => handleCancelOrder(order.id)}
+                              disabled={processingId === order.id}
+                              className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                              title="取消訂單"
+                            >
+                              <XCircleIcon className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleConfirmPayment(order)}
+                              disabled={processingId === order.id}
+                              className="px-3 py-1.5 bg-[#9F9586] hover:bg-[#8A8173] text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer"
+                              title="確認收款並開通"
+                            >
+                              <CheckCircleIcon className="w-4 h-4" />
+                              <span>確認收款</span>
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  );
 };
 
 export default PassOrderManagementPage;

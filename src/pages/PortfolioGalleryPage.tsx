@@ -129,7 +129,7 @@ const PortfolioGalleryPage = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-2">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#9F9586]/15 text-[#8A8173] border border-[#9F9586]/30">
             <Sparkles className="w-3.5 h-3.5 text-[#9F9586]" />
-            TREERING Gallery
+            TREERING 作品藝廊
           </span>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-gray-900 tracking-tight">
             精選作品集鑑賞
@@ -252,7 +252,7 @@ const PortfolioGalleryPage = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
             {filteredItems.map(item => {
               const imageCount = item.imageUrls?.length || 0;
-              const mainImage = item.imageUrls?.[0] || 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=600&auto=format&fit=crop';
+              const mainImage = item.imageUrls?.[0] || '';
 
               return (
                 <div
@@ -261,13 +261,17 @@ const PortfolioGalleryPage = () => {
                   className="group bg-white rounded-3xl overflow-hidden border border-[#EFECE5] shadow-soft hover:shadow-strong transition-all duration-300 flex flex-col cursor-pointer active:scale-[0.98]"
                 >
                   {/* Photo Canvas */}
-                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-secondary-dark">
-                    <img
-                      src={mainImage}
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      loading="lazy"
-                    />
+                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-secondary-dark flex items-center justify-center">
+                    {mainImage ? (
+                      <img
+                        src={mainImage}
+                        alt={item.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <Images className="w-8 h-8 text-gray-300" />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                     {/* Category Badge */}

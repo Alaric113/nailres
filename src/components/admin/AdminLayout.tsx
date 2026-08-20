@@ -170,7 +170,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         {/* Main Header (Mobile Only) */}
         <AdminMobileHeader pageTitle={currentTitle} onBack={backAction} />
 
@@ -183,7 +183,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
         {/* Main Content Area */}
         <main 
           ref={mainContentRef}
-          className="flex-1 overflow-y-auto focus:outline-none pb-[80px] lg:pb-0"
+          className="flex-1 overflow-y-auto overflow-x-hidden focus:outline-none pb-[80px] lg:pb-0 min-w-0 w-full"
         >
           <Outlet />
         </main>
