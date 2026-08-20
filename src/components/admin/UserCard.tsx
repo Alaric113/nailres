@@ -3,6 +3,7 @@ import type { EnrichedUser, UserRole } from '../../types/user';
 import { TrashIcon, EyeIcon, TicketIcon } from '@heroicons/react/24/outline';
 import { motion, useAnimation, type PanInfo } from 'framer-motion';
 import { auth } from '../../lib/firebase';
+import UserAvatar from '../common/UserAvatar';
 
 interface UserCardProps {
   user: EnrichedUser;
@@ -70,7 +71,11 @@ const UserCard: React.FC<UserCardProps> = ({
         >
             {/* Left: Avatar */}
             <div className="flex-shrink-0 w-24 p-2 justify-center items-center flex bg-gray-50">
-                <img className="w-20 h-20 rounded-full object-cover" src={user.profile?.avatarUrl || DEFAULT_AVATAR} alt="Avatar" />
+                <UserAvatar
+                    src={user.profile?.avatarUrl}
+                    name={user.profile?.displayName}
+                    className="w-20 h-20"
+                />
             </div>
             {/* Right: Content */}
             <div className="p-3 flex-1 flex flex-col justify-between">

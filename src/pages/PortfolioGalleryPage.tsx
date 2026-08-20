@@ -1,27 +1,45 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Added import
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import usePortfolioItems from '../hooks/usePortfolioItems';
-import { useServiceCategories } from '../hooks/useServiceCategories'; // Dynamic categories
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import { useServiceCategories } from '../hooks/useServiceCategories';
 import { isLiffBrowser } from '../lib/liff';
+import type { PortfolioItem } from '../types/portfolio';
+import { 
+  Sparkles, 
+  Search, 
+  X, 
+  Calendar, 
+  Images, 
+  ChevronLeft, 
+  ChevronRight, 
+  ArrowRight,
+  User,
+  Eye,
+  SlidersHorizontal,
+  Share2
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// Skeleton Card Component for Portfolio
-const PortfolioCardSkeleton = () => (
-  <div className="flex flex-row bg-white rounded-2xl shadow-sm border border-[#EFECE5] overflow-hidden h-full animate-pulse">
-    <div className="relative w-1/2 min-w-[50%] max-w-[50%] shrink-0">
-      <div className="pb-[100%] bg-gray-200" />
-    </div>
-    <div className="p-5 flex flex-col gap-3 w-1/2 flex-grow">
-      <div>
-        <div className="w-16 h-5 bg-gray-200 rounded-md mb-2" />
-        <div className="h-6 bg-gray-200 rounded w-3/4 mb-1" />
-        <div className="h-6 bg-gray-100 rounded w-1/2" />
+// Swiper for Lightbox Modal
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination } from 'swiper/modules';
+import 'swiper/css';
+// @ts-ignore
+import 'swiper/css/navigation';
+// @ts-ignore
+import 'swiper/css/pagination';
+
+// Skeleton Card Component
+const PortfolioSkeletonCard = () => (
+  <div className="bg-white rounded-3xl overflow-hidden border border-[#EFECE5] shadow-soft animate-pulse">
+    <div className="aspect-[4/5] bg-gray-200" />
+    <div className="p-4 space-y-2.5">
+      <div className="flex justify-between items-center">
+        <div className="w-16 h-4 bg-gray-200 rounded-md" />
+        <div className="w-12 h-4 bg-gray-200 rounded-md" />
       </div>
-      <div className="mt-auto">
-        <div className="h-4 bg-gray-100 rounded w-full mb-2" />
-        <div className="h-4 bg-gray-100 rounded w-2/3 mb-3" />
-        <div className="h-10 bg-gray-300 rounded-xl w-full" />
-      </div>
+      <div className="w-3/4 h-5 bg-gray-200 rounded" />
+      <div className="w-full h-8 bg-gray-200 rounded-xl mt-3" />
     </div>
   </div>
 );
@@ -29,183 +47,425 @@ const PortfolioCardSkeleton = () => (
 const PortfolioGalleryPage = () => {
   const { portfolioItems, loading, error } = usePortfolioItems();
   const { categories: serviceCategories, isLoading: categoriesLoading } = useServiceCategories();
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [imagesLoaded, setImagesLoaded] = useState(false);
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate();
   const isLiff = isLiffBrowser();
 
-  // Use dynamic categories from Firestore
-  // Sort order is already handled by useServiceCategories hook
+  // Filter & Search State
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  
+  // Lightbox Modal State
+  const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
+  const [copiedToast, setCopiedToast] = useState(false);
+
+  // Dynamic Categories from Firestore
   const categories = useMemo(() => {
     const dynCats = serviceCategories
       .map(c => c.name)
-      .filter(name => name !== '加購項目'); // Filter out '加購項目'
-    // Ensure '其他' is included if present in items but not in categories? 
-    // For now, assume serviceCategories covers main ones. 
-    // We add 'all' at the start.
+      .filter(name => name !== '加購項目');
     return ['all', ...dynCats];
   }, [serviceCategories]);
 
-  const filteredItems = portfolioItems.filter(item =>
-    item.isActive &&
-    item.category !== '加購項目' && // Explicitly exclude '加購項目' items
-    (selectedCategory === 'all' || item.category === selectedCategory)
-  );
+  // Filtered & Searched Portfolio Items
+  const filteredItems = useMemo(() => {
+    return portfolioItems.filter(item => {
+      if (!item.isActive || item.category === '加購項目') return false;
+      
+      // Category Match
+      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      
+      // Search Match
+      const q = searchQuery.trim().toLowerCase();
+      const matchesSearch = !q || (
+        item.title?.toLowerCase().includes(q) ||
+        item.description?.toLowerCase().includes(q) ||
+        item.category?.toLowerCase().includes(q) ||
+        item.designerName?.toLowerCase().includes(q)
+      );
 
-  // Preload all portfolio images
-  useEffect(() => {
-    if (loading || categoriesLoading) return;
-
-    const imageUrls = portfolioItems
-      .filter(item => item.isActive && item.imageUrls?.length > 0)
-      .map(item => item.imageUrls[0]);
-
-    if (imageUrls.length === 0) {
-      setImagesLoaded(true);
-      return;
-    }
-
-    setImagesLoaded(false);
-
-    const imagePromises = imageUrls.map(src => {
-      return new Promise<void>((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve();
-        img.onerror = () => resolve();
-        img.src = src;
-      });
+      return matchesCategory && matchesSearch;
     });
+  }, [portfolioItems, selectedCategory, searchQuery]);
 
-    Promise.all(imagePromises).then(() => {
-      setImagesLoaded(true);
+  // Category counts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0 };
+    portfolioItems.forEach(item => {
+      if (!item.isActive || item.category === '加購項目') return;
+      counts.all = (counts.all || 0) + 1;
+      counts[item.category] = (counts[item.category] || 0) + 1;
     });
-  }, [portfolioItems, loading, categoriesLoading]);
+    return counts;
+  }, [portfolioItems]);
 
-  const handleBookStyle = (category: string) => {
-    // ServiceSelector uses Chinese keys (e.g. '美甲', '美睫'), so we pass them directly.
+  const handleBookStyle = (item?: PortfolioItem) => {
+    const category = item?.category || selectedCategory;
     const url = category && category !== 'all'
       ? `/booking?category=${encodeURIComponent(category)}`
       : '/booking';
     navigate(url);
   };
 
-  if (loading || categoriesLoading) {
-    return <LoadingSpinner fullScreen text="載入作品集..." />;
-  }
-
-  if (error) {
-    return <div className="text-red-500 text-center p-4">載入作品集失敗: {error}</div>;
-  }
-
-  // Show skeleton while images are loading
-  const showSkeleton = !imagesLoaded;
+  const handleShare = (item: PortfolioItem) => {
+    if (navigator.share) {
+      navigator.share({
+        title: `${item.title} | TREERING 希亞美學`,
+        text: item.description,
+        url: window.location.href,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedToast(true);
+      setTimeout(() => setCopiedToast(false), 2500);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6]  lg:pt-32 pb-20">
-      <header className="py-4 bg-white/50 backdrop-blur-sm shadow-sm z-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-3xl font-serif font-bold text-[#2C2825] mb-2 tracking-wider">作品集</h1>
-          <p className="text-[#8A8175]">探索我們的精選作品</p>
+    <div className="min-h-screen bg-[#FAF9F6] pb-28 md:pb-16 text-text-main selection:bg-primary/20">
+      
+      {/* Top Ambient Glow Background */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-80 bg-gradient-to-b from-[#EFECE5]/80 via-[#FAF9F6]/40 to-transparent pointer-events-none -z-10 blur-3xl" />
+
+      {/* Header Banner */}
+      <header className="pt-4 sm:pt-8 pb-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#9F9586]/15 text-[#8A8173] border border-[#9F9586]/30">
+            <Sparkles className="w-3.5 h-3.5 text-[#9F9586]" />
+            TREERING Gallery
+          </span>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-gray-900 tracking-tight">
+            精選作品集鑑賞
+          </h1>
+          <p className="text-xs sm:text-sm text-text-light max-w-md mx-auto leading-relaxed">
+            探索最新日韓凝膠美甲、極細柔睫與自然霧眉靈感款式，遇見專屬您的美麗姿態
+          </p>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Category Filter */}
-        <div className={`flex flex-wrap justify-center gap-3 mb-12 sticky ${isLiff ? 'top-0' : 'top-16'} py-2 z-20 bg-white/50 backdrop-blur-sm`}>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-6 py-2.5 rounded-full text-sm  font-medium transition-all duration-300 transform active:scale-95
-                ${selectedCategory === cat
-                  ? 'bg-[#9F9586] text-white shadow-lg scale-105'
-                  : 'bg-white text-[#5C5548] border border-[#EFECE5] hover:border-[#9F9586]/50 hover:bg-[#FAF9F6]'}`
-              }
-            >
-              {cat === 'all' ? '所有作品' : cat}
-            </button>
-          ))}
+      {/* Main Container */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        
+        {/* ========================================================================= */}
+        {/* 1. STICKY FILTER BAR & SEARCH INPUT                                      */}
+        {/* ========================================================================= */}
+        <div className={`sticky ${isLiff ? 'top-0' : 'top-16'} z-20 bg-[#FAF9F6]/95 backdrop-blur-md py-3 -mx-4 px-4 sm:mx-0 sm:px-0 space-y-3 transition-all`}>
+          
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            
+            {/* Horizontal Scrollable Category Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar sm:pb-0 scroll-smooth">
+              {categories.map(cat => {
+                const count = categoryCounts[cat] || 0;
+                const isSelected = selectedCategory === cat;
+
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#9F9586] text-white shadow-sm scale-[1.02]'
+                        : 'bg-white text-text-main border border-[#EFECE5] hover:border-[#9F9586]/40 hover:bg-[#FAF9F6]'
+                    }`}
+                  >
+                    <span>{cat === 'all' ? '所有款式' : cat}</span>
+                    {count > 0 && (
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Keyword Search Input */}
+            <div className="relative w-full sm:w-64 shrink-0">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="搜尋款式、風格或設計師..."
+                className="w-full pl-9 pr-8 py-2 bg-white rounded-2xl border border-[#EFECE5] text-xs sm:text-sm text-text-main placeholder:text-text-light/60 focus:outline-none focus:border-[#9F9586] focus:ring-1 focus:ring-[#9F9586] shadow-subtle transition-all"
+              />
+              <Search className="w-4 h-4 text-text-light absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+          </div>
+
+          {/* Results counter indicator */}
+          <div className="flex items-center justify-between text-xs text-text-light px-1">
+            <span>
+              共 <strong className="text-gray-900 font-bold">{filteredItems.length}</strong> 款精緻設計
+            </span>
+            {searchQuery && (
+              <span className="text-[#9F9586]">
+                包含「{searchQuery}」的搜尋結果
+              </span>
+            )}
+          </div>
+
         </div>
 
-        {/* Skeleton Loading State */}
-        {showSkeleton ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <PortfolioCardSkeleton key={i} />
+        {/* ========================================================================= */}
+        {/* 2. PORTFOLIO CARDS GRID                                                  */}
+        {/* ========================================================================= */}
+        {loading || categoriesLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <PortfolioSkeletonCard key={i} />
             ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-rose-200 text-rose-600 p-6 max-w-md mx-auto">
+            <p className="font-bold text-sm">載入作品集失敗</p>
+            <p className="text-xs text-gray-500 mt-1">{error}</p>
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className="text-center text-[#8A8175] p-12 bg-white rounded-3xl border border-[#EFECE5] mx-auto max-w-lg">
-            <p className="text-lg">目前沒有符合條件的作品。</p>
+          <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-[#EFECE5] p-8 max-w-md mx-auto space-y-3 shadow-subtle">
+            <div className="w-12 h-12 rounded-full bg-[#FAF9F6] border border-[#EFECE5] flex items-center justify-center mx-auto text-[#9F9586]">
+              <Images className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">找不到符合條件的作品</h3>
+              <p className="text-xs text-text-light mt-1">請嘗試更換分類或清除搜尋關鍵字</p>
+            </div>
+            <button
+              onClick={() => {
+                setSelectedCategory('all');
+                setSearchQuery('');
+              }}
+              className="px-4 py-2 bg-[#9F9586] text-white text-xs font-bold rounded-xl hover:bg-[#8A8173] transition-all shadow-sm cursor-pointer"
+            >
+              清除所有篩選
+            </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {filteredItems.map(item => (
-              <div key={item.id} className="group flex flex-row bg-white rounded-2xl shadow-sm border border-[#EFECE5] overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
-                <div className="relative overflow-hidden w-1/2 min-w-[50%] max-w-[50%] shrink-0">
-                  {item.imageUrls && item.imageUrls.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+            {filteredItems.map(item => {
+              const imageCount = item.imageUrls?.length || 0;
+              const mainImage = item.imageUrls?.[0] || 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=600&auto=format&fit=crop';
+
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedItem(item)}
+                  className="group bg-white rounded-3xl overflow-hidden border border-[#EFECE5] shadow-soft hover:shadow-strong transition-all duration-300 flex flex-col cursor-pointer active:scale-[0.98]"
+                >
+                  {/* Photo Canvas */}
+                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-secondary-dark">
                     <img
-                      src={item.imageUrls[0]}
+                      src={mainImage}
                       alt={item.title}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       loading="lazy"
                     />
-                  )}
-                  {/* Fallback or spacer if no image, or to set aspect ratio? 
-                      If we want the image to dictate height, we can't use absolute.
-                      If we want content to dictate height, we use absolute on image.
-                      Let's try: Image container has aspect ratio? Or just fills height of content?
-                      The problem: If title is short, card is short. Image gets cropped?
-                      Or if image is tall?
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                      User said "inconsistent width".
-                      
-                      Let's switch to:
-                      Image container: w-1/2 shrink-0
-                      Image: w-full h-full object-cover (absolute positioning)
-                      
-                      AND we need to ensure the card has a minimum height so the image isn't 0px.
-                  */}
-                  <div className="pb-[100%]"></div> {/* Aspect Ratio Spacer 1:1 (Square) */}
-                  {item.imageUrls && item.imageUrls.length > 0 && (
-                    <img
-                      src={item.imageUrls[0]}
-                      alt={item.title}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      loading="lazy"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-                </div>
+                    {/* Category Badge */}
+                    <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 bg-white/90 backdrop-blur-md text-gray-900 text-[10px] sm:text-xs font-bold rounded-full shadow-sm">
+                      {item.category}
+                    </span>
 
-                <div className="p-5 flex flex-col gap-3 w-1/2 flex-grow">
-                  <div>
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-bold px-2 py-1 bg-[#EFECE5] text-[#8A8175] rounded-md line-clamp-1">
-                        {item.category}
+                    {/* Multi-Photo Indicator */}
+                    {imageCount > 1 && (
+                      <span className="absolute top-2.5 right-2.5 px-2 py-0.5 bg-black/50 backdrop-blur-md text-white text-[10px] font-medium rounded-full flex items-center gap-1 border border-white/20">
+                        <Images className="w-3 h-3" />
+                        <span>{imageCount}</span>
+                      </span>
+                    )}
+
+                    {/* Hover Quick Action Badge */}
+                    <div className="absolute inset-x-3 bottom-3 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <span className="w-full py-2 bg-white/95 backdrop-blur-md text-gray-900 text-xs font-bold rounded-xl shadow-md text-center flex items-center justify-center gap-1.5">
+                        <Eye className="w-3.5 h-3.5 text-[#9F9586]" />
+                        <span>查看大圖與詳情</span>
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-[#2C2825] font-serif line-clamp-2">{item.title}</h3>
                   </div>
 
-                  <div className="mt-auto">
-                    <p className="text-sm text-[#8A8175] line-clamp-2 mb-3">{item.description}</p>
-                    <button
-                      onClick={() => handleBookStyle(item.category)}
-                      className="w-full py-2.5 px-4 bg-[#2C2825] text-white text-xs sm:text-sm font-bold rounded-xl opacity-90 hover:opacity-100 hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
-                      <span>立即預約此款</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                        <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
-                      </svg>
-                    </button>
+                  {/* Card Info Content */}
+                  <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2">
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm font-serif line-clamp-1 group-hover:text-[#9F9586] transition-colors">
+                        {item.title}
+                      </h3>
+                      {item.description && (
+                        <p className="text-[11px] sm:text-xs text-text-light line-clamp-1 mt-0.5">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-[#EFECE5] flex items-center justify-between text-[11px] text-text-light">
+                      <span className="flex items-center gap-1 truncate">
+                        <User className="w-3 h-3 text-[#9F9586] shrink-0" />
+                        <span className="truncate">{item.designerName || '希亞特約設計師'}</span>
+                      </span>
+                      <span className="text-[#9F9586] font-bold shrink-0 flex items-center">
+                        預約
+                        <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                      </span>
+                    </div>
                   </div>
+
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
+
       </main>
+
+      {/* ========================================================================= */}
+      {/* 3. LIGHTBOX DETAIL MODAL                                                  */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {selectedItem && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedItem(null)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
+
+            {/* Modal Dialog Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.25 }}
+              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl z-10 max-h-[90vh] flex flex-col"
+            >
+              {/* Top Close & Share Bar */}
+              <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+                <button
+                  onClick={() => handleShare(selectedItem)}
+                  className="p-2 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition-all shadow-md cursor-pointer"
+                  title="分享款式"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setSelectedItem(null)}
+                  className="p-2 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition-all shadow-md cursor-pointer"
+                  title="關閉"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Swiper Photos Slider */}
+              <div className="relative w-full aspect-square sm:aspect-[4/3] bg-black shrink-0">
+                {selectedItem.imageUrls && selectedItem.imageUrls.length > 0 ? (
+                  <Swiper
+                    modules={[Navigation, Pagination]}
+                    navigation
+                    pagination={{ clickable: true }}
+                    className="w-full h-full custom-swiper-nav"
+                  >
+                    {selectedItem.imageUrls.map((url, idx) => (
+                      <SwiperSlide key={idx} className="flex items-center justify-center bg-black">
+                        <img
+                          src={url}
+                          alt={`${selectedItem.title} - ${idx + 1}`}
+                          className="w-full h-full object-contain"
+                        />
+                      </SwiperSlide>
+                    ))}
+                  </Swiper>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white/50">
+                    暫無相片
+                  </div>
+                )}
+              </div>
+
+              {/* Detail Info & CTA Body */}
+              <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#9F9586]/15 text-[#8A8173] border border-[#9F9586]/30">
+                      {selectedItem.category}
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-serif font-bold text-gray-900">
+                      {selectedItem.title}
+                    </h2>
+                  </div>
+
+                  {selectedItem.designerName && (
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] text-text-light block">主創設計師</span>
+                      <span className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1 justify-end">
+                        <User className="w-3.5 h-3.5 text-[#9F9586]" />
+                        {selectedItem.designerName}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {selectedItem.description && (
+                  <div className="bg-[#FAF9F6] p-4 rounded-2xl border border-[#EFECE5]">
+                    <p className="text-xs sm:text-sm text-text-main leading-relaxed whitespace-pre-line">
+                      {selectedItem.description}
+                    </p>
+                  </div>
+                )}
+
+                {/* Direct Booking CTA */}
+                <div className="pt-2 flex gap-3">
+                  <button
+                    onClick={() => {
+                      setSelectedItem(null);
+                      handleBookStyle(selectedItem);
+                    }}
+                    className="flex-1 py-3 bg-[#9F9586] hover:bg-[#8A8173] text-white text-xs sm:text-sm font-bold rounded-2xl transition-all shadow-md active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>立即預約此款式 / 分類</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedItem(null)}
+                    className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-medium rounded-2xl transition-all cursor-pointer"
+                  >
+                    關閉
+                  </button>
+                </div>
+              </div>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Copy Toast Alert */}
+      <AnimatePresence>
+        {copiedToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[10000] px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-xl shadow-lg flex items-center gap-1.5"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>已複製作品連結至剪貼簿</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };

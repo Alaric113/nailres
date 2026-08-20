@@ -225,10 +225,54 @@
     <header>
       <span class="header-badge">系統修復與優化彙整報告</span>
       <h1>今日問題排查與程式碼修復清單</h1>
-      <p class="header-desc">彙整優惠券搜尋崩潰、客戶權限修改安全防護、備註即時更新、客人端補睫售後優惠載入修正、以及消費餘額 3 個月滾動累積機制之完整紀錄。</p>
+      <p class="header-desc">彙整優惠券搜尋崩潰、客戶權限修改安全防護、備註即時更新、客人端補睫售後優惠載入、消費餘額 3 個月滾動累積、LINE 頭貼防破圖、首頁垂直空間精簡與評價垂直滾動、以及門市資訊頁精緻細修之完整紀錄。</p>
     </header>
 
     <h2 class="section-title">今日重點修復與新功能項目</h2>
+
+    <!-- Item 8 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">8. 門市資訊頁面 (StoreInfoPage.tsx) 原版經典佈局精修</div>
+          <span class="file-tag">src/pages/StoreInfoPage.tsx</span>
+        </div>
+        <span class="badge badge-fixed">視覺細修</span>
+      </div>
+      <div class="solution-box">
+        <strong>修飾優化：</strong>
+        <ul class="details-list" style="margin-top:8px;">
+          <li><strong>保留 100% 經典 App 沉浸式佈局：</strong> 上半部 50% 滿版地圖 + 浮動導航按鈕，下半部圓角抽屜卡片（<code>rounded-t-[2.5rem]</code>）。</li>
+          <li><strong>向量 SVG 社群圖示：</strong> 將原本外部 FontAwesome 字型改為內建純向量 SVG（Instagram、LINE、Facebook、TikTok），確保所有裝置 100% 穩定呈現。</li>
+          <li><strong>地址一鍵複製：</strong> 在地址旁加上輕巧的「複製地址」按鈕與即時「已複製」狀態提示，方便顧客貼到 Uber 或叫車 App。</li>
+          <li><strong>精緻圖示取代純 Emoji：</strong> 使用淡雅的 Heroicons 幾何圓圈圖示替換純文字 Emoji，質感大幅提升。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Item 7 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">7. 首頁 (Home.tsx) 視覺縱向空間精簡 ＆ 顧客評價「垂直平滑滾動」優化</div>
+          <span class="file-tag">src/pages/Home.tsx</span>
+          <span class="file-tag">src/components/home/CustomerReviews.tsx</span>
+        </div>
+        <span class="badge badge-arch">UI/UX 重構</span>
+      </div>
+      <div class="problem-box">
+        <strong>問題原因：</strong> 首頁縱向高度過長（三大核心服務在手機端為直向堆疊佔據 3 個全螢幕），且最重要的「顧客真實好評」被埋在最底部，需要滑動很久才能看見。
+      </div>
+      <div class="solution-box">
+        <strong>修復方案：</strong>
+        <ul class="details-list" style="margin-top:8px;">
+          <li><strong>三大核心服務緊湊化：</strong> 手機端改為橫向滑動卡片輪播（Swipe Deck），電腦端維持 3 欄排列，高度從 900px 大幅縮減至 240px，兼具美感與瀏覽效率。</li>
+          <li><strong>好評專區提升至第 4 區塊：</strong> 緊接在核心服務下方，第一時間建立信任度與強烈社會證明（Social Proof）。</li>
+          <li><strong>垂直平滑滾動 Ticker：</strong> 將評價改為垂直平滑輪播（Vertical Ticker），包含顧客頭像、星級、服務標籤、評論引言與上下切換按鈕，視覺輕巧且高質感。</li>
+          <li><strong>特色與門市資訊緊湊化：</strong> 品牌特色在手機端改為 2x2 緊湊網格，整體頁面滑動體驗大幅提升！</li>
+        </ul>
+      </div>
+    </div>
 
     <!-- Item 1 -->
     <div class="card">
@@ -339,6 +383,32 @@
           <li><strong>3 個月效期自動刷新：</strong> 每次只要有新消費完成，消費餘額有效期限即自動重設為 3 個月（90 天）。</li>
           <li><strong>會員中心進度條：</strong> 在會員端集點卡片上直觀呈現「累積消費：$X / $1,000（尚差 $Y 可得 1 點）」及到期日。</li>
           <li><strong>後台詳情與手動補發：</strong> 在後台客戶詳情頁同步顯示未兌換消費餘額，並可隨時手動微調/補發點數。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Item 6 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">6. LINE 用戶更換頭貼致原 CDN 網址失效 (破圖防護與自動同步)</div>
+          <span class="file-tag">src/components/common/UserAvatar.tsx</span>
+          <span class="file-tag">src/pages/CustomerListPage.tsx</span>
+          <span class="file-tag">src/components/admin/UserCard.tsx</span>
+          <span class="file-tag">src/components/dashboard/LoyaltyCard.tsx</span>
+          <span class="file-tag">src/pages/CustomerDetailPage.tsx</span>
+          <span class="file-tag">src/components/common/Sidebar.tsx</span>
+        </div>
+        <span class="badge badge-fixed">UX 容錯強化</span>
+      </div>
+      <div class="problem-box">
+        <strong>問題原因：</strong> LINE 用戶一旦在 LINE App 更換個人頭像，LINE 伺服器會生成全新的隨機 CDN 網址，並在一段時間後將舊網址刪除（回傳 404/403）。若該客人尚未再次登入預約系統，後台及會員端讀取舊網址時會出現瀏覽器破圖圖示。
+      </div>
+      <div class="solution-box">
+        <strong>修復方案：</strong>
+        <ul class="details-list" style="margin-top:8px;">
+          <li><strong>建立共用 <code>UserAvatar</code> 元件：</strong> 內建 <code>onError</code> 破圖監聽。當 LINE 舊網址失效時，自動優雅降級為「顧客名字首字質感圓圈」或「預設大頭貼」，100% 杜絕破圖圖示。</li>
+          <li><strong>每次登入即時刷新：</strong> 客人只要開啟 LINE LIFF 或預約系統，後端登入函式會即時取得 LINE 當下最新 <code>pictureUrl</code> 並覆寫更新資料庫。</li>
         </ul>
       </div>
     </div>

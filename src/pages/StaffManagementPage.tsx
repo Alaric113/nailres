@@ -14,6 +14,7 @@ import {
 import { writeBatch, arrayUnion, arrayRemove } from 'firebase/firestore'; // For batch updates
 import type { Service } from '../types/service';
 import DesignerServiceSelector from '../components/admin/DesignerServiceSelector';
+import UserAvatar from '../components/common/UserAvatar';
 
 const StaffManagementPage: React.FC = () => {
   const [designers, setDesigners] = useState<Designer[]>([]);
@@ -251,13 +252,11 @@ const StaffManagementPage: React.FC = () => {
 
                     <div className="flex items-start justify-between mb-4 pr-10"> {/* Added pr-10 to make space for edit button */}
                         <div className="flex items-center">
-                            <div className="h-12 w-12 rounded-full bg-secondary-light flex items-center justify-center text-[#9F9586] text-xl font-bold border border-[#EFECE5] overflow-hidden">
-                                {user.profile.avatarUrl ? (
-                                    <img src={user.profile.avatarUrl} alt={user.profile.displayName || ''} className="h-full w-full object-cover" />
-                                ) : (
-                                    (user.profile.displayName || '?')[0]
-                                )}
-                            </div>
+                            <UserAvatar
+                                src={user.profile.avatarUrl}
+                                name={designer?.name || user.profile.displayName}
+                                className="h-12 w-12 border border-[#EFECE5]"
+                            />
                             <div className="ml-3">
                                 <h3 className="text-lg font-bold text-gray-900">
                                     {designer?.name || user.profile.displayName}

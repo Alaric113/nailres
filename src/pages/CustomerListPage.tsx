@@ -12,6 +12,7 @@ import UserCard from '../components/admin/UserCard';
 import { MagnifyingGlassIcon, TrashIcon, TicketIcon, EyeIcon } from '@heroicons/react/24/outline';
 import Modal from '../components/common/Modal';
 import PassActivationModal from '../components/admin/PassActivationModal';
+import UserAvatar from '../components/common/UserAvatar';
 
 const DEFAULT_AVATAR = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
 
@@ -246,12 +247,10 @@ const CustomerListPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-text-main">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <img 
-                            className="h-10 w-10 rounded-full object-cover border border-secondary-dark/20" 
-                            src={user.profile?.avatarUrl || DEFAULT_AVATAR} 
-                            alt="" 
-                            crossOrigin="anonymous"
-                            referrerPolicy="no-referrer"
+                          <UserAvatar
+                            className="h-10 w-10 border border-secondary-dark/20"
+                            src={user.profile?.avatarUrl}
+                            name={user.profile?.displayName}
                           />
                         </div>
                         <div className="ml-4">

@@ -4,6 +4,7 @@ import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../../store/authStore';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import UserAvatar from '../common/UserAvatar';
 
 interface LoyaltyCardProps {
   previewBackground?: string; // New prop for preview
@@ -163,13 +164,10 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
         <div className="flex items-center justify-between ">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative">
-              <img
-                src={userProfile?.profile.avatarUrl || defaultAvatar}
-                alt="User Avatar"
-                crossOrigin="anonymous"
-                referrerPolicy="no-referrer"
-                loading='lazy'
-                className="w-16 h-16 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-white/30 shadow-sm"
+              <UserAvatar
+                src={userProfile?.profile.avatarUrl}
+                name={userProfile?.profile.displayName}
+                className="w-16 h-16 sm:w-14 sm:h-14 border-2 border-white/30 shadow-sm"
               />
               <div className="absolute bottom-0 right-0 bg-white text-[#9F9586] rounded-full p-0.5 shadow-sm">
                 <StarIcon className="w-3 h-3" />

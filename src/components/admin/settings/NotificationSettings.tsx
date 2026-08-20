@@ -13,6 +13,7 @@ import { useNotification } from '../../../hooks/useNotification';
 import type { EnrichedUser } from '../../../types/user';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import { BellAlertIcon } from '@heroicons/react/24/outline'; // Adjusted import
+import UserAvatar from '../../common/UserAvatar';
 
 const NotificationSettings: React.FC = () => {
     const { userProfile, currentUser } = useAuthStore();
@@ -280,11 +281,11 @@ const NotificationSettings: React.FC = () => {
                              {notificationTargetUser.map(user => (
                                <li key={user.id} className="py-4 flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
                                  <div className="flex items-center">                    
-                                   <img 
-                                     className="h-10 w-10 rounded-full mr-3 object-cover border border-gray-200" 
-                                     src={user.profile.avatarUrl || `https://ui-avatars.com/api/?name=${user.profile.displayName}&background=random`} 
-                                     alt="" 
-                                   />
+                                    <UserAvatar 
+                                      className="h-10 w-10 mr-3 border border-gray-200" 
+                                      src={user.profile?.avatarUrl} 
+                                      name={user.profile?.displayName}
+                                    />
                                    <div>
                                      <p className="text-sm font-medium text-gray-900">{user.profile.displayName}</p>
                                      <p className="text-xs text-gray-500">{user.role}</p>

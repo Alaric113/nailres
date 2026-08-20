@@ -11,6 +11,7 @@ import PassActivationModal from '../components/admin/PassActivationModal';
 import EditPassModal from '../components/admin/EditPassModal';
 import PointAdjustmentModal from '../components/admin/PointAdjustmentModal';
 import IssueCouponModal from '../components/admin/IssueCouponModal';
+import UserAvatar from '../components/common/UserAvatar';
 import { motion, useAnimation, type PanInfo } from 'framer-motion';
 import {
   ArrowLeftIcon,
@@ -418,13 +419,11 @@ const CustomerDetailPage: React.FC = () => {
                 <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
               </button>
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-base sm:text-lg overflow-hidden flex-shrink-0">
-                  {user.profile.avatarUrl ? (
-                    <img src={user.profile.avatarUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    (user.profile.displayName || '?')[0]
-                  )}
-                </div>
+                <UserAvatar
+                  src={user.profile.avatarUrl}
+                  name={user.profile.displayName}
+                  className="w-10 h-10 sm:w-12 sm:h-12 border border-gray-100"
+                />
                 <div className="min-w-0">
                   <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{user.profile.displayName || '未命名'}</h1>
                   <p className="text-xs sm:text-sm text-gray-500 truncate">{user.email || user.lineUserId?.slice(0, 10) + '...'}</p>

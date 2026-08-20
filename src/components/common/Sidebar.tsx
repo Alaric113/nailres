@@ -13,6 +13,7 @@ import {
   BuildingStorefrontIcon
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../../store/authStore';
+import UserAvatar from './UserAvatar';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -131,17 +132,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             {/* User greeting */}
             {currentUser && (
               <div className="flex items-center space-x-3 p-3 bg-secondary-light rounded-xl shadow-subtle border border-secondary-dark">
-                {avatarUrl ? (
-                  <img 
-                    src={avatarUrl} 
-                    alt={displayName} 
-                    className='h-10 w-10 rounded-xl object-cover' 
-                  />
-                ) : (
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <UserCircleIcon className="h-6 w-6 text-primary" />
-                  </div>
-                )}
+                <UserAvatar
+                  src={avatarUrl}
+                  name={displayName}
+                  className="h-10 w-10 rounded-xl"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-text-main truncate">
                     {displayName}
