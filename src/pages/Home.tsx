@@ -44,7 +44,6 @@ const Home = () => {
     browImages: [],
   });
 
-  const [isLoading, setIsLoading] = useState(true);
   const [activeCategoryTab, setActiveCategoryTab] = useState<'all' | 'nail' | 'lash' | 'brow'>('all');
 
   useEffect(() => {
@@ -57,8 +56,6 @@ const Home = () => {
         }
       } catch (error) {
         console.error("Error fetching home data:", error);
-      } finally {
-        setIsLoading(false);
       }
     };
     fetchData();

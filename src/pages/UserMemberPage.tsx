@@ -9,8 +9,6 @@ import {
   CreditCard, 
   Clock, 
   ChevronRight, 
-  MapPin, 
-  Image as ImageIcon, 
   LogOut, 
   Sliders, 
   HelpCircle,

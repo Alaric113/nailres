@@ -23,8 +23,6 @@ const roleMap: Record<UserRole, string> = {
   deleted: '已刪除',
 };
 
-const DEFAULT_AVATAR = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
-
 const UserCard: React.FC<UserCardProps> = ({ 
   user, 
   isUpdatingRole, 

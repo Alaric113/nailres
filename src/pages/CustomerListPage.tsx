@@ -14,8 +14,6 @@ import Modal from '../components/common/Modal';
 import PassActivationModal from '../components/admin/PassActivationModal';
 import UserAvatar from '../components/common/UserAvatar';
 
-const DEFAULT_AVATAR = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
-
 const CustomerListPage = () => {
   const navigate = useNavigate();
   const { users, loading, error } = useAllUsers();

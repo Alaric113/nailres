@@ -46,9 +46,6 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
   const [textColor, setTextColor] = useState<string>('#FAF9F6'); // Default off-white
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
-  // Default fallback avatar
-  const defaultAvatar = 'https://firebasestorage.googleapis.com/v0/b/nail-62ea4.firebasestorage.app/o/user-solid.svg?alt=media&token=e5336262-2473-4888-a741-055155153a63';
-
   // Determine membership tier (simple logic for now)
   const role = userProfile?.role;
   const tierName = role === 'platinum' ? '白金會員' : role === 'admin' ? '管理員' : role === 'manager' ? '管理設計師' : role === 'designer' ? '設計師' : '一般會員'; // could be dynamic based on points later

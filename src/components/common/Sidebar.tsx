@@ -5,7 +5,6 @@ import {
   ArrowRightOnRectangleIcon, 
   Cog6ToothIcon, 
   ChevronDownIcon, 
-  UserCircleIcon,
   HomeIcon,
   CalendarDaysIcon,
   PhotoIcon,

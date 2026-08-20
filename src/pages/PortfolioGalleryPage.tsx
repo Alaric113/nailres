@@ -10,13 +10,11 @@ import {
   X, 
   Calendar, 
   Images, 
-  ChevronLeft, 
   ChevronRight, 
-  ArrowRight,
   User,
   Eye,
-  SlidersHorizontal,
-  Share2
+  Share2,
+  CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
