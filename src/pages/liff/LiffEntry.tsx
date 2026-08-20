@@ -13,7 +13,7 @@ import {
   AlertCircle,
   CheckCircle2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const LINE_CHANNEL_ID = import.meta.env.VITE_LINE_CHANNEL_ID;
 
