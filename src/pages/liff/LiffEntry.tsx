@@ -382,7 +382,7 @@ const LiffEntry = () => {
             <span className={stepIndex >= 1 ? 'text-[#9F9586] font-bold' : ''}>連線服務</span>
             <span className={stepIndex >= 2 ? 'text-[#9F9586] font-bold' : ''}>LINE 驗證</span>
             <span className={stepIndex >= 3 ? 'text-[#9F9586] font-bold' : ''}>身分同步</span>
-            <span className={stepIndex >= 4 ? 'text-emerald-600 font-bold' : ''}>開啟預約</span>
+            <span className={stepIndex >= 4 ? 'text-emerald-600 font-bold' : ''}>登入成功</span>
           </div>
         </div>
 

@@ -13,8 +13,6 @@ import {
   ChevronRight, 
   ShieldCheck, 
   MapPin,
-  Heart, 
-  Award,
   ArrowRight,
   Eye,
 } from 'lucide-react';
@@ -479,63 +477,7 @@ const Home = () => {
           </section>
         )}
 
-        {/* ========================================================================= */}
-        {/* 6. BRAND VALUE & PHILOSOPHY (COMPACT 2x2 GRID ON MOBILE)                   */}
-        {/* ========================================================================= */}
-        <section className="bg-white rounded-2xl p-4 sm:p-6 border border-[#EFECE5] shadow-soft space-y-4">
-          <div className="text-center max-w-xl mx-auto space-y-0.5">
-            <span className="text-[10px] font-bold text-[#9F9586] tracking-wider uppercase">
-              Brand Philosophy
-            </span>
-            <h2 className="text-base sm:text-lg font-serif font-bold text-gray-900">
-              為什麼選擇 TREERING ?
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
-            
-            <div className="bg-[#FAF9F6] p-3 sm:p-4 rounded-xl border border-[#EFECE5] space-y-1.5">
-              <div className="w-8 h-8 rounded-lg bg-white border border-[#EFECE5] flex items-center justify-center text-[#9F9586] shadow-subtle">
-                <Heart className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-gray-900 text-xs sm:text-sm">日本頂級凝膠</h3>
-              <p className="text-[11px] text-text-light leading-relaxed">
-                無毒環保，透氣不傷甲面，色澤飽滿純淨持久。
-              </p>
-            </div>
-
-            <div className="bg-[#FAF9F6] p-3 sm:p-4 rounded-xl border border-[#EFECE5] space-y-1.5">
-              <div className="w-8 h-8 rounded-lg bg-white border border-[#EFECE5] flex items-center justify-center text-[#9F9586] shadow-subtle">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-gray-900 text-xs sm:text-sm">醫療級滅菌消毒</h3>
-              <p className="text-[11px] text-text-light leading-relaxed">
-                一人一套拋棄式耗材，器械高壓紫外線滅菌。
-              </p>
-            </div>
-
-            <div className="bg-[#FAF9F6] p-3 sm:p-4 rounded-xl border border-[#EFECE5] space-y-1.5">
-              <div className="w-8 h-8 rounded-lg bg-white border border-[#EFECE5] flex items-center justify-center text-[#9F9586] shadow-subtle">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-gray-900 text-xs sm:text-sm">量身客製美感</h3>
-              <p className="text-[11px] text-text-light leading-relaxed">
-                依據個人甲型眼型，調配專屬修飾造型。
-              </p>
-            </div>
-
-            <div className="bg-[#FAF9F6] p-3 sm:p-4 rounded-xl border border-[#EFECE5] space-y-1.5">
-              <div className="w-8 h-8 rounded-lg bg-white border border-[#EFECE5] flex items-center justify-center text-[#9F9586] shadow-subtle">
-                <Award className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-gray-900 text-xs sm:text-sm">7 天安心保固</h3>
-              <p className="text-[11px] text-text-light leading-relaxed">
-                7 天內非人為掉鑽脫膠，提供免費原店修補。
-              </p>
-            </div>
-
-          </div>
-        </section>
+      
 
         {/* ========================================================================= */}
         {/* 7. STORE INFO & NAVIGATION SHORTCUT                                       */}
@@ -545,11 +487,9 @@ const Home = () => {
           
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-2 max-w-xl">
-              <span className="px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-bold tracking-wider uppercase border border-white/20">
-                Salon Sanctuary
-              </span>
+              
               <h2 className="text-xl sm:text-2xl font-serif font-bold">
-                TREERING 希亞美學・門市資訊
+                TREERING・門市資訊
               </h2>
               <p className="text-xs text-white/85 leading-relaxed">
                 隱身於靜謐巷弄中的質感包廂空間，讓每次美甲美睫都是放鬆的享受。
