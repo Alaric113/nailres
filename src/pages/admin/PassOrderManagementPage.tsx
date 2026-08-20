@@ -73,9 +73,9 @@ const PassOrderManagementPage = () => {
         const matchesStatus =
             filterStatus === "all" || order.status === filterStatus;
         const matchesSearch =
-            order.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.passName.includes(searchTerm);
+            (order.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (order.userEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (order.passName || '').includes(searchTerm);
 
         return matchesStatus && matchesSearch;
     });

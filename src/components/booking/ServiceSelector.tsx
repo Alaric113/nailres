@@ -39,16 +39,17 @@ interface ServiceSelectorProps {
     hasActivePass?: boolean; // When true, show '季卡方案' category first
     activePass?: ActivePass | null;
     passContentItems?: PlanContentItem[];
+    targetUserId?: string;
 }
 
-const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClick, passContentItems, hasActivePass = false, activePass }) => {
+const ServiceSelector: React.FC<ServiceSelectorProps> = ({ onNext, onServiceClick, passContentItems, hasActivePass = false, activePass, targetUserId }) => {
     const [searchParams] = useSearchParams();
     const { services, isLoading, error } = useServices();
     const { categories } = useServiceCategories();
     const { userProfile } = useAuthStore();
     const { settings } = useGlobalSettings();
     const promo = settings.seasonPassPromo;
-    const { followUps } = useUserFollowUps();
+    const { followUps } = useUserFollowUps(targetUserId);
 
     const [activeCategory, setActiveCategory] = useState<string>('全部');
     const [selectedFollowUp, setSelectedFollowUp] = useState<ActiveFollowUp | null>(null);

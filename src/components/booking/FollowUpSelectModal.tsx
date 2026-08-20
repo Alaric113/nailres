@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { XMarkIcon, CalendarIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import type { ActiveFollowUp } from '../../types/user';
-import { getFollowUpPrice, getFollowUpPriceRange } from '../../hooks/useUserFollowUps';
+import { getFollowUpPrice, getFollowUpPriceRange, toJsDate } from '../../hooks/useUserFollowUps';
 import { useBookingStore } from '../../store/bookingStore';
 import { useServices } from '../../hooks/useServices';
 
@@ -27,9 +27,9 @@ const FollowUpSelectModal: React.FC<FollowUpSelectModalProps> = ({
 
     // Calculate days remaining
     const now = new Date();
-    const expiryDate = followUp.expiresAt.toDate();
+    const expiryDate = toJsDate(followUp.expiresAt);
     const daysRemaining = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    const completedDate = followUp.completedAt.toDate();
+    const completedDate = toJsDate(followUp.completedAt);
 
     // Sort tiers for display
     const sortedTiers = [...followUp.pricingTiers].sort((a, b) => a.withinDays - b.withinDays);

@@ -9,11 +9,12 @@ interface LoyaltyCardProps {
   previewBackground?: string; // New prop for preview
   previewTextColor?: string; // New prop for preview text color
   onReady?: () => void; // Callback when card is ready (bg image loaded or no bg)
+  className?: string;
 }
 
 // Skeleton Component for Loyalty Card
-const LoyaltyCardSkeleton = () => (
-  <div className="relative overflow-hidden bg-gray-200 rounded-2xl shadow-xl p-6 sm:p-8 h-full min-h-[220px] max-w-[480px] flex flex-col animate-pulse">
+const LoyaltyCardSkeleton = ({ className = '' }: { className?: string }) => (
+  <div className={`relative overflow-hidden bg-gray-200 rounded-3xl shadow-xl p-5 sm:p-7 h-full min-h-[220px] min-w-[300px] xs:min-w-[320px] sm:min-w-[360px] w-full flex flex-col animate-pulse ${className}`}>
     <div className="flex items-center justify-between mb-4 px-3">
       <div className="flex items-center gap-3 sm:gap-4">
         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-300" />
@@ -37,7 +38,7 @@ const LoyaltyCardSkeleton = () => (
   </div>
 );
 
-const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTextColor, onReady }) => {
+const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTextColor, onReady, className = '' }) => {
   const { userProfile } = useAuthStore();
   const loyaltyPoints = userProfile?.loyaltyPoints || 0;
   const [backgroundImage, setBackgroundImage] = useState<string>('');
@@ -134,12 +135,12 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
 
   // Show skeleton while loading
   if (!isImageLoaded) {
-    return <LoyaltyCardSkeleton />;
+    return <LoyaltyCardSkeleton className={className} />;
   }
 
   return (
     <div
-      className="relative overflow-hidden bg-[#9F9586] rounded-2xl shadow-xl p-6 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px]  max-w-[480px] flex flex-col bg-center bg-no-repeat"
+      className={`relative overflow-hidden bg-gradient-to-br from-[#9F9586] to-[#8A8173] rounded-3xl shadow-xl p-5 sm:p-7 transition-all hover:shadow-2xl h-full min-h-[220px] min-w-[300px] xs:min-w-[320px] sm:min-w-[360px] w-full flex flex-col bg-center bg-no-repeat border border-white/20 ${className}`}
       style={{
         backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
         backgroundSize: '100% 100%',
@@ -205,9 +206,46 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
               每消費 $1,000 累積 1 點
             </p>
 
+            {/* Carryover spending remainder info */}
+            {(() => {
+              const unclaimed = userProfile?.unclaimedSpending || 0;
+              const expiresAt = userProfile?.unclaimedSpendingExpiresAt;
+              const now = new Date();
+              let isExpired = false;
+              let expiryStr = '';
+              if (expiresAt) {
+                const expDate = typeof expiresAt.toDate === 'function'
+                  ? expiresAt.toDate()
+                  : new Date((expiresAt as any).seconds * 1000);
+                isExpired = expDate < now;
+                expiryStr = `${expDate.getFullYear()}/${expDate.getMonth() + 1}/${expDate.getDate()}`;
+              }
 
+              if (unclaimed > 0 && !isExpired) {
+                return (
+                  <div className="mt-3 w-full max-w-[280px] bg-black/10 backdrop-blur-sm rounded-xl p-2.5 border border-white/20">
+                    <div className="flex justify-between text-[11px] font-medium mb-1" style={{ opacity: 0.95 }}>
+                      <span>累積消費：${unclaimed.toLocaleString()} / $1,000</span>
+                      <span>差 ${(1000 - unclaimed).toLocaleString()} 得 1 點</span>
+                    </div>
+                    <div className="w-full bg-white/25 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-white h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, (unclaimed / 1000) * 100)}%` }}
+                      />
+                    </div>
+                    {expiryStr && (
+                      <p className="text-[10px] text-center mt-1 font-light" style={{ opacity: 0.8 }}>
+                        餘額效期至 {expiryStr}（消費自動延長3個月）
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-baseline gap-2 mt-2">
             <span className="text-5xl sm:text-6xl font-serif font-bold leading-none">
               {loyaltyPoints}
             </span>

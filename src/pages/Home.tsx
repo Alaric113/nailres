@@ -142,15 +142,7 @@ const Home = () => {
     <div className="min-h-screen bg-secondary-light pb-24">
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {!isLoading && homepageImages.lashImages.length > 0 &&(
-          <section> 
-            <div>
-              <h2 className="text-lg font-serif font-bold text-text-main">
-                TREERING
-              </h2>
-            </div>
-          </section>
-        )}
+        
         
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3 hidden">

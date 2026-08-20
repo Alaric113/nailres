@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { isSameMonth } from 'date-fns';
 
-import { doc, getDoc, writeBatch, collection, getDocs, orderBy, query, where, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAllBookings, type EnrichedBooking } from '../hooks/useAllBookings';
 import { useCurrentDesigner } from '../hooks/useCurrentDesigner'; // New hook
@@ -24,7 +24,6 @@ import {
 
 import OrderTypeTabs from '../components/admin/OrderTypeTabs';
 import { updateBookingStatus } from '../utils/bookingActions';
-import { issueFollowUpEligibility } from '../utils/userActions';
 import BookingOrderCard from '../components/admin/BookingOrderCard';
 
 // Stats Card Component
@@ -107,64 +106,6 @@ const OrderManagementPage = () => {
   }, [bookings, activeTab]);
 
   // --- Actions ---
-  const grantLoyaltyPoints = async (batch: ReturnType<typeof writeBatch>, booking: EnrichedBooking) => {
-    if (!booking.userId || booking.amount <= 0) return;
-    try {
-      // 1. Check if points already granted for this booking
-      const historyRef = collection(db, 'point_history');
-      const q = query(
-        historyRef,
-        where('refId', '==', booking.id),
-        where('type', '==', 'earned'),
-        limit(1)
-      );
-      const historySnap = await getDocs(q);
-
-      if (!historySnap.empty) {
-        console.log(`Points already granted for booking ${booking.id}, skipping.`);
-        return;
-      }
-
-      const settingsRef = doc(db, 'globals', 'settings');
-      const settingsSnap = await getDoc(settingsRef);
-      const loyaltySettings = settingsSnap.data()?.loyaltySettings;
-
-      if (loyaltySettings && loyaltySettings.pointsPerAmount > 0) {
-        const pointsEarned = Math.floor(booking.amount / loyaltySettings.pointsPerAmount);
-
-        if (pointsEarned > 0) {
-          const userRef = doc(db, 'users', booking.userId);
-          const userSnap = await getDoc(userRef);
-          const currentPoints = userSnap.data()?.loyaltyPoints || 0;
-          batch.update(userRef, { loyaltyPoints: currentPoints + pointsEarned });
-
-          // Create record in point_history
-          // Use set on a custom ID or addDoc. 
-          // Using addDoc for consistent history
-          const newHistoryRef = doc(collection(db, 'point_history'));
-          batch.set(newHistoryRef, {
-            userId: booking.userId,
-            amount: pointsEarned,
-            type: 'earned',
-            reason: `完成預約 #${booking.id.substring(0, 6)}`,
-            refId: booking.id,
-            createdAt: serverTimestamp(), // Use serverTimestamp for consistency
-          });
-
-          // Legacy Log (Optional: Keep it if other parts use it, or deprecate)
-          const logRef = doc(db, 'loyaltyPointLogs', `${booking.id}_${Date.now()}`);
-          batch.set(logRef, {
-            userId: booking.userId,
-            pointsChange: pointsEarned,
-            reason: `完成預約 #${booking.id.substring(0, 6)}`,
-            createdAt: new Date(),
-          });
-        }
-      }
-    } catch (e) {
-      console.error("Error granting points:", e);
-    }
-  };
 
   const sendLineNotification = (booking: EnrichedBooking, status: BookingStatus) => {
     fetch('/api/send-line-message', {
@@ -185,34 +126,8 @@ const OrderManagementPage = () => {
   const handleUpdateStatus = async (booking: EnrichedBooking, newStatus: BookingStatus) => {
     setUpdatingId(booking.id);
     try {
-      // Use centralized utility for status update (handles Season Pass deduction)
+      // Use centralized utility for status update (handles Season Pass deduction, Loyalty Points, Follow-up, and Role Upgrade)
       await updateBookingStatus(booking.id, newStatus);
-
-      // Handle Loyalty Points (if completed)
-      // Note: This is now a separate transaction from status update
-      if (newStatus === 'completed' && booking.userId && booking.amount > 0) {
-        const batch = writeBatch(db);
-        await grantLoyaltyPoints(batch, booking);
-        await batch.commit();
-
-        // Issue follow-up service eligibility
-        try {
-          const issuedCount = await issueFollowUpEligibility({
-            id: booking.id,
-            userId: booking.userId,
-            serviceIds: booking.serviceIds,
-            dateTime: Timestamp.fromDate(booking.dateTime),
-            amount: booking.amount,
-            items: booking.items // Include items with actual prices (including options)
-          });
-          if (issuedCount > 0) {
-            console.log(`Issued ${issuedCount} follow-up eligibilities for booking ${booking.id}`);
-          }
-        } catch (fuError) {
-          console.error('Error issuing follow-up eligibility:', fuError);
-          // Don't fail the whole operation for follow-up errors
-        }
-      }
 
       showToast(`訂單已更新：${getStatusLabel(newStatus)}`, 'success');
 

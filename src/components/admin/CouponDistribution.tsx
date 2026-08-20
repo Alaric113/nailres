@@ -87,7 +87,12 @@ import { TicketIcon, CreditCardIcon, PaperAirplaneIcon, UsersIcon, UserGroupIcon
 
     const filteredUsers = useMemo(() => {
       if (!userSearch) return users;
-      return users.filter(user => (user.profile.displayName || '').toLowerCase().includes(userSearch.toLowerCase()) || user.email.toLowerCase().includes(userSearch.toLowerCase()));
+      const lowerSearch = userSearch.toLowerCase();
+      return users.filter(user => {
+        const displayName = (user.profile?.displayName || '').toLowerCase();
+        const email = (user.email || '').toLowerCase();
+        return displayName.includes(lowerSearch) || email.includes(lowerSearch);
+      });
     }, [users, userSearch]);
 
     const handleTargetTypeChange = (type: TargetType, checked: boolean) => {
@@ -387,7 +392,7 @@ import { TicketIcon, CreditCardIcon, PaperAirplaneIcon, UsersIcon, UserGroupIcon
                       onClick={() => handleUserSelect(userId)}
                       className="px-3 py-1.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full cursor-pointer hover:bg-purple-200 transition-colors"
                     >
-                      {user.profile.displayName || user.email} ✕
+                      {user.profile?.displayName || user.email || '未設定名稱'} ✕
                     </span>
                   ) : null;
                 })}

@@ -13,11 +13,12 @@ interface SeasonPassCardProps {
   pass: ActivePass;
   previewBackground?: string;
   previewTextColor?: string;
+  className?: string;
 }
 
 // Skeleton Component
-const SeasonPassCardSkeleton: React.FC = () => (
-  <div className="relative overflow-hidden rounded-2xl shadow-xl p-6 sm:p-8 h-full min-h-[220px] flex flex-col bg-gray-200 animate-pulse">
+const SeasonPassCardSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`relative overflow-hidden rounded-3xl shadow-xl p-5 sm:p-7 h-full min-h-[220px] min-w-[300px] xs:min-w-[320px] sm:min-w-[360px] w-full flex flex-col bg-gray-200 animate-pulse ${className}`}>
     {/* Header skeleton */}
     <div className="flex justify-between items-start mb-4">
       <div className="flex flex-row gap-2">
@@ -35,7 +36,7 @@ const SeasonPassCardSkeleton: React.FC = () => (
   </div>
 );
 
-const SeasonPassCard: React.FC<SeasonPassCardProps> = ({ pass, previewBackground, previewTextColor }) => {
+const SeasonPassCard: React.FC<SeasonPassCardProps> = ({ pass, previewBackground, previewTextColor, className = '' }) => {
   const { passes } = useSeasonPasses();
   const originalPass = passes.find(p => p.id === pass.passId);
   const [savedBackground, setSavedBackground] = useState<SeasonPassBackground | null>(null);
@@ -101,7 +102,7 @@ const SeasonPassCard: React.FC<SeasonPassCardProps> = ({ pass, previewBackground
 
   // Show skeleton while loading
   if (isLoading || !isImageLoaded) {
-    return <SeasonPassCardSkeleton />;
+    return <SeasonPassCardSkeleton className={className} />;
   }
 
   const cardStyle: React.CSSProperties = backgroundUrl
@@ -115,7 +116,7 @@ const SeasonPassCard: React.FC<SeasonPassCardProps> = ({ pass, previewBackground
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl shadow-xl text-white p-4 pb-2 sm:p-8 transition-all hover:shadow-2xl h-full min-h-[220px] flex flex-col"
+      className={`relative overflow-hidden rounded-3xl shadow-xl text-white p-5 sm:p-7 transition-all hover:shadow-2xl h-full min-h-[220px] min-w-[300px] xs:min-w-[320px] sm:min-w-[360px] w-full flex flex-col border border-white/20 ${className}`}
       style={cardStyle}
     >
       {/* Decorative Background Elements */}

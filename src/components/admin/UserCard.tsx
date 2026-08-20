@@ -2,6 +2,7 @@ import React from 'react';
 import type { EnrichedUser, UserRole } from '../../types/user';
 import { TrashIcon, EyeIcon, TicketIcon } from '@heroicons/react/24/outline';
 import { motion, useAnimation, type PanInfo } from 'framer-motion';
+import { auth } from '../../lib/firebase';
 
 interface UserCardProps {
   user: EnrichedUser;
@@ -69,34 +70,42 @@ const UserCard: React.FC<UserCardProps> = ({
         >
             {/* Left: Avatar */}
             <div className="flex-shrink-0 w-24 p-2 justify-center items-center flex bg-gray-50">
-                <img className="w-20 h-20 rounded-full object-cover" src={user.profile.avatarUrl || DEFAULT_AVATAR} alt="Avatar" />
+                <img className="w-20 h-20 rounded-full object-cover" src={user.profile?.avatarUrl || DEFAULT_AVATAR} alt="Avatar" />
             </div>
             {/* Right: Content */}
             <div className="p-3 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-lg text-gray-800 truncate pr-2">{user.profile.displayName || 'N/A'}</h3>
-                    <select
-                      value={user.role}
-                      onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}
-                      disabled={isUpdatingRole}
-                      className={`p-1 border rounded-md text-xs flex-shrink-0 ${
-                        user.role === 'admin' ? 'bg-red-100 text-red-800 border-red-200' : 
-                        user.role === 'manager' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
-                        user.role === 'platinum' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 
-                        user.role === 'designer' ? 'bg-purple-100 text-purple-800 border-purple-200' :
-                        'bg-gray-100 text-gray-800 border-gray-200'
-                      }`}
-                      onPointerDownCapture={(e) => e.stopPropagation()}
-                    >
-                      <option value="admin">{roleMap.admin}</option>
-                      <option value="manager">{roleMap.manager}</option>
-                      <option value="designer">{roleMap.designer}</option>
-                      <option value="platinum">{roleMap.platinum}</option>
-                      <option value="user">{roleMap.user}</option>
-                    </select>
-                  </div>
-                </div>
+                {(() => {
+                  const isSelf = user.id === auth.currentUser?.uid;
+                  return (
+                    <>
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-bold text-lg text-gray-800 truncate pr-2">{user.profile?.displayName || 'N/A'}</h3>
+                          <select
+                            value={user.role}
+                            onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}
+                            disabled={isUpdatingRole || isSelf}
+                            className={`p-1 border rounded-md text-xs flex-shrink-0 ${
+                              isSelf ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200' :
+                              user.role === 'admin' ? 'bg-red-100 text-red-800 border-red-200' : 
+                              user.role === 'manager' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
+                              user.role === 'platinum' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 
+                              user.role === 'designer' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                              'bg-gray-100 text-gray-800 border-gray-200'
+                            }`}
+                            onPointerDownCapture={(e) => e.stopPropagation()}
+                          >
+                            <option value="admin">{roleMap.admin}</option>
+                            <option value="manager">{roleMap.manager}</option>
+                            <option value="designer">{roleMap.designer}</option>
+                            <option value="platinum">{roleMap.platinum}</option>
+                            <option value="user">{roleMap.user}</option>
+                          </select>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
                 
                 {/* Action Buttons */}
                 <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-gray-200">

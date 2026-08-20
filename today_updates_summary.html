@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>今日系統修復與優化彙整報告</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #9F9586;
+      --primary-dark: #7D7465;
+      --primary-light: #C4BCB0;
+      --secondary: #EFECE5;
+      --secondary-light: #F8F7F4;
+      --text-main: #2C2A29;
+      --text-muted: #736E67;
+      --border-color: #E2DDD5;
+      --card-bg: #FFFFFF;
+      --success-bg: #ECFDF5;
+      --success-text: #065F46;
+      --success-border: #A7F3D0;
+      --warn-bg: #FFFBEB;
+      --warn-text: #92400E;
+      --warn-border: #FDE68A;
+      --error-bg: #FEF2F2;
+      --error-text: #991B1B;
+      --error-border: #FECACA;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--secondary-light);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: linear-gradient(135deg, #FAF8F5 0%, var(--secondary) 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 32px 28px;
+      margin-bottom: 32px;
+      box-shadow: 0 4px 20px rgba(159, 149, 134, 0.08);
+    }
+
+    .header-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: var(--primary);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', 'Noto Sans TC', serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .header-desc {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 28px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: "";
+      width: 4px;
+      height: 20px;
+      background-color: var(--primary);
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 6px 18px rgba(159, 149, 134, 0.12);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--secondary);
+      padding-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-fixed {
+      background: var(--success-bg);
+      color: var(--success-text);
+      border: 1px solid var(--success-border);
+    }
+
+    .badge-security {
+      background: var(--warn-bg);
+      color: var(--warn-text);
+      border: 1px solid var(--warn-border);
+    }
+
+    .badge-arch {
+      background: #EFF6FF;
+      color: #1E40AF;
+      border: 1px solid #BFDBFE;
+    }
+
+    .problem-box {
+      background: var(--error-bg);
+      border-left: 4px solid var(--error-text);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 14px;
+      font-size: 14px;
+      color: var(--error-text);
+    }
+
+    .solution-box {
+      background: var(--success-bg);
+      border-left: 4px solid var(--success-text);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: var(--success-text);
+    }
+
+    .details-list {
+      list-style-type: none;
+      padding-left: 0;
+      margin: 12px 0;
+    }
+
+    .details-list li {
+      position: relative;
+      padding-left: 20px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .details-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--primary-dark);
+      font-weight: bold;
+    }
+
+    .file-tag {
+      display: inline-block;
+      background: var(--secondary);
+      color: var(--primary-dark);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      margin-top: 4px;
+      margin-right: 4px;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-top: 40px;
+      padding: 20px 0;
+      border-top: 1px solid var(--border-color);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="header-badge">系統修復與優化彙整報告</span>
+      <h1>今日問題排查與程式碼修復清單</h1>
+      <p class="header-desc">彙整優惠券搜尋崩潰、客戶權限修改安全防護、備註即時更新、客人端補睫售後優惠載入修正、以及消費餘額 3 個月滾動累積機制之完整紀錄。</p>
+    </header>
+
+    <h2 class="section-title">今日重點修復與新功能項目</h2>
+
+    <!-- Item 1 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">1. 手動發送優惠券搜尋會員崩潰 (亂碼錯誤)</div>
+          <span class="file-tag">src/components/admin/CouponDistribution.tsx</span>
+        </div>
+        <span class="badge badge-fixed">Bug 修復</span>
+      </div>
+      <div class="problem-box">
+        <strong>問題原因：</strong> 當手動發送優惠券並搜尋會員時，程式會執行 <code>user.email.toLowerCase()</code>。但使用 LINE 快速登入或資料庫中 Email 欄位缺失時，會直接觸發 <code>undefined is not an object (evaluating 'm.email.toLowerCase')</code> 錯誤畫面。
+      </div>
+      <div class="solution-box">
+        <strong>修復方案：</strong> 加入安全可選鏈接與空字串預設防護 <code>(user.email || '').toLowerCase()</code> 與 <code>user.profile?.displayName</code>，徹底防止因會員欄位缺失導致的畫面崩潰。
+      </div>
+    </div>
+
+    <!-- Item 2 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">2. 管理員權限保護 (禁止修改自己的角色)</div>
+          <span class="file-tag">src/pages/CustomerListPage.tsx</span>
+          <span class="file-tag">src/components/admin/UserCard.tsx</span>
+          <span class="file-tag">netlify/functions/update-user-role.ts</span>
+        </div>
+        <span class="badge badge-security">安全性強化</span>
+      </div>
+      <div class="problem-box">
+        <strong>問題原因：</strong> 管理員在客戶列表或手機卡片檢視中，下拉選單未限制自己，可能誤操作將自己從 admin 降級為一般會員導致系統管理權限喪失。
+      </div>
+      <div class="solution-box">
+        <strong>修復方案：</strong>
+        <ul class="details-list" style="margin-top:8px;">
+          <li><strong>前端 (UI)：</strong> 電腦版列表與手機卡片比對 <code>auth.currentUser?.uid</code>，對管理員本人的選單直接設為 <code>disabled</code> 禁選與灰色樣式。</li>
+          <li><strong>後端 (API)：</strong> 在 Netlify Function 中加入阻擋 <code>targetUserId === requesterUid</code>，伺服器端雙重防禦。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Item 3 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">3. 客戶備註修改後需跳出重進才更新</div>
+          <span class="file-tag">src/pages/CustomerListPage.tsx</span>
+        </div>
+        <span class="badge badge-fixed">UX 體驗修復</span>
+      </div>
+      <div class="problem-box">
+        <strong>問題原因：</strong> 在列表編輯備註點擊「儲存」後，程式成功將備註寫入 Firestore，但<strong>未重設編輯中狀態 <code>setEditingUserId(null)</code></strong>，導致輸入框一直停留在編輯中狀態，使用者以為沒存成功，必須重新整理或切換頁面才會恢復正常文字顯示。
+      </div>
+      <div class="solution-box">
+        <strong>修復方案：</strong> 在 <code>handleSaveNote</code> 成功儲存的流程末端加入 <code>setEditingUserId(null)</code>，存檔後即時收合輸入框並在畫面上顯示最新純文字備註。
+      </div>
+    </div>
+
+    <!-- Item 4 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">4. 客人端補睫售後服務「有時候不出現」之深層原因修復</div>
+          <span class="file-tag">src/hooks/useUserFollowUps.ts</span>
+          <span class="file-tag">src/components/booking/FollowUpServiceCard.tsx</span>
+          <span class="file-tag">src/components/booking/FollowUpSelectModal.tsx</span>
+          <span class="file-tag">src/utils/bookingActions.ts</span>
+        </div>
+        <span class="badge badge-fixed">核心機制修復</span>
+      </div>
+      <div class="problem-box">
+        <strong>問題原因：</strong>
+        <ul class="details-list" style="margin-top:8px;">
+          <li><strong>原因 A（生成遺漏）：</strong> 過去只有在「訂單管理頁面」點完成才會生成售後資格，從日曆看板、客戶詳情、編輯訂單完成都不會生成。</li>
+          <li><strong>原因 B（日期轉換崩潰）：</strong> 客人端讀取 <code>fu.expiresAt.toDate()</code> 時，若日期為快取或序列化物件（非 Timestamp 實例），會直接報錯並靜默將列表清空為 <code>[]</code>。</li>
+          <li><strong>原因 C（代客預約遺漏）：</strong> 代客預約時未將目標客戶 ID 傳入售後 Hook，導致無法讀取客人的補睫資格。</li>
+        </ul>
+      </div>
+      <div class="solution-box">
+        <strong>修復方案：</strong>
+        <ul class="details-list" style="margin-top:8px;">
+          <li>在 <code>updateBookingStatus</code> 核心全面自動生成售後服務資格。</li>
+          <li>新增通用日期解析器 <code>toJsDate()</code>，相容 Timestamp、物件 <code>{seconds}</code> 與 Date 格式，徹底消滅靜默失敗。</li>
+          <li>預約元件全面支援 <code>targetUserId</code>，代客預約與自訂皆可 100% 正常顯示售後優惠。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Item 5 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">5. 消費金額餘額跨單累積機制 (Carryover Spending) ＆ 3個月滾動刷新</div>
+          <span class="file-tag">src/types/user.ts</span>
+          <span class="file-tag">src/utils/bookingActions.ts</span>
+          <span class="file-tag">src/components/dashboard/LoyaltyCard.tsx</span>
+          <span class="file-tag">src/pages/CustomerDetailPage.tsx</span>
+        </div>
+        <span class="badge badge-arch">全新機制</span>
+      </div>
+      <div class="problem-box">
+        <strong>問題原因：</strong> 同一客人同天預約不同設計師被拆成兩張訂單（如睫毛 $1,800 + 指甲 $1,200 = $3,000），過去每張單獨立無條件捨去，分別只拿到 1 點與 1 點（合計僅 2 點，損失了 1 點）。
+      </div>
+      <div class="solution-box">
+        <strong>修復方案：</strong>
+        <ul class="details-list" style="margin-top:8px;">
+          <li><strong>跨單滾動累計：</strong> 第一筆 $1,800 兌換 1 點並保留餘額 $800；第二筆 $1,200 加上前次餘額 $800 合計 $2,000，自動換得 2 點，剩餘 $0，總計順利拿到 3 點！</li>
+          <li><strong>3 個月效期自動刷新：</strong> 每次只要有新消費完成，消費餘額有效期限即自動重設為 3 個月（90 天）。</li>
+          <li><strong>會員中心進度條：</strong> 在會員端集點卡片上直觀呈現「累積消費：$X / $1,000（尚差 $Y 可得 1 點）」及到期日。</li>
+          <li><strong>後台詳情與手動補發：</strong> 在後台客戶詳情頁同步顯示未兌換消費餘額，並可隨時手動微調/補發點數。</li>
+        </ul>
+      </div>
+    </div>
+
+    <footer>
+      <p>NailRes Management System • 今日程式碼修復與優化彙整報告</p>
+    </footer>
+  </div>
+</body>
+</html>

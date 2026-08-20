@@ -5,22 +5,34 @@ import { useAuthStore } from '../store/authStore';
 import type { ActiveFollowUp } from '../types/user';
 
 /**
+ * Safe conversion to JS Date for Firebase Timestamp, serialized object, or Date
+ */
+export const toJsDate = (val: any): Date => {
+  if (!val) return new Date();
+  if (typeof val.toDate === 'function') return val.toDate();
+  if (val instanceof Date) return val;
+  if (val.seconds !== undefined) return new Date(val.seconds * 1000);
+  return new Date(val);
+};
+
+/**
  * Hook to get user's active follow-up service eligibilities
  * Returns only non-expired follow-ups with status 'active'
  */
-export const useUserFollowUps = () => {
+export const useUserFollowUps = (targetUserId?: string) => {
   const [followUps, setFollowUps] = useState<ActiveFollowUp[]>([]);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuthStore();
+  const uid = targetUserId || currentUser?.uid;
 
   useEffect(() => {
-    if (!currentUser?.uid) {
+    if (!uid) {
       setFollowUps([]);
       setLoading(false);
       return;
     }
 
-    const userRef = doc(db, 'users', currentUser.uid);
+    const userRef = doc(db, 'users', uid);
     
     const unsubscribe = onSnapshot(userRef, (snapshot) => {
       try {
@@ -32,7 +44,7 @@ export const useUserFollowUps = () => {
           // Filter: only active and not expired
           const activeFollowUps = allFollowUps.filter(fu => {
             if (fu.status !== 'active') return false;
-            const expiryDate = fu.expiresAt.toDate();
+            const expiryDate = toJsDate(fu.expiresAt);
             return expiryDate > now;
           });
           
@@ -49,7 +61,7 @@ export const useUserFollowUps = () => {
     });
 
     return () => unsubscribe();
-  }, [currentUser?.uid]);
+  }, [uid]);
 
   return { followUps, loading };
 };
@@ -61,7 +73,7 @@ export const getFollowUpPrice = (
   followUp: ActiveFollowUp,
   bookingDate: Date
 ): { price: number; tier: { withinDays: number; discountRate: number; label?: string } | null; expired: boolean } => {
-  const completedDate = followUp.completedAt.toDate();
+  const completedDate = toJsDate(followUp.completedAt);
   const daysDiff = Math.floor((bookingDate.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
 
   // Sort tiers by days

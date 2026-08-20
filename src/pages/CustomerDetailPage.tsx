@@ -503,6 +503,24 @@ const CustomerDetailPage: React.FC = () => {
                   <dt className="text-gray-500">點數</dt>
                   <dd className="font-medium">{user.loyaltyPoints || 0} 點</dd>
                 </div>
+                {user.unclaimedSpending !== undefined && user.unclaimedSpending > 0 && (
+                  <div className="flex justify-between items-center text-xs pt-1 border-t border-gray-50">
+                    <dt className="text-gray-500">未兌換消費餘額</dt>
+                    <dd className="font-medium text-amber-700">
+                      ${user.unclaimedSpending.toLocaleString()} / $1,000
+                      {user.unclaimedSpendingExpiresAt && (
+                        <span className="text-gray-400 ml-1.5">
+                          (效期至 {format(
+                            typeof user.unclaimedSpendingExpiresAt.toDate === 'function'
+                              ? user.unclaimedSpendingExpiresAt.toDate()
+                              : new Date((user.unclaimedSpendingExpiresAt as any).seconds * 1000),
+                            'yyyy/MM/dd'
+                          )})
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                )}
               </dl>
             </div>
 
@@ -564,6 +582,21 @@ const CustomerDetailPage: React.FC = () => {
               <div>
                 <h2 className="font-bold text-gray-900 mb-1 text-sm sm:text-base">現有點數</h2>
                 <p className="text-gray-500 text-xs sm:text-sm">可用於折抵消費或兌換獎勵</p>
+                {user.unclaimedSpending !== undefined && user.unclaimedSpending > 0 && (
+                  <div className="mt-2 text-xs text-amber-800 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200/60 inline-flex items-center gap-1.5">
+                    <span>未兌換消費餘額：<strong>${user.unclaimedSpending.toLocaleString()}</strong> / $1,000</span>
+                    {user.unclaimedSpendingExpiresAt && (
+                      <span className="text-amber-600 font-normal">
+                        (效期至 {format(
+                          typeof user.unclaimedSpendingExpiresAt.toDate === 'function'
+                            ? user.unclaimedSpendingExpiresAt.toDate()
+                            : new Date((user.unclaimedSpendingExpiresAt as any).seconds * 1000),
+                          'yyyy/MM/dd'
+                        )})
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
                 <div className="text-left sm:text-right">

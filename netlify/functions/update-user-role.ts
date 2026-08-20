@@ -92,7 +92,13 @@ const handler: Handler = async (event: HandlerEvent) => {
       return { statusCode: 403, body: JSON.stringify({ message: 'Forbidden: Only admins can change user roles.' }) };
     }
 
-    // 4. Check target user exists
+    // 4. Prevent changing own role
+    if (targetUserId === requesterUid) {
+      console.warn(`[update-user-role] Self-role modification blocked for ${requesterUid}`);
+      return { statusCode: 400, body: JSON.stringify({ message: '不能更改自己的權限。' }) };
+    }
+
+    // 5. Check target user exists
     const targetUserRef = db.collection('users').doc(targetUserId);
     const targetUserSnap = await targetUserRef.get();
     if (!targetUserSnap.exists) {

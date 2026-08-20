@@ -1,7 +1,7 @@
 import React from 'react';
 import { ClockIcon } from '@heroicons/react/24/outline';
 import type { ActiveFollowUp } from '../../types/user';
-import { getFollowUpPriceRange } from '../../hooks/useUserFollowUps';
+import { getFollowUpPriceRange, toJsDate } from '../../hooks/useUserFollowUps';
 
 interface FollowUpServiceCardProps {
     followUp: ActiveFollowUp;
@@ -18,7 +18,7 @@ const FollowUpServiceCard: React.FC<FollowUpServiceCardProps> = ({
 
     // Calculate days remaining
     const now = new Date();
-    const expiryDate = followUp.expiresAt.toDate();
+    const expiryDate = toJsDate(followUp.expiresAt);
     const daysRemaining = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
     // Sort tiers for display

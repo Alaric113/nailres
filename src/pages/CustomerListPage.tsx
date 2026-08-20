@@ -60,7 +60,7 @@ const CustomerListPage = () => {
       return true;
     }
     const term = searchTerm.toLowerCase();
-    const displayName = (user.profile.displayName || '').toLowerCase();
+    const displayName = (user.profile?.displayName || '').toLowerCase();
     const email = (user.email || '').toLowerCase();
     return displayName.includes(term) || email.includes(term);
   });
@@ -83,6 +83,7 @@ const CustomerListPage = () => {
     try {
       const userDocRef = doc(db, 'users', userId);
       await updateDoc(userDocRef, { notes: newNote });
+      setEditingUserId(null);
     } catch (err) {
       console.error("Error updating note:", err);
       setSaveError("儲存失敗，請稍後再試。");
@@ -92,6 +93,10 @@ const CustomerListPage = () => {
   };  
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
+    if (userId === auth.currentUser?.uid) {
+      alert('不能更改自己的權限。');
+      return;
+    }
     setIsUpdatingRole(true);
     setSaveError(null);
 
@@ -243,14 +248,14 @@ const CustomerListPage = () => {
                         <div className="flex-shrink-0 h-10 w-10">
                           <img 
                             className="h-10 w-10 rounded-full object-cover border border-secondary-dark/20" 
-                            src={user.profile.avatarUrl || DEFAULT_AVATAR} 
+                            src={user.profile?.avatarUrl || DEFAULT_AVATAR} 
                             alt="" 
                             crossOrigin="anonymous"
                             referrerPolicy="no-referrer"
                           />
                         </div>
                         <div className="ml-4">
-                          <div className="font-medium text-text-main">{user.profile.displayName || 'N/A'}</div>
+                          <div className="font-medium text-text-main">{user.profile?.displayName || 'N/A'}</div>
                           
                         </div>
                       </div>
@@ -260,8 +265,9 @@ const CustomerListPage = () => {
                       <select
                         value={user.role}
                         onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
-                        disabled={isUpdatingRole}
+                        disabled={isUpdatingRole || user.id === auth.currentUser?.uid}
                         className={`w-full p-1.5 border rounded-lg text-xs font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors ${
+                          user.id === auth.currentUser?.uid ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200' :
                           user.role === 'admin' ? 'bg-red-50 text-red-700 border-red-200' : 
                           user.role === 'manager' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
                           user.role === 'platinum' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
@@ -309,7 +315,7 @@ const CustomerListPage = () => {
                               <EyeIcon className="w-5 h-5" />
                           </button>
                           <button
-                            onClick={() => handleOpenPassModal(user.id, user.profile.displayName || '')}
+                            onClick={() => handleOpenPassModal(user.id, user.profile?.displayName || '')}
                             className="text-amber-500 hover:text-amber-700 transition-colors p-2 hover:bg-amber-50 rounded-full"
                             title="開通季卡"
                           >
@@ -340,7 +346,7 @@ const CustomerListPage = () => {
               onRoleChange={handleRoleChange}
               onDeleteClick={() => handleDeleteClick(user.id)}
               onViewDetail={() => navigate(`/admin/customers/${user.id}`)}
-              onOpenPassModal={() => handleOpenPassModal(user.id, user.profile.displayName || '')}
+              onOpenPassModal={() => handleOpenPassModal(user.id, user.profile?.displayName || '')}
             />
           ))}
         </div>

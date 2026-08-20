@@ -1,8 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { fileURLToPath } from 'url'
 import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -69,7 +73,7 @@ export default defineConfig({
     },
   },
   build: {
-    target: 'es2015', // Transpile to ES2015 for older WebViews/LINE
-    sourcemap: true,  // Enable source maps for better error tracking
+    target: 'es2020',
+    sourcemap: false,
   },
 })

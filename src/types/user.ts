@@ -40,6 +40,8 @@ export interface UserDocument {
     avatarUrl?: string | null;
   };
   loyaltyPoints?: number;
+  unclaimedSpending?: number; // Unconverted spending amount for points accumulation (e.g. 800)
+  unclaimedSpendingExpiresAt?: Timestamp; // Expiry date for rolling unclaimed spending (3 months)
   role: UserRole; // Use the UserRole union type
   createdAt: Timestamp | FieldValue;
   lastLogin: Timestamp | FieldValue;

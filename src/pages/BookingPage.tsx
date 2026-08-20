@@ -774,6 +774,7 @@ const BookingPage = () => {
               hasActivePass={hasActivePass}
               activePass={selectedPass}
               passContentItems={selectedPassDefinition?.contentItems}
+              targetUserId={isActingOnBehalf ? targetUser?.id : undefined}
             />
 
             {/* Options Sheet moved here */}
