@@ -345,7 +345,7 @@ const LiffEntry = () => {
         {/* Salon Title */}
         <div className="space-y-1">
           <h1 className="text-2xl font-serif font-bold text-gray-900 tracking-tight">
-            TREERING 希亞美學
+            TREERING
           </h1>
           <p className="text-xs text-text-light font-medium">
             自然・精緻・專屬美麗空間
