@@ -88,13 +88,13 @@ const routes = [
         children: [
           { path: '/', element: <RootRedirect /> }, // Changed
           { path: 'portfolio', element: <PortfolioGalleryPage /> },
+          { path: 'store', element: <StoreInfoPage /> }, // Public Store Info Route
           {
             element: <ProtectedRoute />,
             children: [
               { path: 'dashboard', element: <Home /> },
               { path: 'booking', element: <BookingPage /> },
               { path: 'booking/pay/:bookingId', element: <BookingPaymentPage /> }, // New Route
-              { path: 'store', element: <StoreInfoPage /> }, // Added Store Route
               { 
                 path: 'member', 
                 children: [
