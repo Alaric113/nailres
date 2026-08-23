@@ -36,7 +36,7 @@ const DEFAULT_REVIEWS: ReviewItem[] = [
       comment: '美甲師非常細心，修型跟死皮處理得好乾淨！法式暈染非常有氣質，維持了一個月都沒掉。'
     },
     serviceNames: ['質感美甲'],
-    designerName: '希亞'
+    designerName: 'TreeRing 設計師'
   },
   {
     id: 'default-2',
@@ -56,7 +56,7 @@ const DEFAULT_REVIEWS: ReviewItem[] = [
       comment: '店內包廂隱密性很高，消毒做得很徹底，每次來都覺得像做 SPA 一樣療癒！'
     },
     serviceNames: ['質感美甲'],
-    designerName: '希亞'
+    designerName: 'TreeRing 設計師'
   },
   {
     id: 'default-4',

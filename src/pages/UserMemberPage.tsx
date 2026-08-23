@@ -27,12 +27,15 @@ import Modal from '../components/common/Modal';
 import { format, isBefore } from 'date-fns';
 
 const UserMemberPage = () => {
-  const { logout, userProfile } = useAuthStore();
+  const { logout, userProfile, currentUser } = useAuthStore();
   const { activePasses } = useActivePass();
   const { bookings } = useBookings();
   const { userCoupons } = useUserCoupons();
   const { userGiftCards } = useUserGiftCards();
   const navigate = useNavigate();
+
+  // Member Display Name
+  const memberName = userProfile?.profile?.displayName || currentUser?.displayName || '貴賓';
 
   // State
   const [activeCardTab, setActiveCardTab] = useState<'loyalty' | 'pass'>('loyalty');
@@ -79,10 +82,11 @@ const UserMemberPage = () => {
         {/* 1. TOP HEADER BAR WITH TITLE & CONTROLS                                  */}
         {/* ========================================================================= */}
         <div className="flex items-center justify-between px-1">
-          <div>
+          <div className="space-y-0.5">
             <h1 className="text-2xl sm:text-3xl font-serif font-bold text-gray-900 tracking-tight">
-              會員中心
+              HI, {memberName}
             </h1>
+            <p className="text-xs text-text-light font-medium">期待下次與您見面</p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -195,25 +199,68 @@ const UserMemberPage = () => {
             </div>
           </div>
 
-          {/* Point policy hint under card */}
-          <div className="w-full max-w-lg min-w-[300px] xs:min-w-[320px] sm:min-w-[360px] mx-auto bg-white rounded-2xl px-4 py-3 border border-[#EFECE5] flex items-center justify-between text-xs text-text-main shadow-subtle">
-            <div className="flex items-center gap-2">
-              <Info className="w-4 h-4 text-[#9F9586] shrink-0" />
-              <span>每消費 NT$1,000 累積 1 點，可兌換專屬好禮</span>
-            </div>
-            <button
-              onClick={() => navigate('/member/coupons')}
-              className="text-[#9F9586] hover:text-[#8A8173] font-bold text-nowrap ml-2 cursor-pointer"
-            >
-              兌換明細 →
-            </button>
-          </div>
+          {/* Point Accumulation Progress Bar under card */}
+          {(() => {
+            const unclaimed = userProfile?.unclaimedSpending || 0;
+            const progressPercent = Math.min(100, (unclaimed / 1000) * 100);
+            const remainingForNextPoint = Math.max(0, 1000 - unclaimed);
+
+            return (
+              <div className="w-full max-w-lg min-w-[300px] xs:min-w-[320px] sm:min-w-[360px] mx-auto bg-white rounded-2xl p-4 border border-[#EFECE5] shadow-soft space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-gray-900">
+                    <Sparkles className="w-4 h-4 text-[#9F9586]" />
+                    <span>點數累積進度</span>
+                  </div>
+                  <button
+                    onClick={() => navigate('/member/coupons')}
+                    className="text-xs text-[#9F9586] hover:text-[#8A8173] font-bold flex items-center gap-0.5 cursor-pointer"
+                  >
+                    <span>兌換好禮</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+
+                {/* Progress Track */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-[11px] text-text-light font-medium">
+                    <span>累積消費：<strong className="text-gray-900 font-serif font-bold">${unclaimed.toLocaleString()}</strong> / $1,000</span>
+                    <span>差 <strong className="text-[#9F9586] font-serif font-bold">${remainingForNextPoint.toLocaleString()}</strong> 得 1 點</span>
+                  </div>
+
+                  <div className="w-full bg-[#FAF9F6] border border-[#EFECE5] rounded-full h-2 overflow-hidden p-0.5">
+                    <div
+                      className="bg-gradient-to-r from-[#9F9586] to-[#8A8173] h-full rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-text-light/80 flex items-center gap-1 pt-0.5">
+                  <Info className="w-3 h-3 text-[#9F9586] shrink-0" />
+                  <span>每消費 NT$1,000 累積 1 點，未滿千元之金額自動累計至下次消費</span>
+                </p>
+              </div>
+            );
+          })()}
         </section>
 
         {/* ========================================================================= */}
         {/* 3. 4-GRID QUICK ASSET STATS RIBBON                                       */}
         {/* ========================================================================= */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <section className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-base sm:text-lg font-serif font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
+              <Gift className="w-4 h-4 text-[#9F9586]" />
+              <span>會員專屬</span>
+              <span className="text-[#9F9586]/60 font-normal">｜</span>
+              <span className="text-[11px] sm:text-xs font-sans tracking-wider text-[#9F9586] font-bold uppercase">
+                YOUR REWARDS
+              </span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           
           {/* 1. Points */}
           <button
@@ -309,6 +356,7 @@ const UserMemberPage = () => {
             </div>
           </button>
 
+          </div>
         </section>
 
         {/* ========================================================================= */}
@@ -316,9 +364,13 @@ const UserMemberPage = () => {
         {/* ========================================================================= */}
         <section className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-lg font-serif font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-serif font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
               <Clock className="w-4 h-4 text-[#9F9586]" />
-              即將到來的預約
+              <span>即將到來的預約</span>
+              <span className="text-[#9F9586]/60 font-normal">｜</span>
+              <span className="text-[11px] sm:text-xs font-sans tracking-wider text-[#9F9586] font-bold uppercase">
+                YOUR NEXT VISIT
+              </span>
             </h2>
             <button
               onClick={() => navigate('/member/history')}

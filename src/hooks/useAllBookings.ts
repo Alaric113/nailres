@@ -12,6 +12,9 @@ export interface EnrichedBooking extends Omit<BookingDocument, 'dateTime' | 'cre
   createdAt: Date;
   id: string;
   userName?: string;
+  customerName?: string;
+  customerPhone?: string;
+  designerName?: string;
   userAvatarUrl?: string;
   serviceName?: string;
   serviceDuration?: number;
@@ -55,7 +58,7 @@ export const useAllBookings = (dateRange: { start: Date; end: Date } | null, des
         const bookingsByDesigner: Record<string, { id: string; start: Date; end: Date }[]> = {};
 
         rawBookings
-          .filter(b => b.status !== 'cancelled' && b.status !== 'rejected')
+          .filter(b => b.status !== 'cancelled')
           .forEach(b => {
             const designerKey = b.designerId || 'unassigned';
             if (!bookingsByDesigner[designerKey]) {
@@ -83,8 +86,7 @@ export const useAllBookings = (dateRange: { start: Date; end: Date } | null, des
           }
         });
 
-        // P1-6: Batch-fetch all unique users to solve N+1 query problem
-        // Instead of doing getDoc for EACH booking, collect unique userIds and fetch them all at once
+        // Batch-fetch unique users
         const uniqueUserIds = [...new Set(rawBookings.map(b => b.userId).filter((id): id is string => !!id))];
         const userEntries = await Promise.all(
           uniqueUserIds.map(async (uid) => {
@@ -94,30 +96,54 @@ export const useAllBookings = (dateRange: { start: Date; end: Date } | null, des
               const userData = userDocSnap.data() as UserDocument;
               return [uid, {
                 displayName: userData.profile?.displayName || '未知使用者',
-                avatarUrl: userData.profile?.avatarUrl || ''
+                avatarUrl: userData.profile?.avatarUrl || '',
+                phone: (userData.profile as any)?.phone || ''
               }] as const;
             }
-            return [uid, { displayName: '使用者已刪除', avatarUrl: '' }] as const;
+            return [uid, { displayName: '使用者已刪除', avatarUrl: '', phone: '' }] as const;
           })
         );
-        const userMap = new Map<string, { displayName: string; avatarUrl: string }>(userEntries);
+        const userMap = new Map<string, { displayName: string; avatarUrl: string; phone: string }>(userEntries);
+
+        // Batch-fetch unique designers
+        const uniqueDesignerIds = [...new Set(rawBookings.map(b => b.designerId).filter((id): id is string => !!id))];
+        const designerEntries = await Promise.all(
+          uniqueDesignerIds.map(async (did) => {
+            const dDocRef = doc(db, 'designers', did);
+            const dDocSnap = await getDoc(dDocRef);
+            if (dDocSnap.exists()) {
+              return [did, dDocSnap.data()?.name || '指定設計師'] as const;
+            }
+            return [did, '設計師'] as const;
+          })
+        );
+        const designerMap = new Map<string, string>(designerEntries);
 
         const enrichedBookings = rawBookings.map((booking) => {
           let userName: string = '未知使用者';
           let userAvatarUrl: string = '';
+          let customerPhone: string = '';
           if (booking.userId && userMap.has(booking.userId)) {
             const user = userMap.get(booking.userId)!;
             userName = user.displayName;
             userAvatarUrl = user.avatarUrl;
+            customerPhone = user.phone;
           } else if (booking.userId && !userMap.has(booking.userId)) {
             userName = '無使用者ID';
           }
 
+          const designerName = booking.designerId && designerMap.has(booking.designerId)
+            ? designerMap.get(booking.designerId)
+            : '不指定設計師';
+
           return {
             ...booking,
             userName,
+            customerName: userName,
+            customerPhone,
+            designerName,
             userAvatarUrl,
-            serviceName: booking.serviceNames.join('、'),
+            serviceName: booking.serviceNames?.join('、') || '',
             serviceDuration: booking.duration,
             isConflicting: conflictingIds.has(booking.id),
             dateTime: (booking.dateTime as Timestamp).toDate(),

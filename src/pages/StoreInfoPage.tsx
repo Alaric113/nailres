@@ -182,7 +182,7 @@ const StoreInfoPage: React.FC = () => {
             <Marker position={position} icon={customIcon}>
                 <Popup className="font-serif">
                    <div className="text-center p-1">
-                     <h3 className="font-bold text-[#2C2825]">TreeRing 希亞美學</h3>
+                     <h3 className="font-bold text-[#2C2825]">TreeRing</h3>
                      <p className="text-xs text-[#8A8175] mt-0.5">新北市蘆洲區中山一路176號</p>
                    </div>
                 </Popup>

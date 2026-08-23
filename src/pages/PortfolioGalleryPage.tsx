@@ -107,7 +107,7 @@ const PortfolioGalleryPage = () => {
   const handleShare = (item: PortfolioItem) => {
     if (navigator.share) {
       navigator.share({
-        title: `${item.title} | TREERING 希亞美學`,
+        title: `${item.title} | TREERING`,
         text: item.description,
         url: window.location.href,
       }).catch(() => {});
@@ -312,7 +312,7 @@ const PortfolioGalleryPage = () => {
                     <div className="pt-2 border-t border-[#EFECE5] flex items-center justify-between text-[11px] text-text-light">
                       <span className="flex items-center gap-1 truncate">
                         <User className="w-3 h-3 text-[#9F9586] shrink-0" />
-                        <span className="truncate">{item.designerName || '希亞特約設計師'}</span>
+                        <span className="truncate">{item.designerName || 'TREERING 特約設計師'}</span>
                       </span>
                       <span className="text-[#9F9586] font-bold shrink-0 flex items-center">
                         預約

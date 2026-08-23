@@ -6,7 +6,7 @@ import { useGlobalSettings } from '../../hooks/useGlobalSettings';
 const AnnouncementBanner: React.FC = () => {
   const { settings } = useGlobalSettings();
 
-  const defaultText = "歡迎加入 TREERING 希亞美學 ｜ 新朋友註冊即贈 $50 禮金，單筆消費滿 $1,000 再享專屬點數回饋！";
+  const defaultText = "歡迎加入 TREERING ｜ 新朋友註冊即贈 $50 禮金，單筆消費滿 $1,000 再享專屬點數回饋！";
   const announcementText = settings.bookingNotice?.trim() || defaultText;
 
   return (

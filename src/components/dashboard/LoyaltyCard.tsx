@@ -216,28 +216,28 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ previewBackground, previewTex
                 expiryStr = `${expDate.getFullYear()}/${expDate.getMonth() + 1}/${expDate.getDate()}`;
               }
 
-              if (unclaimed > 0 && !isExpired) {
-                return (
-                  <div className="mt-3 w-full max-w-[280px] bg-black/10 backdrop-blur-sm rounded-xl p-2.5 border border-white/20">
-                    <div className="flex justify-between text-[11px] font-medium mb-1" style={{ opacity: 0.95 }}>
-                      <span>累積消費：${unclaimed.toLocaleString()} / $1,000</span>
-                      <span>差 ${(1000 - unclaimed).toLocaleString()} 得 1 點</span>
-                    </div>
-                    <div className="w-full bg-white/25 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-white h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, (unclaimed / 1000) * 100)}%` }}
-                      />
-                    </div>
-                    {expiryStr && (
-                      <p className="text-[10px] text-center mt-1 font-light" style={{ opacity: 0.8 }}>
-                        餘額效期至 {expiryStr}（消費自動延長3個月）
-                      </p>
-                    )}
+              const displayUnclaimed = isExpired ? 0 : unclaimed;
+              const diff = Math.max(0, 1000 - displayUnclaimed);
+
+              return (
+                <div className="mt-2.5 w-full max-w-[280px] bg-black/15 backdrop-blur-sm rounded-xl p-2.5 border border-white/20">
+                  <div className="flex justify-between text-[11px] font-medium mb-1" style={{ opacity: 0.95 }}>
+                    <span>累積金額：${displayUnclaimed.toLocaleString()} / $1,000</span>
+                    <span>差 ${diff.toLocaleString()} 得 1 點</span>
                   </div>
-                );
-              }
-              return null;
+                  <div className="w-full bg-white/25 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-white h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (displayUnclaimed / 1000) * 100)}%` }}
+                    />
+                  </div>
+                  {expiryStr && !isExpired && (
+                    <p className="text-[10px] text-center mt-1 font-light" style={{ opacity: 0.8 }}>
+                      餘額效期至 {expiryStr}（消費自動延長3個月）
+                    </p>
+                  )}
+                </div>
+              );
             })()}
           </div>
           <div className="flex items-baseline gap-2 mt-2">

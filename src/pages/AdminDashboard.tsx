@@ -114,14 +114,14 @@ const AdminDashboard = () => {
       ? bookings.filter(b => b.designerId === targetDesignerProfile.id)
       : bookings;
 
-    // 2. Today's Bookings (excluding cancelled/rejected)
+    // 2. Today's Bookings (excluding cancelled)
     const todayList = activeBookings
-      .filter(b => isSameDay(b.dateTime, today) && b.status !== 'cancelled' && b.status !== 'rejected')
+      .filter(b => isSameDay(b.dateTime, today) && b.status !== 'cancelled')
       .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
 
-    // 3. Today's Estimated Revenue (sum of confirmed, completed, and pending_confirmation amounts)
+    // 3. Today's Estimated Revenue (sum of active bookings)
     const todayRevenue = todayList
-      .filter(b => b.status !== 'cancelled' && b.status !== 'rejected')
+      .filter(b => b.status !== 'cancelled')
       .reduce((sum, b) => sum + (b.amount || 0), 0);
 
     // 4. Pending Attention Counts (Action Required)
@@ -135,7 +135,7 @@ const AdminDashboard = () => {
 
     const serviceCounts: Record<string, { name: string; count: number; totalRevenue: number }> = {};
     activeBookings
-      .filter(b => b.dateTime >= sixtyDaysAgo && b.status !== 'cancelled' && b.status !== 'rejected')
+      .filter(b => b.dateTime >= sixtyDaysAgo && b.status !== 'cancelled')
       .forEach(b => {
         const names = b.serviceNames?.length ? b.serviceNames : ['精緻美學服務'];
         names.forEach(name => {
@@ -161,7 +161,7 @@ const AdminDashboard = () => {
       const startOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       bookings.forEach(b => {
         if (!b.designerId || !designerStats[b.designerId]) return;
-        if (b.status === 'cancelled' || b.status === 'rejected') return;
+        if (b.status === 'cancelled') return;
 
         if (isSameDay(b.dateTime, today)) {
           designerStats[b.designerId].todayCount += 1;
