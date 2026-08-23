@@ -24,7 +24,9 @@ import {
   XMarkIcon,
   PencilSquareIcon,
   TrashIcon,
-  PlusIcon
+  PlusIcon,
+  LockClosedIcon,
+  ShieldExclamationIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import BookingOrderCard from '../components/admin/BookingOrderCard';
@@ -51,6 +53,7 @@ const CustomerDetailPage: React.FC = () => {
 
   // Role update
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [isUpdatingBlacklist, setIsUpdatingBlacklist] = useState(false);
 
   // Edit Pass
   const { passes: allSeasonPasses } = useSeasonPasses();
@@ -318,6 +321,11 @@ const CustomerDetailPage: React.FC = () => {
   // Handle role change
   const handleRoleChange = async (newRole: UserRole) => {
     if (!userId || !user) return;
+    if (newRole === 'platinum' && user.isPlatinumBlacklisted) {
+      alert('該客戶已被設定為「終身一般會員」，無法升級為白金會員。若需升級，請先關閉終身一般會員限制。');
+      return;
+    }
+
     setIsUpdatingRole(true);
     try {
       const idToken = await auth.currentUser?.getIdToken();
@@ -339,12 +347,57 @@ const CustomerDetailPage: React.FC = () => {
 
       // Optimistic local update
       setUser(prev => prev ? { ...prev, role: newRole } : null);
+      showToast('會員角色已更新', 'success');
     } catch (error: any) {
       console.error('Error updating role:', error);
       // Role change failures are critical - show a more visible error
       alert(`權限更新失敗: ${error.message}`);
     } finally {
       setIsUpdatingRole(false);
+    }
+  };
+
+  // Handle Lifetime General Member Lock (isPlatinumBlacklisted)
+  const handleTogglePlatinumBlacklist = async () => {
+    if (!userId || !user || isUpdatingBlacklist) return;
+    const newStatus = !user.isPlatinumBlacklisted;
+
+    const confirmMsg = newStatus
+      ? `確定要將「${user.profile?.displayName || '此用戶'}」鎖定為【終身一般會員】嗎？\n\n鎖定後該客戶將無法升級為白金會員，若目前為白金會員將立即調降為一般會員。`
+      : `確定要解除「${user.profile?.displayName || '此用戶'}」的【終身一般會員】限制嗎？`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsUpdatingBlacklist(true);
+    try {
+      const userRef = doc(db, 'users', userId);
+      const updates: any = {
+        isPlatinumBlacklisted: newStatus,
+        lastUpdated: serverTimestamp()
+      };
+
+      // If locking and user is currently platinum, downgrade to user
+      if (newStatus && user.role === 'platinum') {
+        updates.role = 'user';
+      }
+
+      await updateDoc(userRef, updates);
+
+      setUser(prev => prev ? {
+        ...prev,
+        isPlatinumBlacklisted: newStatus,
+        ...(newStatus && prev.role === 'platinum' ? { role: 'user' } : {})
+      } : null);
+
+      showToast(
+        newStatus ? '已成功鎖定為終身一般會員（禁止升級白金）' : '已解除終身一般會員限制',
+        'success'
+      );
+    } catch (error: any) {
+      console.error('Error updating platinum blacklist status:', error);
+      showToast('更新終身會員限制失敗', 'error');
+    } finally {
+      setIsUpdatingBlacklist(false);
     }
   };
 
@@ -520,6 +573,50 @@ const CustomerDetailPage: React.FC = () => {
                     </dd>
                   </div>
                 )}
+
+                {/* Lifetime General Member Lock */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3.5 border-t border-gray-100">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5 font-bold text-gray-900 text-xs sm:text-sm">
+                      <LockClosedIcon className="w-4 h-4 text-[#9F9586]" />
+                      <span>終身一般會員限制</span>
+                      {user.isPlatinumBlacklisted ? (
+                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                          🚫 鎖定終身一般（禁止升白金）
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ✅ 正常（可依條件升級）
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-text-light">
+                      開啟後該用戶將永久鎖定為一般會員身份，無法自動或手動升級為白金會員。
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleTogglePlatinumBlacklist}
+                    disabled={isUpdatingBlacklist}
+                    className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                      user.isPlatinumBlacklisted
+                        ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 shadow-2xs'
+                        : 'bg-[#FAF9F6] hover:bg-[#EFECE5] text-gray-700 border border-[#EFECE5]'
+                    }`}
+                  >
+                    {user.isPlatinumBlacklisted ? (
+                      <>
+                        <ShieldExclamationIcon className="w-4 h-4 text-rose-600" />
+                        <span>解除限制</span>
+                      </>
+                    ) : (
+                      <>
+                        <LockClosedIcon className="w-4 h-4 text-[#9F9586]" />
+                        <span>鎖定為終身一般會員</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </dl>
             </div>
 

@@ -82,8 +82,15 @@ const UserCard: React.FC<UserCardProps> = ({
                   return (
                     <>
                       <div>
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-bold text-lg text-gray-800 truncate pr-2">{user.profile?.displayName || 'N/A'}</h3>
+                        <div className="flex justify-between items-start mb-2 gap-2">
+                          <div className="flex items-center gap-1.5 truncate pr-1">
+                            <h3 className="font-bold text-base text-gray-800 truncate">{user.profile?.displayName || 'N/A'}</h3>
+                            {user.isPlatinumBlacklisted && (
+                              <span className="shrink-0 px-1.5 py-0.2 text-[9px] font-bold bg-rose-50 text-rose-700 border border-rose-200 rounded">
+                                🚫 終身一般
+                              </span>
+                            )}
+                          </div>
                           <select
                             value={user.role}
                             onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}

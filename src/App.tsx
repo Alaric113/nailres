@@ -87,11 +87,11 @@ const routes = [
         element: <UserLayout />,
         children: [
           { path: '/', element: <RootRedirect /> }, // Changed
-          { path: 'portfolio', element: <PortfolioGalleryPage /> },
           { path: 'store', element: <StoreInfoPage /> }, // Public Store Info Route
           {
             element: <ProtectedRoute />,
             children: [
+              { path: 'portfolio', element: <PortfolioGalleryPage /> },
               { path: 'dashboard', element: <Home /> },
               { path: 'booking', element: <BookingPage /> },
               { path: 'booking/pay/:bookingId', element: <BookingPaymentPage /> }, // New Route

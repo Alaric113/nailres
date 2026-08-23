@@ -96,6 +96,13 @@ const CustomerListPage = () => {
       alert('不能更改自己的權限。');
       return;
     }
+
+    const targetUser = users.find(u => u.id === userId);
+    if (newRole === 'platinum' && targetUser?.isPlatinumBlacklisted) {
+      alert('該客戶已被設定為「終身一般會員」，無法升級為白金會員。若需升級，請先至客戶詳情解除終身一般會員限制。');
+      return;
+    }
+
     setIsUpdatingRole(true);
     setSaveError(null);
 
@@ -252,8 +259,14 @@ const CustomerListPage = () => {
                           />
                         </div>
                         <div className="ml-4">
-                          <div className="font-medium text-text-main">{user.profile?.displayName || 'N/A'}</div>
-                          
+                          <div className="font-medium text-text-main flex items-center gap-1.5 flex-wrap">
+                            <span>{user.profile?.displayName || 'N/A'}</span>
+                            {user.isPlatinumBlacklisted && (
+                              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 rounded">
+                                🚫 終身一般
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
