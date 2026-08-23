@@ -21,6 +21,7 @@ import type { EnrichedBooking } from '../../hooks/useAllBookings';
 import type { BookingStatus } from '../../types/booking';
 import { useToast } from '../../context/ToastContext';
 import { markUserAsNoShow } from '../../utils/userActions';
+import UserAvatar from '../common/UserAvatar';
 
 interface BookingOrderCardProps {
   booking: EnrichedBooking;
@@ -137,11 +138,11 @@ const BookingOrderCard: React.FC<BookingOrderCardProps> = ({ booking, updatingId
       {/* 2. Customer & Appointment Details */}
       <div className="flex items-start gap-3 pt-0.5 min-w-0">
         {/* Customer Avatar */}
-        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-[#9F9586] to-[#EFECE5] p-0.5 shrink-0 shadow-sm">
-          <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center text-[#9F9586] font-bold text-sm">
-            {booking.userName?.[0] || '客'}
-          </div>
-        </div>
+        <UserAvatar
+          src={booking.userAvatarUrl}
+          name={booking.userName}
+          className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl shrink-0 shadow-sm border border-[#EFECE5]"
+        />
 
         {/* Customer Name & Booking Time */}
         <div className="flex-1 min-w-0 space-y-1">

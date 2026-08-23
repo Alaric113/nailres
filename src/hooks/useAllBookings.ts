@@ -12,6 +12,7 @@ export interface EnrichedBooking extends Omit<BookingDocument, 'dateTime' | 'cre
   createdAt: Date;
   id: string;
   userName?: string;
+  userAvatarUrl?: string;
   serviceName?: string;
   serviceDuration?: number;
   isConflicting?: boolean;
@@ -49,26 +50,38 @@ export const useAllBookings = (dateRange: { start: Date; end: Date } | null, des
       try {
         const rawBookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (BookingDocument & { id: string })[];
 
-        // --- Conflict Detection Logic ---
-        const bookingsWithDates = rawBookings
-          .filter(b => b.status !== 'cancelled') // Ignore cancelled bookings for conflict detection
-          .map(b => ({
-            id: b.id,
-            start: (b.dateTime as Timestamp).toDate(),
-            end: addMinutes((b.dateTime as Timestamp).toDate(), b.duration),
-          }))
-          .sort((a, b) => a.start.getTime() - b.start.getTime());
+        // --- Conflict Detection Logic (Per Designer) ---
+        // Overlapping bookings are only conflicting if they belong to the SAME designer
+        const bookingsByDesigner: Record<string, { id: string; start: Date; end: Date }[]> = {};
+
+        rawBookings
+          .filter(b => b.status !== 'cancelled' && b.status !== 'rejected')
+          .forEach(b => {
+            const designerKey = b.designerId || 'unassigned';
+            if (!bookingsByDesigner[designerKey]) {
+              bookingsByDesigner[designerKey] = [];
+            }
+            bookingsByDesigner[designerKey].push({
+              id: b.id,
+              start: (b.dateTime as Timestamp).toDate(),
+              end: addMinutes((b.dateTime as Timestamp).toDate(), b.duration || 60),
+            });
+          });
 
         const conflictingIds = new Set<string>();
-        for (let i = 0; i < bookingsWithDates.length - 1; i++) {
-          const current = bookingsWithDates[i];
-          const next = bookingsWithDates[i + 1];
-          // If the next booking starts before the current one ends, it's a conflict
-          if (next.start < current.end) {
-            conflictingIds.add(current.id);
-            conflictingIds.add(next.id);
+
+        Object.values(bookingsByDesigner).forEach(designerBookings => {
+          designerBookings.sort((a, b) => a.start.getTime() - b.start.getTime());
+          for (let i = 0; i < designerBookings.length - 1; i++) {
+            const current = designerBookings[i];
+            const next = designerBookings[i + 1];
+            // If the next booking starts before the current one ends for the same designer
+            if (next.start < current.end) {
+              conflictingIds.add(current.id);
+              conflictingIds.add(next.id);
+            }
           }
-        }
+        });
 
         // P1-6: Batch-fetch all unique users to solve N+1 query problem
         // Instead of doing getDoc for EACH booking, collect unique userIds and fetch them all at once
@@ -79,17 +92,23 @@ export const useAllBookings = (dateRange: { start: Date; end: Date } | null, des
             const userDocSnap = await getDoc(userDocRef);
             if (userDocSnap.exists()) {
               const userData = userDocSnap.data() as UserDocument;
-              return [uid, userData.profile?.displayName || '未知使用者'] as const;
+              return [uid, {
+                displayName: userData.profile?.displayName || '未知使用者',
+                avatarUrl: userData.profile?.avatarUrl || ''
+              }] as const;
             }
-            return [uid, '使用者已刪除'] as const;
+            return [uid, { displayName: '使用者已刪除', avatarUrl: '' }] as const;
           })
         );
-        const userMap = new Map<string, string>(userEntries);
+        const userMap = new Map<string, { displayName: string; avatarUrl: string }>(userEntries);
 
         const enrichedBookings = rawBookings.map((booking) => {
           let userName: string = '未知使用者';
+          let userAvatarUrl: string = '';
           if (booking.userId && userMap.has(booking.userId)) {
-            userName = userMap.get(booking.userId)!;
+            const user = userMap.get(booking.userId)!;
+            userName = user.displayName;
+            userAvatarUrl = user.avatarUrl;
           } else if (booking.userId && !userMap.has(booking.userId)) {
             userName = '無使用者ID';
           }
@@ -97,6 +116,7 @@ export const useAllBookings = (dateRange: { start: Date; end: Date } | null, des
           return {
             ...booking,
             userName,
+            userAvatarUrl,
             serviceName: booking.serviceNames.join('、'),
             serviceDuration: booking.duration,
             isConflicting: conflictingIds.has(booking.id),
