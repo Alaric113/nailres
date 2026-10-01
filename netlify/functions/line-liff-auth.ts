@@ -50,7 +50,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  const { idToken, displayName, pictureUrl, lineUserId } = JSON.parse(event.body || '{}');
+  const { idToken } = JSON.parse(event.body || '{}');
 
   if (!idToken) {
     return { statusCode: 400, body: JSON.stringify({ message: 'LINE ID Token is required.' }) };
@@ -93,8 +93,8 @@ const handler: Handler = async (event: HandlerEvent) => {
 
     const timestamp = admin.firestore.FieldValue.serverTimestamp();
     const profileData = {
-      displayName: displayName || lineProfile.name,
-      avatarUrl: pictureUrl || lineProfile.picture,
+      displayName: lineProfile.name || userData?.profile?.displayName || 'LINE 使用者',
+      avatarUrl: lineProfile.picture || userData?.profile?.avatarUrl || '',
     };
 
     // BLOCK deleted users from reactivating (P0-1 Security Fix)

@@ -1,6 +1,7 @@
 import liff from '@line/liff';
 
 const LIFF_ID = import.meta.env.VITE_LIFF_ID || 'YOUR_LIFF_ID_HERE'; // Use environment variable
+let initializationPromise: Promise<typeof liff | null> | null = null;
 
 export const initializeLiff = async () => {
   try {
@@ -36,13 +37,20 @@ export const initializeLiff = async () => {
       };
     }
 
-    if (!LIFF_ID || LIFF_ID === 'YOUR_LIFF_ID_HERE') {
-      console.warn('LIFF ID is invalid or missing:', LIFF_ID);
+    if (!initializationPromise) {
+      if (!LIFF_ID || LIFF_ID === 'YOUR_LIFF_ID_HERE') {
+        console.warn('LIFF ID is invalid or missing:', LIFF_ID);
+      }
+      // Layouts and pages share both in-flight and completed initialization.
+      initializationPromise = liff.init({ liffId: LIFF_ID })
+        .then(() => liff)
+        .catch(error => {
+          initializationPromise = null;
+          console.error('LIFF initialization failed', error);
+          return null;
+        });
     }
-    // Always initialize LIFF
-    await liff.init({ liffId: LIFF_ID });
-
-    return liff; // Return liff instance
+    return initializationPromise;
   } catch (error) {
     console.error('LIFF initialization failed', error);
     return null;

@@ -127,23 +127,12 @@ const LiffEntry = () => {
             return;
           }
 
-          let profile = null;
-          try {
-            profile = await liff.getProfile();
-          } catch (e) {
-            console.warn('[LiffEntry] Failed to get profile', e);
-          }
-
           console.log('[LiffEntry] Sending ID Token to backend...');
           const response = await fetch('/api/line-liff-auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              idToken,
-              displayName: profile?.displayName,
-              pictureUrl: profile?.pictureUrl,
-              lineUserId: profile?.userId
-            }),
+            // The server obtains profile data from LINE's verified ID token.
+            body: JSON.stringify({ idToken }),
           });
 
           if (!response.ok) {
