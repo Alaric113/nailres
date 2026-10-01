@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { initializeLiff } from '../../lib/liff';
@@ -25,8 +25,36 @@ const LiffEntry = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [progressText, setProgressText] = useState('正在為您連線 LINE 服務...');
 
-  // Prevent double init with a ref
-  const hasInitStarted = useRef(false);
+  const redirectedTo = useRef<string | null>(null);
+  const hasFailed = useRef(false);
+  const requestController = useRef<AbortController | null>(null);
+
+  const redirectPath = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    let target = params.get('redirect');
+    if (!target) {
+      let liffState = params.get('liff.state');
+      if (liffState) {
+        // URLSearchParams already decodes once; some LIFF links encode twice.
+        if (!liffState.startsWith('/') && !liffState.startsWith('?')) {
+          try { liffState = decodeURIComponent(liffState); } catch { liffState = null; }
+        }
+        if (liffState?.startsWith('/')) target = liffState;
+        else if (liffState?.startsWith('?')) target = new URLSearchParams(liffState).get('redirect');
+      }
+    }
+    return target?.startsWith('/') && !target.startsWith('//') && !target.includes('\\')
+      ? target
+      : '/booking';
+  }, [location.search]);
+
+  const finishLogin = useCallback(() => {
+    if (hasFailed.current || redirectedTo.current === redirectPath) return;
+    redirectedTo.current = redirectPath;
+    setStatus('redirecting');
+    setProgressText('登入成功，正在開啟專屬空間...');
+    navigate(redirectPath, { replace: true });
+  }, [navigate, redirectPath]);
 
   // Timeout watchdog
   useEffect(() => {
@@ -34,6 +62,8 @@ const LiffEntry = () => {
     if (status === 'initializing' || status === 'verifying' || status === 'logging_in') {
       timeoutId = setTimeout(() => {
         console.warn('[LiffEntry] Timeout reached. Current status:', status);
+        hasFailed.current = true;
+        requestController.current?.abort();
         setErrorMessage(`系統回應逾時 (狀態: ${status})，請確認網路連線或稍後重新載入`);
         setStatus('error');
       }, 30000); // 30s timeout
@@ -41,55 +71,42 @@ const LiffEntry = () => {
     return () => clearTimeout(timeoutId);
   }, [status]);
 
-  // Single init effect - only depends on location
   useEffect(() => {
-    if (hasInitStarted.current) {
-      console.log('[LiffEntry] Init already started, skipping...');
-      return;
-    }
-    hasInitStarted.current = true;
-
-    console.log('[LiffEntry] Mounted. Location:', location.pathname, location.search);
+    let active = true;
+    const controller = new AbortController();
+    requestController.current = controller;
+    hasFailed.current = false;
+    const isActive = () => active && !hasFailed.current && redirectedTo.current !== redirectPath;
     const queryParams = new URLSearchParams(location.search);
-    
-    let redirectPath = queryParams.get('redirect');
-    
-    // Fallback: Check if liff.state contains the path
-    if (!redirectPath) {
-      const liffState = queryParams.get('liff.state');
-      if (liffState) {
-        const decodedState = decodeURIComponent(liffState);
-        if (decodedState.startsWith('/')) {
-          redirectPath = decodedState;
-        } else if (decodedState.startsWith('?')) {
-          const stateParams = new URLSearchParams(decodedState);
-          redirectPath = stateParams.get('redirect');
-        }
-      }
-    }
-    
-    redirectPath = redirectPath || '/booking';
-    console.log('[LiffEntry] Parsed redirectPath:', redirectPath);
-    
     const code = queryParams.get('code');
     const state = queryParams.get('state');
 
     const init = async () => {
       console.log('[LiffEntry] init() started. Code:', code ? 'Yes' : 'No', 'State:', state ? 'Yes' : 'No');
       try {
+        if (!isActive()) return;
         // Check if Firebase auth already resolved (persisted session)
         const { currentUser: existingUser } = useAuthStore.getState();
         if (existingUser) {
           console.log('[LiffEntry] Firebase already logged in. Redirecting...');
-          setStatus('redirecting');
-          setProgressText('登入成功，正在開啟專屬空間...');
-          navigate(redirectPath, { replace: true });
+          finishLogin();
           return;
         }
 
         console.log('[LiffEntry] Calling initializeLiff()...');
+        setStatus('initializing');
         setProgressText('正在啟動 LINE LIFF 環境...');
-        const liff = await initializeLiff();
+        // Restore Firebase concurrently with LIFF, before exchanging another token.
+        const liffReady = initializeLiff();
+        await auth.authStateReady();
+        if (!isActive()) return;
+        if (auth.currentUser || useAuthStore.getState().currentUser) {
+          finishLogin();
+          return;
+        }
+
+        const liff = await liffReady;
+        if (!isActive()) return;
         
         if (!liff) {
           throw new Error('LIFF 初始化失敗');
@@ -103,9 +120,9 @@ const LiffEntry = () => {
 
         // Check again after LIFF init
         const { currentUser: currentAfterLiff } = useAuthStore.getState();
-        if (currentAfterLiff) {
+        if (auth.currentUser || currentAfterLiff) {
           console.log('[LiffEntry] Firebase now logged in. Redirecting...');
-          navigate(redirectPath, { replace: true });
+          finishLogin();
           return;
         }
 
@@ -131,9 +148,11 @@ const LiffEntry = () => {
           const response = await fetch('/api/line-liff-auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
             // The server obtains profile data from LINE's verified ID token.
             body: JSON.stringify({ idToken }),
           });
+          if (!isActive()) return;
 
           if (!response.ok) {
             const errText = await response.text();
@@ -142,6 +161,7 @@ const LiffEntry = () => {
           }
 
           const { firebaseCustomToken } = await response.json();
+          if (!isActive()) return;
           console.log('[LiffEntry] Got custom token. Signing in...');
           await signInWithCustomToken(auth, firebaseCustomToken);
           console.log('[LiffEntry] Sign in complete.');
@@ -194,8 +214,10 @@ const LiffEntry = () => {
           const response = await fetch('/api/line-oauth-auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
             body: JSON.stringify({ code, redirectUri }),
           });
+          if (!isActive()) return;
 
           console.log('[LiffEntry] Fetch complete. Status:', response.status);
 
@@ -207,34 +229,32 @@ const LiffEntry = () => {
           
           setProgressText('驗證成功，正在登入系統...');
           const { firebaseCustomToken } = await response.json();
+          if (!isActive()) return;
           console.log('[LiffEntry] Got custom token. Signing in...');
           await signInWithCustomToken(auth, firebaseCustomToken);
           console.log('[LiffEntry] Sign in complete.');
         }
 
-      } catch (err: any) {
+      } catch (err: unknown) {
+        if (!isActive()) return;
+        hasFailed.current = true;
         console.error('[LiffEntry] Caught Error:', err);
-        setErrorMessage(err.message || '連線時發生未知錯誤');
+        setErrorMessage(err instanceof Error ? err.message : '連線時發生未知錯誤');
         setStatus('error');
       }
     };
 
     init();
-  }, [location]);
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [location.search, redirectPath, finishLogin]);
 
   // Separate effect to handle redirect when auth state changes
   useEffect(() => {
-    if (hasInitStarted.current && currentUser && status !== 'redirecting') {
-      const queryParams = new URLSearchParams(location.search);
-      let redirectPath = queryParams.get('redirect') || '/booking';
-      setStatus('redirecting');
-      setProgressText('登入成功，正在開啟專屬空間...');
-      const timer = setTimeout(() => {
-        navigate(redirectPath, { replace: true });
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [currentUser]);
+    if (currentUser) finishLogin();
+  }, [currentUser, finishLogin]);
 
   // Status Stepper Index
   const getStepIndex = () => {
