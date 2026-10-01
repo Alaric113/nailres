@@ -1,13 +1,31 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Gift, ArrowRight } from 'lucide-react';
 import { useGlobalSettings } from '../../hooks/useGlobalSettings';
 
+const MARQUEE_PIXELS_PER_SECOND = 24;
+
 const AnnouncementBanner: React.FC = () => {
   const { settings } = useGlobalSettings();
+  const marqueeRef = useRef<HTMLDivElement>(null);
+  const [duration, setDuration] = useState(60);
 
   const defaultText = "歡迎加入 TREERING ｜ 新朋友註冊即贈 $50 禮金，單筆消費滿 $1,000 再享專屬點數回饋！";
   const announcementText = settings.bookingNotice?.trim() || defaultText;
+
+  useEffect(() => {
+    const track = marqueeRef.current;
+    if (!track) return;
+    const updateDuration = () => {
+      // The loop travels half the track; long notices should not move faster.
+      const distance = track.getBoundingClientRect().width / 2;
+      setDuration(Math.max(60, distance / MARQUEE_PIXELS_PER_SECOND));
+    };
+    updateDuration();
+    const observer = new ResizeObserver(updateDuration);
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [announcementText]);
 
   return (
     <>
@@ -20,7 +38,11 @@ const AnnouncementBanner: React.FC = () => {
           className="w-full h-full flex items-center overflow-hidden hover:opacity-95 transition-opacity"
         >
           {/* Marquee container with smooth continuous animation & hover pause */}
-          <div className="whitespace-nowrap animate-marquee flex items-center shrink-0 group-hover:[animation-play-state:paused]">
+          <div
+            ref={marqueeRef}
+            className="whitespace-nowrap animate-marquee flex items-center shrink-0 group-hover:[animation-play-state:paused]"
+            style={{ animationDuration: `${duration}s` }}
+          >
             {/* Render 4 times for seamless infinite loop on any screen width */}
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="flex items-center gap-3 px-8 shrink-0">
@@ -52,7 +74,7 @@ const AnnouncementBanner: React.FC = () => {
         }
 
         .animate-marquee {
-          animation: marquee 32s linear infinite;
+          animation: marquee 60s linear infinite;
           will-change: transform;
         }
 

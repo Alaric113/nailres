@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { initializeLiff } from '../../lib/liff';
 import { signInWithCustomToken, signInAnonymously } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
-import { generateState, generateNonce } from '../../utils/lineAuth';
+import { resolveLiffTarget, isPublicStoreTarget, requiresLiffBootstrap } from '../../utils/liffRoute';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import PageLoadError from '../../components/common/PageLoadError';
+import { reopenCurrentPage } from '../../utils/pageRecovery';
 import { 
   Sparkles, 
   ShieldCheck, 
@@ -15,9 +18,43 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const LINE_CHANNEL_ID = import.meta.env.VITE_LINE_CHANNEL_ID;
+const StoreInfoPage = lazy(() => import('../StoreInfoPage'));
 
 const LiffEntry = () => {
+  const location = useLocation();
+  const redirectPath = resolveLiffTarget(location.pathname, location.search);
+  const publicStore = isPublicStoreTarget(redirectPath);
+  const needsBootstrap = requiresLiffBootstrap(location.search, window.location.hash);
+  const entryKey = location.pathname + location.search;
+  const [readyKey, setReadyKey] = useState<string | null>(null);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!publicStore && !needsBootstrap) return;
+    let active = true;
+    const timer = setTimeout(() => {
+      if (active) setFailedKey(entryKey);
+      active = false;
+    }, 30000);
+    // Public content can render now. Keep the URL intact while LINE consumes its credentials.
+    initializeLiff().then(liff => {
+      if (!active) return;
+      clearTimeout(timer);
+      if (liff) setReadyKey(entryKey);
+      else setFailedKey(entryKey);
+    });
+    return () => { active = false; clearTimeout(timer); };
+  }, [entryKey, publicStore, needsBootstrap]);
+
+  if (publicStore) {
+    return <Suspense fallback={<LoadingSpinner text="正在開啟店家資訊..." fullScreen />}><StoreInfoPage /></Suspense>;
+  }
+  if (needsBootstrap && failedKey === entryKey) return <PageLoadError />;
+  if (needsBootstrap && readyKey !== entryKey) return <LoadingSpinner text="正在開啟 LINE 頁面..." fullScreen />;
+  return <LiffLogin redirectPath={redirectPath} />;
+};
+
+const LiffLogin = ({ redirectPath }: { redirectPath: string }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuthStore();
@@ -28,25 +65,6 @@ const LiffEntry = () => {
   const redirectedTo = useRef<string | null>(null);
   const hasFailed = useRef(false);
   const requestController = useRef<AbortController | null>(null);
-
-  const redirectPath = useMemo(() => {
-    const params = new URLSearchParams(location.search);
-    let target = params.get('redirect');
-    if (!target) {
-      let liffState = params.get('liff.state');
-      if (liffState) {
-        // URLSearchParams already decodes once; some LIFF links encode twice.
-        if (!liffState.startsWith('/') && !liffState.startsWith('?')) {
-          try { liffState = decodeURIComponent(liffState); } catch { liffState = null; }
-        }
-        if (liffState?.startsWith('/')) target = liffState;
-        else if (liffState?.startsWith('?')) target = new URLSearchParams(liffState).get('redirect');
-      }
-    }
-    return target?.startsWith('/') && !target.startsWith('//') && !target.includes('\\')
-      ? target
-      : '/booking';
-  }, [location.search]);
 
   const finishLogin = useCallback(() => {
     if (hasFailed.current || redirectedTo.current === redirectPath) return;
@@ -77,12 +95,7 @@ const LiffEntry = () => {
     requestController.current = controller;
     hasFailed.current = false;
     const isActive = () => active && !hasFailed.current && redirectedTo.current !== redirectPath;
-    const queryParams = new URLSearchParams(location.search);
-    const code = queryParams.get('code');
-    const state = queryParams.get('state');
-
     const init = async () => {
-      console.log('[LiffEntry] init() started. Code:', code ? 'Yes' : 'No', 'State:', state ? 'Yes' : 'No');
       try {
         if (!isActive()) return;
         // Check if Firebase auth already resolved (persisted session)
@@ -127,7 +140,7 @@ const LiffEntry = () => {
         }
 
         // --- Handle Implicit LIFF Login (In-App Browser) ---
-        if (liff.isLoggedIn() && !code) {
+        if (liff.isLoggedIn()) {
           console.log('[LiffEntry] LIFF is logged in. Getting ID Token...');
           setStatus('verifying');
           setProgressText('正在安全驗證會員身分...');
@@ -168,72 +181,14 @@ const LiffEntry = () => {
           return;
         }
 
-        // If not logged in AND no code, trigger OAuth login
-        if (!liff.isLoggedIn() && !code) {
-          console.log('[LiffEntry] Triggering OAuth redirect...');
-          const authState = generateState();
-          const nonce = generateNonce();
-          sessionStorage.setItem('line_auth_state', authState);
-          sessionStorage.setItem('line_auth_nonce', nonce);
-
-          const fixedRedirectPath = '/liff';
-          const redirectUri = window.location.origin + fixedRedirectPath;
-          
-          const returnPath = redirectPath; 
-          const stateValue = '?' + new URLSearchParams({ 
-            s: authState, 
-            redirect: returnPath 
-          }).toString();
-
-          const params = new URLSearchParams({
-            response_type: 'code',
-            client_id: LINE_CHANNEL_ID || '',
-            redirect_uri: redirectUri,
-            state: stateValue,
-            scope: 'profile openid email',
-            nonce: nonce,
-            bot_prompt: 'normal', 
-          });
-
-          const loginUrl = `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
-          console.log('[LiffEntry] Redirecting to:', loginUrl);
-          window.location.href = loginUrl;
-          return;
+        if (liff.isInClient()) {
+          throw new Error('LINE 授權已失效，請關閉此視窗後，從圖文選單重新開啟。');
         }
-        
-        // If we have code and state, exchange it
-        if (code && state) {
-          console.log('[LiffEntry] Starting Token Exchange...');
-          setStatus('verifying');
-          setProgressText('正在同步您的會員資料...');
-          
-          const fixedRedirectPath = '/liff';
-          const redirectUri = window.location.origin + fixedRedirectPath;
-          
-          console.log('[LiffEntry] sending fetch to /api/line-oauth-auth');
-          const response = await fetch('/api/line-oauth-auth', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
-            body: JSON.stringify({ code, redirectUri }),
-          });
-          if (!isActive()) return;
 
-          console.log('[LiffEntry] Fetch complete. Status:', response.status);
-
-          if (!response.ok) {
-            const errText = await response.text();
-            console.error('[LiffEntry] Fetch error body:', errText);
-            throw new Error(`授權交換失敗: ${errText}`);
-          }
-          
-          setProgressText('驗證成功，正在登入系統...');
-          const { firebaseCustomToken } = await response.json();
-          if (!isActive()) return;
-          console.log('[LiffEntry] Got custom token. Signing in...');
-          await signInWithCustomToken(auth, firebaseCustomToken);
-          console.log('[LiffEntry] Sign in complete.');
-        }
+        // The SDK owns its OAuth state and code exchange. Do not reuse callback parameters.
+        const returnUrl = new URL(location.pathname, window.location.origin);
+        returnUrl.searchParams.set('redirect', redirectPath);
+        liff.login({ redirectUri: returnUrl.toString() });
 
       } catch (err: unknown) {
         if (!isActive()) return;
@@ -249,7 +204,7 @@ const LiffEntry = () => {
       active = false;
       controller.abort();
     };
-  }, [location.search, redirectPath, finishLogin]);
+  }, [location.pathname, location.search, redirectPath, finishLogin]);
 
   // Separate effect to handle redirect when auth state changes
   useEffect(() => {
@@ -293,11 +248,11 @@ const LiffEntry = () => {
 
           <div className="space-y-2.5 pt-2">
             <button 
-              onClick={() => window.location.reload()} 
+              onClick={() => void reopenCurrentPage()}
               className="w-full py-3 bg-[#9F9586] hover:bg-[#8A8173] text-white text-xs sm:text-sm font-bold rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
-              <span>重新載入連線</span>
+              <span>重新開啟連線</span>
             </button>
             <button 
               onClick={() => navigate('/')} 

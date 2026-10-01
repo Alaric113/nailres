@@ -13,14 +13,15 @@ const UserLayout: React.FC = () => {
   const { currentUser } = useAuthStore();
 
   // Check once on mount/render if it's LIFF
-  const [isLiff] = useState(isLiffBrowser());
+  const [isLiff] = useState(isLiffBrowser);
 
   // Initialize LIFF if we are in a LIFF browser
   React.useEffect(() => {
-    if (isLiff) {
+    // The entry page owns its handshake. The public store needs no LINE API.
+    if (isLiff && !/^\/liff(?:\/|$)/.test(location.pathname) && !/^\/store\/?$/.test(location.pathname)) {
       initializeLiff().then(() => console.log('[UserLayout] LIFF Initialized'));
     }
-  }, [isLiff]);
+  }, [isLiff, location.pathname]);
 
   const toggleSidebar = useCallback(() => {
     setIsSidebarOpen(prev => !prev);

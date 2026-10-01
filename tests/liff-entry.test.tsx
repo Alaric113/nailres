@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   getProfile: vi.fn(),
   signInWithCustomToken: vi.fn(),
   signInAnonymously: vi.fn(),
+  login: vi.fn(),
   auth: { currentUser: null as null | { uid: string }, authStateReady: vi.fn() },
 }));
 
@@ -20,6 +21,7 @@ vi.mock('react-router-dom', () => ({
 }));
 vi.mock('../src/lib/liff', () => ({ initializeLiff: mocks.initializeLiff }));
 vi.mock('../src/lib/firebase', () => ({ auth: mocks.auth }));
+vi.mock('../src/pages/StoreInfoPage', () => ({ default: () => <div>Public store information</div> }));
 vi.mock('firebase/auth', () => ({
   signInWithCustomToken: mocks.signInWithCustomToken,
   signInAnonymously: mocks.signInAnonymously,
@@ -43,6 +45,8 @@ function deferred<T>() {
 
 const liff = {
   isLoggedIn: () => true,
+  isInClient: () => true,
+  login: mocks.login,
   getIDToken: () => 'verified-by-server-id-token',
   getProfile: mocks.getProfile,
 };
@@ -62,6 +66,8 @@ beforeEach(() => {
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
   mocks.location.search = '';
+  mocks.location.pathname = '/liff';
+  window.history.replaceState({}, '', '/liff');
   mocks.auth.currentUser = null;
   mocks.auth.authStateReady.mockResolvedValue(undefined);
   mocks.initializeLiff.mockResolvedValue(liff);
@@ -87,6 +93,66 @@ afterEach(async () => {
 });
 
 describe('LIFF loading/login spinner', () => {
+  it('lets the SDK handle its OAuth callback instead of exchanging the code a second time', async () => {
+    mocks.location.search = '?code=sdk-consumed-code&state=sdk-state&redirect=%2Fmember';
+    await mount();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/line-liff-auth');
+  });
+
+  it('does not launch a second LINE Login flow inside a LIFF client with expired authorization', async () => {
+    mocks.initializeLiff.mockResolvedValue({ ...liff, isLoggedIn: () => false });
+    await mount();
+
+    expect(container.textContent).toContain('從圖文選單重新開啟');
+    expect(mocks.login).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('uses SDK-managed login with a clean return URL in an external browser', async () => {
+    mocks.location.search = '?redirect=%2Fmember';
+    mocks.initializeLiff.mockResolvedValue({ ...liff, isLoggedIn: () => false, isInClient: () => false });
+    await mount();
+
+    expect(mocks.login).toHaveBeenCalledWith({ redirectUri: `${window.location.origin}/liff?redirect=%2Fmember` });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    '/liff?redirect=%2Fstore',
+    '/liff?liff.state=' + encodeURIComponent('?redirect=%2Fstore'),
+    '/liff/store',
+  ])('shows store information without waiting for authentication at %s', async path => {
+    const url = new URL(path, window.location.origin);
+    mocks.location.pathname = url.pathname;
+    mocks.location.search = url.search;
+    mocks.initializeLiff.mockReturnValue(deferred<typeof liff>().promise);
+    mocks.auth.authStateReady.mockReturnValue(deferred<void>().promise);
+    await mount();
+    // Let the public page's lazy import settle without advancing network promises.
+    await act(async () => { await vi.dynamicImportSettled(); });
+
+    expect(container.textContent).toContain('Public store information');
+    expect(mocks.auth.authStateReady).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mocks.signInWithCustomToken).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it('does not rewrite a primary LIFF redirect before SDK initialization finishes', async () => {
+    mocks.location.search = '?liff.state=' + encodeURIComponent('?redirect=%2Fmember');
+    const sdk = deferred<typeof liff>();
+    mocks.initializeLiff.mockReturnValue(sdk.promise);
+    useAuthStore.setState({ currentUser: { uid: 'existing-user' } as never });
+    await mount();
+
+    expect(mocks.initializeLiff).toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+    await act(async () => { sdk.resolve(liff); });
+    expect(mocks.navigate).toHaveBeenCalledWith('/member', { replace: true });
+  });
+
   it('skips authentication work for a session already available in the store', async () => {
     useAuthStore.setState({ currentUser: { uid: 'existing-user' } as never });
     await mount();

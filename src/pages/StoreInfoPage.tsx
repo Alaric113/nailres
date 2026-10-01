@@ -8,10 +8,16 @@ import { renderToString } from 'react-dom/server';
 import { useAuthStore } from '../store/authStore';
 import { isLiffBrowser } from '../lib/liff';
 
+const cartoApiKey = import.meta.env.VITE_CARTO_BASEMAP_API_KEY?.trim();
+const cartoTileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+  + (cartoApiKey ? `?key=${encodeURIComponent(cartoApiKey)}` : '');
+
 // Component to fix map rendering issues (grey tiles) by triggering a resize check
 const MapFix = () => {
   const map = useMap();
   useEffect(() => {
+    // Keep attribution above the bottom sheet and navigation button.
+    map.attributionControl.setPosition('topright');
     const timer = setTimeout(() => {
       map.invalidateSize();
     }, 100);
@@ -177,7 +183,7 @@ const StoreInfoPage: React.FC = () => {
             <MapFix />
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                url={cartoTileUrl}
             />
             <Marker position={position} icon={customIcon}>
                 <Popup className="font-serif">
@@ -201,7 +207,7 @@ const StoreInfoPage: React.FC = () => {
         </motion.button>
         
         {/* Gradient Overlay for seamless transition */}
-        <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-[#FAF9F6] to-transparent pointer-events-none z-[1000]" />
+        <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-[#FAF9F6] to-transparent pointer-events-none z-[400]" />
       </div>
 
       {/* --- Content Section (Bottom Sheet Card) --- */}

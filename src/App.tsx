@@ -8,6 +8,8 @@ const Login = lazy(() => import('./components/auth/Login').then(module => ({ def
 const Register = lazy(() => import('./pages/Register'));
 const PortfolioGalleryPage = lazy(() => import('./pages/PortfolioGalleryPage'));
 const LiffEntry = lazy(() => import('./pages/liff/LiffEntry'));
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
+const RootRedirect = lazy(() => import('./components/auth/RootRedirect'));
 
 // Page Components
 const BookingPage = lazy(() => import('./pages/BookingPage'));
@@ -40,7 +42,6 @@ const ImageSettingsPage = lazy(() => import('./pages/admin/ImageSettingsPage'));
 const PortfolioManagementPage = lazy(() => import('./pages/PortfolioManagementPage'));
 // Layout Components
 import LoadingSpinner from './components/common/LoadingSpinner';
-import AdminLayout from './components/admin/AdminLayout';
 import UserLayout from './layouts/UserLayout';
 import { ToastProvider } from './context/ToastContext';
 
@@ -49,7 +50,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 
-import RootRedirect from './components/auth/RootRedirect';
+import PageLoadError from './components/common/PageLoadError';
 import ScrollToTop from './components/common/ScrollToTop';
 import { useNotification } from './hooks/useNotification'; // New Import
 
@@ -82,6 +83,7 @@ const routes = [
   {
     path: '/',
     element: <RootLayout />,
+    errorElement: <PageLoadError />,
     children: [
       {
         element: <UserLayout />,
@@ -109,7 +111,7 @@ const routes = [
               { path: 'member/purchase/:passId', element: <PurchasePassPage /> },
             ],
           },
-          { path: 'liff', element: <LiffEntry /> },
+          { path: 'liff/*', element: <LiffEntry /> },
           { path: 'orders/:bookingId', element: <MemberOrderDetailPage /> }, // New Order Detail Route
           { path: 'orders/:orderId/feedback', element: <OrderFeedbackPage /> }, // Feedback Route
         ],
