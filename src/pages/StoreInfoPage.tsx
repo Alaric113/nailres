@@ -1,30 +1,10 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import { BuildingStorefrontIcon, PaperAirplaneIcon } from '@heroicons/react/24/solid';
+import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 import { MapPinIcon, ClockIcon, DocumentDuplicateIcon, CheckIcon } from '@heroicons/react/24/outline';
-import { renderToString } from 'react-dom/server';
+import StoreMap from '../components/StoreMap';
 import { useAuthStore } from '../store/authStore';
 import { isLiffBrowser } from '../lib/liff';
-
-const cartoApiKey = import.meta.env.VITE_CARTO_BASEMAP_API_KEY?.trim();
-const cartoTileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-  + (cartoApiKey ? `?key=${encodeURIComponent(cartoApiKey)}` : '');
-
-// Component to fix map rendering issues (grey tiles) by triggering a resize check
-const MapFix = () => {
-  const map = useMap();
-  useEffect(() => {
-    // Keep attribution above the bottom sheet and navigation button.
-    map.attributionControl.setPosition('topright');
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [map]);
-  return null;
-};
 
 // Clean vector social icons
 const SocialSVGs = {
@@ -99,29 +79,6 @@ const StoreInfoPage: React.FC = () => {
     setShowAppSelection(false);
   };
 
-  // Create custom icon
-  const customIcon = useMemo(() => {
-    return L.divIcon({
-      className: 'custom-icon',
-      html: renderToString(
-        <div className="relative flex flex-col items-center justify-center -translate-x-1/2 -translate-y-full">
-           <div className="relative">
-             <div className="bg-[#9F9586] text-white p-2.5 rounded-full shadow-lg border-2 border-white relative z-10">
-               <BuildingStorefrontIcon className="w-5 h-5" />
-             </div>
-             {/* Pulse effect */}
-             <div className="absolute top-0 left-0 w-full h-full bg-[#9F9586] rounded-full animate-ping opacity-75 z-0"></div>
-           </div>
-           {/* Triangle pointer */}
-           <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-[#9F9586] -mt-0.5 relative z-10"></div>
-        </div>
-      ),
-      iconSize: [40, 40],
-      iconAnchor: [20, 40],
-      popupAnchor: [0, -45],
-    });
-  }, []);
-
   return (
     <div className={`${heightClass} bg-[#FAF9F6] text-[#2C2825] overflow-hidden flex flex-col relative`}>
       {/* Map App Selection Modal */}
@@ -174,26 +131,7 @@ const StoreInfoPage: React.FC = () => {
 
       {/* --- Map Section (Top 50%) --- */}
       <div className="h-[50%] w-full relative z-0 shrink-0 group">
-        <MapContainer 
-          center={position} 
-          zoom={17} 
-          scrollWheelZoom={true} 
-          className="w-full h-full outline-none"
-        >
-            <MapFix />
-            <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                url={cartoTileUrl}
-            />
-            <Marker position={position} icon={customIcon}>
-                <Popup className="font-serif">
-                   <div className="text-center p-1">
-                     <h3 className="font-bold text-[#2C2825]">TreeRing</h3>
-                     <p className="text-xs text-[#8A8175] mt-0.5">新北市蘆洲區中山一路176號</p>
-                   </div>
-                </Popup>
-            </Marker>
-        </MapContainer>
+        <StoreMap position={position} />
         
         {/* Navigation FAB */}
         <motion.button

@@ -131,15 +131,25 @@
   chunk is still about 1.1 MB uncompressed and warrants further splitting.
 
 ### 10) Store map shows an API-key error
-- Source: CARTO's tile URL in `src/pages/StoreInfoPage.tsx` displayed "API Key
+- Source: the previous CARTO tile URL in `src/pages/StoreInfoPage.tsx` displayed "API Key
   Required" during browser verification.
-- Follow-up: restored the original CARTO Voyager map at the user's request.
-  CARTO now requires a Basemaps API key (policy effective 2026-09-23), so the
-  original unauthenticated URL can still display its "API Key Required" watermark.
-- Setup: request a CARTO Basemaps key and set `VITE_CARTO_BASEMAP_API_KEY` in local
-  and deployment build environments, then rebuild. The tile URL now includes the
-  configured key automatically. No key was present in the local environment files.
-- Reference: https://carto.com/basemaps/apikey/
+- Cause: CARTO requires a Basemaps API key (policy effective 2026-09-23).
+  Restoring Voyager without a configured key did not remove the watermark.
+- Fix: following the user's request for a similar key-free style, replace CARTO
+  with OpenFreeMap Liberty and MapLibre. Retain pale roads, parks, the store pin,
+  zoom controls and navigation; use flat buildings and local Chinese names.
+  The provider allows commercial use with no registration or API key.
+- Loading: `src/components/StoreMap.tsx` loads the renderer separately from store
+  content. Failed module downloads, unavailable WebGL, graphics context loss,
+  or an initial load stalled for 15 seconds switch to an OpenStreetMap embed.
+  The fallback also needs no key, and store details/navigation remain usable.
+- Attribution: keep OpenMapTiles/OpenStreetMap credits at the top so the bottom
+  information sheet cannot obscure them. Remove unused Leaflet dependencies and
+  their global stylesheet. No `VITE_CARTO_BASEMAP_API_KEY` is required anymore.
+- Tradeoff: Liberty is similar, not identical, to Voyager. OpenFreeMap offers no
+  SLA; real LINE webviews still need device verification after deployment.
+- References: https://openfreemap.org/ and https://openfreemap.org/quick_start/
+  (original provider change: https://carto.com/basemaps/apikey/).
 
 ### 11) Local production build aborts under the current Node 24 runtime
 - Observation: TypeScript/tests pass, but Vite aborts after transformation under
@@ -151,8 +161,7 @@
 These are local fixes until deployed. Phone reopening, LINE configuration, and
 production response headers still require deployment checks.
 
-Validation before CARTO restoration: 32 regression tests, TypeScript build checking, targeted ESLint, and
-the production Vite/PWA build using Node 22 passed. Browser inspection confirmed
-the public store route and working OpenStreetMap tiles without login.
-After CARTO restoration, TypeScript checking passed; removing CARTO's watermark
-still requires configuring the provider's Basemaps API key.
+Validation after the key-free map replacement: 39 regression tests, TypeScript
+build checking, targeted ESLint, and the production Vite/PWA build using Node 22
+passed. Browser inspection confirmed the public store route, Chinese map labels,
+store marker/popup and visible provider credits at desktop and mobile widths.

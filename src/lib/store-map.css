@@ -1,0 +1,65 @@
+.store-map .maplibregl-ctrl-attrib {
+  max-width: calc(100vw - 84px);
+  font-size: 10px;
+  line-height: 16px;
+  color: #5c5548;
+  background: rgb(255 255 255 / 90%);
+}
+
+.store-map .maplibregl-ctrl-group button {
+  width: 44px;
+  height: 44px;
+}
+
+.store-map .maplibregl-ctrl button:focus-visible,
+.store-map__pin:focus-visible {
+  outline: 2px solid #5c5548;
+  outline-offset: 3px;
+}
+
+.store-map__pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 48px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.store-map__pin-circle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid white;
+  border-radius: 50%;
+  color: white;
+  background: #9f9586;
+  box-shadow: 0 4px 12px rgb(44 40 37 / 25%);
+}
+
+.store-map__pin-circle svg {
+  width: 22px;
+  height: 22px;
+}
+
+.store-map__pin-tip {
+  width: 0;
+  height: 0;
+  margin-top: -1px;
+  border-right: 6px solid transparent;
+  border-left: 6px solid transparent;
+  border-top: 8px solid #9f9586;
+}
+
+.store-map__popup .maplibregl-popup-content {
+  padding: 20px;
+  color: #5c5548;
+  font-family: var(--font-sans);
+  text-align: center;
+  white-space: pre-line;
+}
